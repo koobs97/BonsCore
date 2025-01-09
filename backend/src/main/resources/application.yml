@@ -1,0 +1,16 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: BonsCore
+  profiles:
+    active: local
+  banner:
+    location: templates/banner/banner.txt
+
+mybatis:
+  config-location: classpath:/mybatis/mybatis-config.xml
+  mapper-locations: classpath:/mybatis/mappers/**/*.xml
+  type-aliases-package: com.koo.bonscore
+

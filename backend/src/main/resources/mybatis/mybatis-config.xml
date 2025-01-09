@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!-- MyBatis의 전역 설정 -->
+    <settings>
+        <!-- Caching 사용 여부 -->
+        <setting name="cacheEnabled" value="false"/>
+        <!-- Underscore to CamelCase 변환 설정 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- SLF4J 로깅 설정 -->
+        <setting name="logImpl" value="org.apache.ibatis.logging.slf4j.Slf4jImpl"/>
+    </settings>
+</configuration>
