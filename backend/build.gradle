@@ -34,6 +34,11 @@ dependencies {
 
     // jasypt 암호화 표준
     implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5'
+
+    // lombok
+    implementation 'org.projectlombok:lombok:1.18.26'
+    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+
 }
 
 tasks.named('test') {

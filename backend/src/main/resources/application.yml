@@ -14,3 +14,9 @@ mybatis:
   mapper-locations: classpath:/mybatis/mappers/**/*.xml
   type-aliases-package: com.koo.bonscore
 
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) %magenta(${PID:-}) -- [BonsCore] [%-15.15thread] %cyan(%-40.40logger{39}) : %msg%n"

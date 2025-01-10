@@ -1,5 +1,6 @@
 package com.koo.bonscore.core.config.enc;
 
+
 import org.jasypt.encryption.StringEncryptor;
 import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
 import org.jasypt.salt.RandomSaltGenerator;
@@ -35,13 +36,11 @@ public class JasyptConfig {
 
     /**
      * Jasypt에서 사용할 동적 Key 생성
-     *
-     * @return Key
      * */
-    public String keyGenerator() {
+    public static void main(String[] args) {
         SecureRandom random = new SecureRandom();
         byte[] key = new byte[32]; // 256비트 AES 키
         random.nextBytes(key);
-        return Base64.getEncoder().encodeToString(key);
+        System.out.println("Secret Key : " + Base64.getEncoder().encodeToString(key));
     }
 }
