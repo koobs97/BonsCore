@@ -1,4 +1,4 @@
-package com.koo.bonscore.sample;
+package com.koo.bonscore.sample.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;

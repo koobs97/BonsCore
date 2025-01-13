@@ -1,5 +1,6 @@
-package com.koo.bonscore.sample;
+package com.koo.bonscore.sample.service;
 
+import com.koo.bonscore.sample.mapper.SampleMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
