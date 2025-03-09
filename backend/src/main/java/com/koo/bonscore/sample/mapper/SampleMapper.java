@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface SampleMapper {
-    @Select("SELECT COUNT(1) FROM TB_USER")
+    @Select("SELECT COUNT(1) FROM TB_SAMPLE")
     int testSelect();
 
 }
