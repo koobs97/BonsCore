@@ -1,5 +1,4 @@
 <script setup>
-
 import { Hide } from "@element-plus/icons-vue";
 </script>
 
@@ -12,22 +11,23 @@ import { Hide } from "@element-plus/icons-vue";
     </h2>
 
     <el-form
-        style="margin-top: 70px;">
+        style="margin-top: 45px;">
+      <div style="text-align: left;">
+        <el-checkbox label="로그인정보 기억하기" checked />
+      </div>
       <el-input
           placeholder="사용자ID"
           style="
             height: 40px;
             font-size: 15px;
-            margin-bottom: 8px;"
-      />
+            margin-bottom: 8px;"/>
       <el-input
           placeholder="비밀번호"
           type="password"
           style="
             height: 40px;
             font-size: 15px;
-            margin-bottom: 16px;"
-      >
+            margin-bottom: 16px;">
         <template #append>
           <el-button :icon="Hide" />
         </template>
@@ -38,8 +38,7 @@ import { Hide } from "@element-plus/icons-vue";
             width: 100%;
             height: 45px;
             font-weight: bold;
-            font-size: 16px;"
-      >
+            font-size: 16px;">
         로그인
       </el-button>
     </el-form>
@@ -50,7 +49,9 @@ import { Hide } from "@element-plus/icons-vue";
     </div>
   </el-card>
 
-  <el-card shadow="never" style="margin-top: 16px; height: 70px;">
+  <el-card
+      shadow="never"
+      style="margin-top: 12px; height: 70px;">
     <el-button
           type="primary"
           link
@@ -60,6 +61,19 @@ import { Hide } from "@element-plus/icons-vue";
       회원가입
     </el-button>
   </el-card>
+  <div style="text-align: right; margin-top: 12px;">
+    <img style="width: 350px; height: 51px;" src="../assets/images/logo.png" alt="Logo"  />
+  </div>
+  <div style="
+    position: fixed;
+    bottom: 2%;
+    left: 0;
+    right: 0;
+    font-size: 12px;
+    text-align: center;">
+    <strong>Copyright</strong> KooBonSang &copy; 2025 All Rights Reserved.
+  </div>
+
 </template>
 
 <style scoped>
