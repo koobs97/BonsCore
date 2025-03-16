@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
 import router from '../router';
+import * as ElIcons from '@element-plus/icons-vue';
 
 // App
 const app = createApp(App);
@@ -11,7 +12,11 @@ const app = createApp(App);
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import 'element-plus/dist/index.css';
 import ElementPlus from 'element-plus';
-
+app.config.globalProperties.$ELEMENT = { zIndex: 5000 };
+// ElementPlus 아이콘을 전역으로 등록
+Object.entries(ElIcons).forEach(([key, component]) => {
+    app.component(key, component);
+});
 
 import { createPinia } from "pinia";
 

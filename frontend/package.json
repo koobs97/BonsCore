@@ -9,18 +9,27 @@
     "preview": "vite preview"
   },
   "compilerOptions": {
-    "types": ["vue"]
+    "types": [
+      "vue"
+    ]
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
+    "axios": "^1.8.3",
     "element-plus": "^2.9.5",
+    "path-browserify": "^1.0.1",
     "pinia": "^3.0.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/path-browserify": "^1.0.3",
+    "@types/webpack-dev-server": "^4.7.1",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/runtime-dom": "^3.5.13",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "^5.8.2",
     "vite": "^6.1.0"
   }
 }

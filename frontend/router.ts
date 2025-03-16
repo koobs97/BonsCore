@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 import indexHome from './src/views/indexHome.vue';
-import { userStore } from './src/store/userStore';
+import { userStore } from '@/store/userStore';
 
 // 페이지 경로를 저장할 배열
 const routes = [];
@@ -30,7 +30,7 @@ for (const path in allPages) {
 routes.push({
     path: '/',
     component: indexHome,
-    beforeEnter: async (to, from, next) => {
+    beforeEnter: async (to: any, from: any, next: any) => {
         const isLoggedIn = userStore().isLoggedIn;
         if (isLoggedIn) {
             next();           // 로그인 상태면 계속 진행

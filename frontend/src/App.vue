@@ -1,13 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { onActivated } from 'vue';
 import { useRouter } from 'vue-router';
-import { userStore } from "./store/userStore.js";
+import { userStore } from "./store/userStore";
 
 const userStoreObj = userStore();
 const router = useRouter();
 
 onActivated(() => {
-  if(userStoreObj.isLoggedIn === false) {
+  if(!userStoreObj.isLoggedIn) {
     router.push('/login')
   }
   else {

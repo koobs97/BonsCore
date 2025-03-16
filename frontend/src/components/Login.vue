@@ -1,5 +1,5 @@
-<script setup>
-import { Hide, View } from "@element-plus/icons-vue";
+<script setup lang="ts">
+import {Hide, View} from "@element-plus/icons-vue";
 import { reactive, computed, ref } from 'vue'
 
 /**
