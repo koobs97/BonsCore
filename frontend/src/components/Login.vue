@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import {Hide, View} from "@element-plus/icons-vue";
-import { reactive, computed, ref } from 'vue'
+import {computed, reactive, ref} from 'vue'
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import JSEncrypt from 'jsencrypt';
 
 /**
  * 패스워드는 ref(반응형 변수)로 새로고침하면 사라짐
@@ -22,6 +25,33 @@ const passwdType = computed(() => (state.isVisible ? "text" : "password"));
 // 패스워드 입력 모드 전환
 const togglePassword = () => {
   state.isVisible = !state.isVisible;
+}
+
+/**
+ * 패스워드 공개키 받아오기
+ * @param password
+ */
+const encryptPassword = async (password: string): Promise<string> => {
+  const { data: publicKey } = await Api.get(ApiUrls.GET_PUBLIC_KEY); // 서버에서 공개 키 받아오기
+  const encryptor = new JSEncrypt();
+  encryptor.setPublicKey(publicKey);
+  return encryptor.encrypt(password) || ''; // RSA 암호화
+};
+
+/**
+ * 로그인 버튼 클릭 이벤트
+ */
+const onClickLogin = async () => {
+
+  // 서버에서 공개키 get
+  const encryptedPassword = await encryptPassword(password.value);
+
+  const params = {
+    userId : userId.value,
+    password : encryptedPassword
+  }
+
+  await Api.post(ApiUrls.LOGIN, params, true);
 }
 </script>
 
@@ -61,6 +91,7 @@ const togglePassword = () => {
       </el-input>
       <el-button
           type="primary"
+          @click="onClickLogin"
           style="
             width: 100%;
             height: 45px;

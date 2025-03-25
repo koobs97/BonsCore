@@ -12,6 +12,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080/api',
         changeOrigin: true, // cross origin 허용
+        rewrite: (path) => path.replace(/^\/api/, '')
       },
     },
   },
