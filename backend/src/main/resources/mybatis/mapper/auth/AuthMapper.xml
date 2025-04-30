@@ -1,5 +1,26 @@
-<!--<?xml version="1.0" encoding="UTF-8" ?>-->
-<!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"-->
-<!--        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">-->
-<!--<mapper namespace="AuthMapper">-->
-<!--</mapper>-->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.koo.bonscore.biz.auth.mapper.AuthMapper">
+    <!-- 해싱된 패스워드 조회 -->
+    <select id="login" resultType="String" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
+        SELECT PASSWORD_HASH                    /* 비밀번호 해시 */
+          FROM USER_INFO                        /* 유저정보 테이블 */
+         WHERE USER_ID = #{userId}              /* 사용자 ID */
+         ORDER BY USER_ID DESC
+    </select>
+
+    <!-- 유저 정보 조회 -->
+    <select id="findByUserId" resultType="com.koo.bonscore.biz.auth.dto.UserDto" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
+        SELECT USER_ID                          /* 사용자 ID */
+             , USER_NAME                        /* 사용자 이름 */
+             , EMAIL                            /* 사용자 이메일 */
+             , PHONE_NUMBER                     /* 사용자 전화번호 */
+             , BIRTH_DATE                       /* 사용자 생년월일 */
+             , GENDER_CODE                      /* 성별 코드 */
+          FROM USER_INFO                        /* 유저정보 테이블 */
+         WHERE USER_ID = #{userId}              /* 사용자 ID */
+         ORDER BY USER_ID DESC
+    </select>
+</mapper>

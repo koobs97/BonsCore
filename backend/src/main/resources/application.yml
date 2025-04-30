@@ -9,14 +9,15 @@ spring:
   banner:
     location: templates/banner/banner.txt
 
-mybatis:
-  config-location: classpath:/mybatis/mybatis-config.xml
-  mapper-locations: classpath:/mybatis/mappers/**/*.xml
-  type-aliases-package: com.koo.bonscore
+jwt:
+  secret: kjasd8123u1k3j123nmd8123u1lkj12ui31
 
 logging:
   level:
     root: INFO
-    org.springframework.web: WARN
+    org.springframework.web: INFO
+    com:
+      koo:
+        bonscore: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) %magenta(${PID:-}) -- [BonsCore] [%-15.15thread] %cyan(%-40.40logger{39}) : %msg%n"

@@ -5,4 +5,5 @@ export enum ApiUrls {
     USER_INFO = '/api/user/info',
     REFRESH_TOKEN = '/api/auth/refresh',
     // 필요에 따라 API 추가
+    TEST = '/api/aflogin/afterLogin'
 }

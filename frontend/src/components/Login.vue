@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import {Hide, View} from "@element-plus/icons-vue";
-import {computed, reactive, ref} from 'vue'
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
-import JSEncrypt from 'jsencrypt';
 
-/**
+import { Hide, View } from "@element-plus/icons-vue";
+import { computed, reactive, ref, onMounted } from 'vue';
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
+import JSEncrypt from 'jsencrypt';
+import { ElMessage } from 'element-plus';
+import { Common } from '@/common/common';
+
+/*
  * 패스워드는 ref(반응형 변수)로 새로고침하면 사라짐
  * state, pinia에 저장 시 XSS 공격에 취약
- * @type {Ref<UnwrapRef<string>, UnwrapRef<string> | string>}
+ * @type {import('vue').Ref<string>}
  */
-const userId = ref("");
-const password = ref("");
+const userId = ref();
+const password = ref();
+
+// ref focus 참조용 변수
+const userIdInput = ref();
+const passwordInput = ref();
 
 // reactive 정의
 const state = reactive({
@@ -27,6 +34,11 @@ const togglePassword = () => {
   state.isVisible = !state.isVisible;
 }
 
+// 화면진입 시
+onMounted(() => {
+  userIdInput.value?.focus();
+})
+
 /**
  * 패스워드 공개키 받아오기
  * @param password
@@ -39,9 +51,28 @@ const encryptPassword = async (password: string): Promise<string> => {
 };
 
 /**
+ * 로그인 버튼 클릭 시 입력값 검증
+ */
+const validateInput = () => {
+  if(Common.isEmpty(userId.value)) {
+    ElMessage.error('사용자ID를 입력하세요.');
+    userIdInput.value?.focus();
+    return;
+  }
+  if(Common.isEmpty(password.value)) {
+    ElMessage.error('비밀번호를 입력하세요.');
+    passwordInput.value?.focus();
+    return;
+  }
+}
+
+/**
  * 로그인 버튼 클릭 이벤트
  */
 const onClickLogin = async () => {
+
+  // 입력값 검증
+  validateInput();
 
   // 서버에서 공개키 get
   const encryptedPassword = await encryptPassword(password.value);
@@ -51,7 +82,10 @@ const onClickLogin = async () => {
     password : encryptedPassword
   }
 
-  await Api.post(ApiUrls.LOGIN, params, true);
+  const res = await Api.post(ApiUrls.LOGIN, params, true);
+  console.log(res);
+  sessionStorage.setItem('token', res.token);
+
 }
 </script>
 
@@ -64,12 +98,14 @@ const onClickLogin = async () => {
     </h2>
 
     <el-form
-        style="margin-top: 45px;">
+        style="margin-top: 45px;"
+        @keydown.enter.prevent="onClickLogin">
       <div style="text-align: left;">
         <el-checkbox label="로그인정보 기억하기" checked />
       </div>
       <el-input
           v-model="userId"
+          ref="userIdInput"
           placeholder="사용자ID"
           style="
             height: 40px;
@@ -77,6 +113,7 @@ const onClickLogin = async () => {
             margin-bottom: 8px;"/>
       <el-input
           v-model="password"
+          ref="passwordInput"
           placeholder="비밀번호"
           :type="passwdType"
           style="

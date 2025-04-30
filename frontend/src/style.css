@@ -40,12 +40,12 @@
   --el-color-danger-light-8: rgb(253, 225.6, 225.6);
   --el-color-danger-light-9: rgb(254, 240.3, 240.3);
   --el-color-danger-dark-2: rgb(196, 86.4, 86.4);
-  --el-color-error: #f56c6c;
+  --el-color-error: #ae2012 !important;
   --el-color-error-light-3: rgb(248, 152.1, 152.1);
   --el-color-error-light-5: rgb(250, 181.5, 181.5);
   --el-color-error-light-7: rgb(252, 210.9, 210.9);
-  --el-color-error-light-8: rgb(253, 225.6, 225.6);
-  --el-color-error-light-9: rgb(254, 240.3, 240.3);
+  --el-color-error-light-8: #ae2012 !important; /* 에러테두리 */
+  --el-color-error-light-9: rgb(254, 240.3, 240.3); /* 에러배경 */
   --el-color-error-dark-2: rgb(196, 86.4, 86.4);
   --el-color-info: #909399;
   --el-color-info-light-3: rgb(177.3, 179.4, 183.6);
@@ -92,6 +92,10 @@
   --el-border-color-hover: var(--el-text-color-disabled);
   --el-border: var(--el-border-width) var(--el-border-style) var(--el-border-color);
   --el-svg-monochrome-grey: var(--el-border-color);
+
+  --el-message-bg-color: var(--el-color-error-light-9);
+  --el-message-border-color: var(--el-color-error-light-8);
+  --el-message-text-color: var(--el-color-error);
 }
 
 a {

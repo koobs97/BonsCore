@@ -1,4 +1,4 @@
-package com.koo.bonscore.biz.auth.dto;
+package com.koo.bonscore.biz.auth.dto.req;
 
 import lombok.Data;
 
