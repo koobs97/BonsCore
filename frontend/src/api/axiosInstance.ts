@@ -13,9 +13,9 @@ axiosInstance.interceptors.request.use(
             // 로그인 요청은 토큰을 추가하지 않도록 설정
             delete config.headers.Authorization;
         } else {
-            const token = sessionStorage.getItem('token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
+            const accessToken = sessionStorage.getItem('accessToken');
+            if (accessToken) {
+                config.headers.Authorization = `Bearer ${accessToken}`;
             }
         }
         return config;
@@ -26,14 +26,26 @@ axiosInstance.interceptors.request.use(
 // 응답 인터셉터 (403 처리)
 axiosInstance.interceptors.response.use(
     response => response,
-    error => {
-        if (error.response) {
-            const status = error.response.status;
+    async error => {
+        const originalRequest = error.config;
 
-            if (status === 403) {
-                ElMessage.error('로그인이 만료되었거나 권한이 없습니다.')
-                localStorage.removeItem('token'); // 토큰 삭제
-                router.push('/login'); // 로그인 페이지로 이동
+        if (error.response && error.response.status === 403 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // Refresh Token으로 새 Access Token 요청
+                const refreshResponse = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+                const newToken = refreshResponse.data.token;
+
+                // 새 토큰 저장하고 원래 요청 재시도
+                sessionStorage.setItem('token', newToken);
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                sessionStorage.removeItem('token');
+                ElMessage.error('로그인이 만료되었습니다. 다시 로그인해주세요.');
+                await router.push('/login');
+                return Promise.reject(refreshError);
             }
 
             // 다른 상태 코드 처리 가능

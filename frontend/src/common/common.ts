@@ -6,6 +6,6 @@ export class Common {
      * @param param
      */
     public static isEmpty = (param: any) => {
-        return param === undefined || param.trim() === "";
+        return param === undefined || param === null || param.trim() === "";
     }
 }

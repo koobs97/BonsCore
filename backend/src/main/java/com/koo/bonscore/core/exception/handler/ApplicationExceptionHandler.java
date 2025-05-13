@@ -1,5 +1,6 @@
 package com.koo.bonscore.core.exception.handler;
 
+import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
@@ -39,7 +40,13 @@ public class ApplicationExceptionHandler {
                 ex.getMessage(),                                                                // message: 예외 메시지
                 request.getDescription(false).replace("uri=", "") // path: 요청 경로
         );
-        return new ResponseEntity<>(errorResponse, ex.getStatusCode().getHttpStatus());
+
+        ApiResponse<Object> apiResponse = ApiResponse.failure(
+                ex.getErrorCode(),
+                ex.getMessage()
+        );
+
+        return new ResponseEntity<>(apiResponse, ex.getStatusCode().getHttpStatus());
     }
 
     /**
@@ -59,7 +66,13 @@ public class ApplicationExceptionHandler {
                 ErrorCode.INTERNAL_SERVER_ERROR.getMessage(),                                   // message: 예외 메시지
                 request.getDescription(false).replace("uri=", "") // path: 요청 경로
         );
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+
+        ApiResponse<Object> apiResponse = ApiResponse.failure(
+                ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
+        );
+
+        return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }

@@ -22,21 +22,24 @@ public class JwtTokenProvider {
 
     private final long expirationMs = 1000L * 60 * 60 * 2; // 2시간
 
+    public static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000; // 15분
+    public static final long REFRESH_TOKEN_VALIDITY = 7 * 24 * 60 * 60 * 1000; //
+
     private static final String HEADER = "Authorization";
     private static final String PREFIX = "Bearer ";
 
     // 토큰 생성
-    public String createToken(String userId) {
+    public String createToken(String userId, long expirationMillis) {
         Claims claims = Jwts.claims().setSubject(userId);
-
         Date now = new Date();
+        Date expiry = new Date(now.getTime() + expirationMillis);
 
         Key key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
 
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + expirationMs))
+                .setExpiration(expiry)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }

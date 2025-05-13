@@ -6,6 +6,7 @@ import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.core.config.web.JwtTokenProvider;
+import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -45,19 +46,23 @@ public class AuthService {
 
         if (!isMatch) {
             response.setSuccess(Boolean.FALSE);
-            response.setMessage("비밀번호가 일치하지 않습니다.");
+            response.setMessage(ErrorCode.INVALID_CREDENTIALS.getMessage());
             return response;
         }
 
         // 유저정보 세팅
         UserDto user = authMapper.findByUserId(request);
 
-        String token = jwtTokenProvider.createToken(user.getUserId());
+        // Access Token: 15분
+        String accessToken = jwtTokenProvider.createToken(user.getUserId(), JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
+        // Refresh Token: 7일
+        String refreshToken = jwtTokenProvider.createToken(user.getUserId(), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
+
         response.setSuccess(true);
         response.setMessage("로그인 성공");
-        response.setToken(token);
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken); // 임시 저장
 
         return response;
-
     }
 }

@@ -15,6 +15,7 @@ import { Common } from '@/common/common';
  */
 const userId = ref();
 const password = ref();
+const rememberId = ref(true);
 
 // ref focus 참조용 변수
 const userIdInput = ref();
@@ -36,7 +37,13 @@ const togglePassword = () => {
 
 // 화면진입 시
 onMounted(() => {
-  userIdInput.value?.focus();
+  if(rememberId.value && !Common.isEmpty(localStorage.getItem('userId'))) {
+    userId.value = localStorage.getItem('userId');
+    passwordInput.value?.focus();
+  } else {
+    localStorage.removeItem('userId');
+    userIdInput.value?.focus();
+  }
 })
 
 /**
@@ -53,7 +60,7 @@ const encryptPassword = async (password: string): Promise<string> => {
 /**
  * 로그인 버튼 클릭 시 입력값 검증
  */
-const validateInput = () => {
+const validateInput = async () => {
   if(Common.isEmpty(userId.value)) {
     ElMessage.error('사용자ID를 입력하세요.');
     userIdInput.value?.focus();
@@ -64,6 +71,8 @@ const validateInput = () => {
     passwordInput.value?.focus();
     return;
   }
+
+  return true;
 }
 
 /**
@@ -72,19 +81,35 @@ const validateInput = () => {
 const onClickLogin = async () => {
 
   // 입력값 검증
-  validateInput();
+  if(await validateInput()) {
+    // 서버에서 공개키 get
+    const encryptedPassword = await encryptPassword(password.value);
 
-  // 서버에서 공개키 get
-  const encryptedPassword = await encryptPassword(password.value);
+    const params = {
+      userId : userId.value,
+      password : encryptedPassword
+    }
 
-  const params = {
-    userId : userId.value,
-    password : encryptedPassword
+    const res = await Api.post(ApiUrls.LOGIN, params, true);
+
+    if(res.data.accessToken) {
+      console.log('login success ->', res);
+
+      // 실제로 유저 정보 불러와서 확인 (서버 호출)
+
+      sessionStorage.setItem('token', res.data.accessToken);
+
+      if(rememberId.value) {
+        localStorage.setItem('userId', userId.value);
+      } else {
+        localStorage.removeItem('userId');
+      }
+
+    } else {
+      console.log('login failed ->', res);
+    }
+
   }
-
-  const res = await Api.post(ApiUrls.LOGIN, params, true);
-  console.log(res);
-  sessionStorage.setItem('token', res.token);
 
 }
 </script>
@@ -101,7 +126,7 @@ const onClickLogin = async () => {
         style="margin-top: 45px;"
         @keydown.enter.prevent="onClickLogin">
       <div style="text-align: left;">
-        <el-checkbox label="로그인정보 기억하기" checked />
+        <el-checkbox label="아이디 기억하기" v-model="rememberId" />
       </div>
       <el-input
           v-model="userId"
