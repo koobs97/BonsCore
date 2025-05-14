@@ -83,7 +83,8 @@ export class Api {
 
                 return returnData
             } catch (error) {
-                loading.close()
+                loading.close();
+                console.error('❗API Error Response:', error.response.data);
                 return Promise.reject(error)
             }
         }

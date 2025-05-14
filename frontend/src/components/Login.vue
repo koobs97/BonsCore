@@ -54,7 +54,7 @@ const encryptPassword = async (password: string): Promise<string> => {
   const { data: publicKey } = await Api.get(ApiUrls.GET_PUBLIC_KEY); // 서버에서 공개 키 받아오기
   const encryptor = new JSEncrypt();
   encryptor.setPublicKey(publicKey);
-  return encryptor.encrypt(password) || ''; // RSA 암호화
+  return await encryptor.encrypt(password) || ''; // RSA 암호화
 };
 
 /**

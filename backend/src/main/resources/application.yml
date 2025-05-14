@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: BonsCore
-  profiles:
-    active: dev
   banner:
     location: templates/banner/banner.txt
 
