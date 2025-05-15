@@ -119,7 +119,7 @@ const onClickLogin = async () => {
       shadow="never"
       style="width: 350px; height: 370px;">
     <h2 style="font-size: 30px; color: #0D1B2A">
-      K.BONS
+      로그인
     </h2>
 
     <el-form

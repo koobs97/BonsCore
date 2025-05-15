@@ -43,7 +43,7 @@ axiosInstance.interceptors.response.use(
                 return axiosInstance(originalRequest);
             } catch (refreshError) {
                 sessionStorage.removeItem('token');
-                ElMessage.error('로그인이 만료되었습니다. 다시 로그인해주세요.');
+                ElMessage.error(error.response.data.message);
                 await router.push('/login');
                 return Promise.reject(refreshError);
             }
@@ -84,8 +84,12 @@ export class Api {
                 return returnData
             } catch (error) {
                 loading.close();
+
                 console.error('❗API Error Response:', error.response.data);
-                return Promise.reject(error)
+
+                ElMessage.error(error.response.data.message);
+
+                return error.response;
             }
         }
         else {

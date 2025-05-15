@@ -24,7 +24,8 @@ public class MyBatisConfig {
         // Camel Case 매핑 설정
         org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
         configuration.setMapUnderscoreToCamelCase(true);
-        configuration.setLogImpl(org.apache.ibatis.logging.slf4j.Slf4jImpl.class);
+        configuration.setLogImpl(org.apache.ibatis.logging.stdout.StdOutImpl.class);
+
         factoryBean.setConfiguration(configuration);
 
         return factoryBean.getObject();

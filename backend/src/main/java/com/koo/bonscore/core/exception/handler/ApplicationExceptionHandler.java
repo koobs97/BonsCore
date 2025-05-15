@@ -43,7 +43,8 @@ public class ApplicationExceptionHandler {
 
         ApiResponse<Object> apiResponse = ApiResponse.failure(
                 ex.getErrorCode(),
-                ex.getMessage()
+                ex.getMessage(),
+                errorResponse
         );
 
         return new ResponseEntity<>(apiResponse, ex.getStatusCode().getHttpStatus());
@@ -69,7 +70,8 @@ public class ApplicationExceptionHandler {
 
         ApiResponse<Object> apiResponse = ApiResponse.failure(
                 ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
-                ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
+                ErrorCode.INTERNAL_SERVER_ERROR.getMessage(),
+                errorResponse
         );
 
         return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);

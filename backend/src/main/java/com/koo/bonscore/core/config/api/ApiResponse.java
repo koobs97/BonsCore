@@ -17,8 +17,8 @@ public class ApiResponse<T> {
         return new ApiResponse<>(new Header(true, "SUCCESS"), message, data);
     }
 
-    public static <T> ApiResponse<T> failure(String code, String message) {
-        return new ApiResponse<>(new Header(false, code), message, null);
+    public static <T> ApiResponse<T> failure(String code, String message, T data) {
+        return new ApiResponse<>(new Header(false, code), message, data);
     }
 
     @Getter

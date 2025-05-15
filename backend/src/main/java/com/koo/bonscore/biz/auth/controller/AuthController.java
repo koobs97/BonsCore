@@ -8,6 +8,7 @@ import com.koo.bonscore.biz.auth.util.JwtUtil;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.config.web.JwtTokenProvider;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
+import com.koo.bonscore.core.exception.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("api/auth")
@@ -49,12 +52,22 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse> refreshAccessToken(@RequestBody RefreshTokenDto refreshTokenDto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> refreshAccessToken(@RequestBody RefreshTokenDto refreshTokenDto, HttpServletRequest request) {
         String refreshToken = refreshTokenDto.getRefreshToken();
 
         // Refresh Token 검증
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.failure(ErrorCode.INVALID_REFRESH_TOKEN.getCode(), "Invalid refresh token"));
+            ErrorResponse errorResponse = new ErrorResponse(
+                    LocalDateTime.now(),                                                            // timestamp : 발생시각
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),                                       // status: 기본 HTTP 상태 코드 (500)
+                    HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),                             // error: 기본 HTTP 상태 설명
+                    ErrorCode.INVALID_REFRESH_TOKEN.getCode(),                                      // code: 사용자 정의 에러 코드
+                    ErrorCode.INVALID_REFRESH_TOKEN.getMessage(),                                   // message: 예외 메시지
+                    "/api/refresh" // path: 요청 경로
+            );
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(ErrorCode.INVALID_REFRESH_TOKEN.getCode(), "Invalid refresh token", errorResponse));
         }
 
         // Refresh Token에서 사용자 정보 추출
