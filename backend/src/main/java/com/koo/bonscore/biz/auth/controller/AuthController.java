@@ -67,7 +67,7 @@ public class AuthController {
             );
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.failure(ErrorCode.INVALID_REFRESH_TOKEN.getCode(), "Invalid refresh token", errorResponse));
+                    .body(ApiResponse.failure(ErrorCode.INVALID_REFRESH_TOKEN.getCode(), "접속권한이 없습니다.", errorResponse));
         }
 
         // Refresh Token에서 사용자 정보 추출

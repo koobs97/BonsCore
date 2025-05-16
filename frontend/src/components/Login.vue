@@ -7,6 +7,10 @@ import { ApiUrls } from "@/api/apiUrls";
 import JSEncrypt from 'jsencrypt';
 import { ElMessage } from 'element-plus';
 import { Common } from '@/common/common';
+import { useRouter } from 'vue-router';
+import { userStore } from '@/store/userStore';
+
+const router = useRouter();
 
 /*
  * 패스워드는 ref(반응형 변수)로 새로고침하면 사라짐
@@ -96,14 +100,26 @@ const onClickLogin = async () => {
       console.log('login success ->', res);
 
       // 실제로 유저 정보 불러와서 확인 (서버 호출)
+      sessionStorage.setItem('accessToken', res.data.accessToken);
 
-      sessionStorage.setItem('token', res.data.accessToken);
+      // 유저정보 세팅
+      const params = {
+        userId : userId.value,
+      }
+      const user = await Api.post(ApiUrls.GET_USER, params, true);
+      const userInfo = user.data as userState
 
+      userStore().setUserInfo(userInfo)
+
+      // 아이디 기억하기
       if(rememberId.value) {
         localStorage.setItem('userId', userId.value);
       } else {
         localStorage.removeItem('userId');
       }
+
+      // main 화면 진입
+      await router.push("/");
 
     } else {
       console.log('login failed ->', res);

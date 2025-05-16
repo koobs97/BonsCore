@@ -1,5 +1,7 @@
 package com.koo.bonscore.core.aspect;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
@@ -17,12 +19,21 @@ public class LoggingAspect {
     public void serviceMethods() {}
 
     @Before("serviceMethods()")
-    public void logBefore(JoinPoint joinPoint) {
+    public void logBefore(JoinPoint joinPoint) throws JsonProcessingException {
         MethodSignature sig = (MethodSignature) joinPoint.getSignature();
-        log.info("▶ START: {}.{}({})",
-                sig.getDeclaringTypeName(),
-                sig.getName(),
-                Arrays.toString(joinPoint.getArgs()));
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String params = objectMapper.writeValueAsString(joinPoint.getArgs());
+
+        String sb = "\n" +
+                "+------------------------------------------------------------------+\n" +
+                "|                          SERVICE START                           |\n" +
+                "+------------------------------------------------------------------+\n" +
+                "| Class      : " + sig.getDeclaringTypeName() + "\n" +
+                "| Method     : " + sig.getName() + "\n" +
+                "| Parameters : " + params + "\n" +
+                "+------------------------------------------------------------------+";
+        log.info(sb);
     }
 
     @AfterReturning(pointcut = "serviceMethods()", returning = "result")

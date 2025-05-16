@@ -36,7 +36,7 @@ public class AuthService {
         String decryptedPassword = rsaController.decrypt(request.getPassword());
 
         // bcrypt 해싱 후 검증
-        // String hashedPassword = passwordEncoder.encode(decryptedPassword);
+        String hashedPassword = passwordEncoder.encode(decryptedPassword);
 
         // userId의 해싱된 passwd get
         String getHasedPassword = authMapper.login(request);
