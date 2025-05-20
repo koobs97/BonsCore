@@ -1,3 +1,9 @@
+server:
+  port: 8080
+
+cors:
+  allowed-origins: http://localhost:5173
+
 spring:
   datasource:
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
