@@ -10,15 +10,3 @@ spring:
     url: jdbc:log4jdbc:oracle:thin:@127.0.0.1:1521:orcl
     username: KOOBS97
     password: ENC(MlggygeeIo9+Sxo2N6ekjZ4FUaWNCtRe)
-
-# 로그 포맷 설정
-p6spy:
-  config:
-    appender: com.p6spy.engine.spy.appender.Slf4JLogger
-    logMessageFormat: com.p6spy.engine.spy.appender.MultiLineFormat
-    customLogMessageFormat: |
-      Category: %(category)
-      Connection Id: %(connectionId)
-      Time: %(executionTime) ms
-      SQL:
-      %(sql)
