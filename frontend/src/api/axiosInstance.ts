@@ -40,10 +40,15 @@ axiosInstance.interceptors.response.use(
                 // 새 토큰 저장하고 원래 요청 재시도
                 sessionStorage.setItem('token', newToken);
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
                 return axiosInstance(originalRequest);
             } catch (refreshError) {
+
                 sessionStorage.removeItem('token');
-                ElMessage.error(error.response.data.message);
+                if(error.response.data.message) {
+                    ElMessage.error(error.response.data.message);
+                }
+
                 await router.push('/login');
                 return Promise.reject(refreshError);
             }
@@ -85,11 +90,22 @@ export class Api {
             } catch (error) {
                 loading.close();
 
-                console.error('❗API Error Response:', error.response.data);
+                // 타입에러에 따른 에러 정의
+                const Error = error as any;
 
-                ElMessage.error(error.response.data.message);
+                // 에러 내용 출력
+                console.error('❗API Error Response:', Error.response.data);
 
-                return error.response;
+                // 에러 response message 출력Error
+                if(Error.response.data.message) {
+                    ElMessage.error(Error.response.data.message);
+                }
+                // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
+                else if (Error.response.data?.includes('CORS')) {
+                    ElMessage.error("서버와 연결할 수 없습니다");
+                }
+
+                return Error.response;
             }
         }
         else {

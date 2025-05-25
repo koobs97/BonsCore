@@ -6,9 +6,12 @@ import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.core.config.web.JwtTokenProvider;
+import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
+import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import oracle.core.lmx.CoreException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +50,11 @@ public class AuthService {
         if (!isMatch) {
             response.setSuccess(Boolean.FALSE);
             response.setMessage(ErrorCode.INVALID_CREDENTIALS.getMessage());
-            return response;
+
+            throw new BsCoreException(
+                      HttpStatusCode.UNAUTHORIZED
+                    , ErrorCode.INVALID_CREDENTIALS
+                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
         }
 
         // 유저정보 세팅
