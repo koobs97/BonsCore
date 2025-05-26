@@ -3,6 +3,7 @@ import './style.css'
 import App from './App.vue'
 import router from '../router';
 import * as ElIcons from '@element-plus/icons-vue';
+import { userStore } from '@/store/userStore';
 
 // App
 const app = createApp(App);
@@ -25,3 +26,10 @@ app
     .use(createPinia())
     .use(ElementPlus)
     .mount('#app')
+
+// ✅ 로그인 정보 복원
+const savedUserInfo = localStorage.getItem('userInfo');
+if (savedUserInfo) {
+    const userInfo = JSON.parse(savedUserInfo);
+    userStore().setUserInfo(userInfo);
+}

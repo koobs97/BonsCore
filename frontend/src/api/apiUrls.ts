@@ -7,4 +7,7 @@ export enum ApiUrls {
     // 필요에 따라 API 추가
     AF_LOGIN = '/api/aflogin/afterLogin',
     GET_USER = '/api/aflogin/me',
+
+
+    PAGING = '/api/sample/paging',
 }

@@ -2,7 +2,7 @@ server:
   port: 8080
 
 cors:
-  allowed-origins: http://localhost:5173
+  allowed-origins: http://localhost:3001
 
 spring:
   datasource:

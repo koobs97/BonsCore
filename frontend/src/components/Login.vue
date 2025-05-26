@@ -109,6 +109,7 @@ const onClickLogin = async () => {
       const user = await Api.post(ApiUrls.GET_USER, params, true);
       const userInfo = user.data as userState
 
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
       userStore().setUserInfo(userInfo)
 
       // 아이디 기억하기

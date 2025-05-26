@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/sample")
@@ -14,9 +16,8 @@ public class SampleController {
 
     private final SampleService sampleService;
 
-    @PostMapping("test")
-    public Boolean test(SampleVo vo) {
-        sampleService.test(vo);
-        return true;
+    @PostMapping("/paging")
+    public List<SampleVo> test(SampleVo vo) {
+        return sampleService.test(vo);
     }
 }
