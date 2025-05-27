@@ -1,0 +1,139 @@
+package com.koo.bonscore.common.page;
+
+import org.apache.ibatis.executor.Executor;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlSource;
+import org.apache.ibatis.plugin.*;
+import org.apache.ibatis.reflection.MetaObject;
+import org.apache.ibatis.reflection.SystemMetaObject;
+import org.apache.ibatis.session.ResultHandler;
+import org.apache.ibatis.session.RowBounds;
+import org.apache.ibatis.scripting.defaults.DefaultParameterHandler;
+
+import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+@Intercepts({
+        @Signature(type = Executor.class, method = "query", args = {
+                MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class
+        })
+})
+public class PagingInterceptor implements Interceptor {
+
+    public Object intercept(Invocation invocation) throws Throwable {
+        Object[] args = invocation.getArgs();
+        MappedStatement ms = (MappedStatement) args[0];
+        Object parameter = args[1];
+
+        Page page = extractPageParam(parameter);
+        if (page == null) {
+            return invocation.proceed(); // 페이징 객체 없으면 그대로 실행
+        }
+
+        BoundSql boundSql = ms.getBoundSql(parameter);
+        String originalSql = boundSql.getSql();
+
+        // 1. Count 쿼리 실행
+        String countSql = "SELECT COUNT(*) FROM (" + originalSql + ") TEMP_COUNT";
+        Connection connection = ms.getConfiguration().getEnvironment().getDataSource().getConnection();
+        PreparedStatement countStmt = connection.prepareStatement(countSql);
+        DefaultParameterHandler countPh = new DefaultParameterHandler(ms, parameter, boundSql);
+        countPh.setParameters(countStmt);
+        ResultSet rs = countStmt.executeQuery();
+        long total = 0;
+        if (rs.next()) {
+            total = rs.getLong(1);
+        }
+        rs.close();
+        countStmt.close();
+
+        PageContext.setTotalCount((int) total);
+
+        // 2. 페이징 SQL 조작 (Oracle 기준 ROWNUM 사용)
+        String pagingSql =
+                "SELECT * FROM (" +
+                        "SELECT TMP_TABLE.*, ROWNUM RNUM FROM (" + originalSql + ") TMP_TABLE " +
+                        "WHERE ROWNUM <= " + (page.getOffset() + page.getLimit()) +
+                        ") WHERE RNUM > " + page.getOffset();
+
+        BoundSql newBoundSql = new BoundSql(ms.getConfiguration(), pagingSql, boundSql.getParameterMappings(), parameter);
+
+        MappedStatement newMs = copyMappedStatement(ms, newBoundSql);
+        args[0] = newMs;
+
+        // 3. 실제 데이터 쿼리 실행
+        @SuppressWarnings("unchecked")
+        List<Object> resultList = (List<Object>) invocation.proceed();
+
+        // 4. PageResult로 래핑
+        return resultList;
+    }
+
+    private Page extractPageParam(Object parameter) {
+        if (parameter instanceof Page) return (Page) parameter;
+
+        if (parameter instanceof Map) {
+            for (Object value : ((Map<?, ?>) parameter).values()) {
+                if (value instanceof Page) return (Page) value;
+            }
+        }
+
+        // 리플렉션을 통해 Page 필드 추출
+        try {
+            Field[] fields = parameter.getClass().getDeclaredFields();
+            for (Field field : fields) {
+                if (field.getType().equals(Page.class)) {
+                    field.setAccessible(true);
+                    Object value = field.get(parameter);
+                    if (value instanceof Page) {
+                        return (Page) value;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // 무시
+        }
+        return null;
+    }
+
+    private MappedStatement copyMappedStatement(MappedStatement ms, BoundSql newBoundSql) {
+        return new MappedStatement.Builder(ms.getConfiguration(), ms.getId(),
+                (SqlSource) new BoundSqlSqlSource(newBoundSql), ms.getSqlCommandType())
+                .resource(ms.getResource())
+                .fetchSize(ms.getFetchSize())
+                .statementType(ms.getStatementType())
+                .keyGenerator(ms.getKeyGenerator())
+                .keyProperty(String.join(",", ms.getKeyProperties() != null ? ms.getKeyProperties() : new String[0]))
+                .timeout(ms.getTimeout())
+                .parameterMap(ms.getParameterMap())
+                .resultMaps(ms.getResultMaps())
+                .resultSetType(ms.getResultSetType())
+                .cache(ms.getCache())
+                .build();
+    }
+
+    @Override
+    public Object plugin(Object target) {
+        return Plugin.wrap(target, this);
+    }
+
+    static class BoundSqlSqlSource implements SqlSource {
+        private final BoundSql boundSql;
+        BoundSqlSqlSource(BoundSql boundSql) {
+            this.boundSql = boundSql;
+        }
+        @Override
+        public BoundSql getBoundSql(Object parameterObject) {
+            return boundSql;
+        }
+    }
+
+    @Override
+    public void setProperties(Properties properties) {}
+}

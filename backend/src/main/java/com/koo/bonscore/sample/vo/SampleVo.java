@@ -1,12 +1,13 @@
 package com.koo.bonscore.sample.vo;
 
-import lombok.AllArgsConstructor;
+import com.koo.bonscore.common.page.Page;
 import lombok.Data;
-import lombok.Getter;
 
 @Data
-@AllArgsConstructor
 public class SampleVo {
+
+    private Page page;
+
     private String userId;
     private String userName;
     private String email;

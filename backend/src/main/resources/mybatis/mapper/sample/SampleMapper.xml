@@ -4,7 +4,7 @@
 
 <mapper namespace="com.koo.bonscore.sample.mapper.SampleMapper">
     <!-- Paging 처리 테스트용 임시 sql -->
-    <select id="testSelect" resultType="com.koo.bonscore.sample.vo.SampleVo">
+    <select id="testSelect" resultType="com.koo.bonscore.sample.vo.SampleVo" parameterType="com.koo.bonscore.sample.vo.SampleVo">
         SELECT USER_ID                          /* 사용자 ID */
              , USER_NAME                        /* 사용자 이름 */
              , EMAIL                            /* 사용자 이메일 */
@@ -12,6 +12,10 @@
              , BIRTH_DATE                       /* 사용자 생년월일 */
              , GENDER_CODE                      /* 성별 코드 */
           FROM USER_INFO                        /* 유저정보 테이블 */
+         WHERE 1 = 1
+        <if test="page != null">
+            AND 1 = 1 <!-- page 객체 존재 알리기용 -->
+        </if>
          ORDER BY USER_ID DESC
     </select>
 </mapper>
