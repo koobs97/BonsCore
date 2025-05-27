@@ -1,5 +1,6 @@
 package com.koo.bonscore.common.page;
 
+import com.koo.bonscore.core.config.annotation.Pageable;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -12,6 +13,7 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.scripting.defaults.DefaultParameterHandler;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,6 +32,10 @@ public class PagingInterceptor implements Interceptor {
         Object[] args = invocation.getArgs();
         MappedStatement ms = (MappedStatement) args[0];
         Object parameter = args[1];
+
+        if (!hasPageableAnnotation(ms)) {
+            return invocation.proceed(); // 어노테이션 없으면 그대로 실행
+        }
 
         Page page = extractPageParam(parameter);
         if (page == null) {
@@ -73,6 +79,28 @@ public class PagingInterceptor implements Interceptor {
 
         // 4. PageResult로 래핑
         return resultList;
+    }
+
+    // 어노테이션 여부 확인
+    private boolean hasPageableAnnotation(MappedStatement ms) {
+        String id = ms.getId(); // ex) com.example.mapper.SampleMapper.testSelect
+        String className = id.substring(0, id.lastIndexOf('.'));
+        String methodName = id.substring(id.lastIndexOf('.') + 1);
+
+        try {
+            Class<?> mapperClass = Class.forName(className);
+            for (Method method : mapperClass.getDeclaredMethods()) {
+                // 같은 이름의 메서드 중에 어노테이션 붙은 메서드가 있는지 확인
+                if (method.getName().equals(methodName)
+                        && method.isAnnotationPresent(Pageable.class)) {
+                    return true;
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Mapper class not found: " + className, e);
+        }
+
+        return false;
     }
 
     private Page extractPageParam(Object parameter) {
