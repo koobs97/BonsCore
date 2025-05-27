@@ -96,6 +96,7 @@
   --el-message-bg-color: var(--el-color-error-light-9);
   --el-message-border-color: var(--el-color-error-light-8);
   --el-message-text-color: var(--el-color-error);
+
 }
 
 a {
@@ -161,4 +162,8 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+.el-table th.el-table__cell {
+  background-color: var(--el-color-primary) !important;
 }

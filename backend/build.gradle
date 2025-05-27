@@ -24,6 +24,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+    // mybatis
+    implementation 'org.mybatis:mybatis:3.5.13'
+
     // logging
     implementation 'org.springframework.boot:spring-boot-starter-logging'
     implementation 'org.bgee.log4jdbc-log4j2:log4jdbc-log4j2-jdbc4.1:1.16'

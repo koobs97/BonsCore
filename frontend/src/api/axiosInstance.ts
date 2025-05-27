@@ -3,6 +3,7 @@ import { ApiUrls } from './apiUrls';
 import { ElLoading } from 'element-plus';
 import router from '../../router';
 import { ElMessage } from 'element-plus'
+import { userStore } from '@/store/userStore';
 
 const axiosInstance = axios.create();
 
@@ -94,6 +95,7 @@ export class Api {
                 const Error = error as any;
 
                 // 에러 내용 출력
+                console.error('❗API Error Response:', Error);
                 console.error('❗API Error Response:', Error.response.data);
 
                 // 에러 response message 출력Error
@@ -103,6 +105,13 @@ export class Api {
                 // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
                 else if (Error.response.data?.includes('CORS')) {
                     ElMessage.error("서버와 연결할 수 없습니다");
+                }
+
+                if(Error.status === 401) {
+                    ElMessage.error("세션만료");
+                    ElMessage.error("로그인 화면으로 이동합니다.");
+                    userStore().delUserInfo();
+                    await router.push("/login");
                 }
 
                 return Error.response;
