@@ -2,7 +2,7 @@ server:
   port: 8080
 
 cors:
-  allowed-origins: http://localhost:3001
+  allowed-origins: http://localhost:3000
 
 spring:
   datasource:
@@ -10,3 +10,10 @@ spring:
     url: jdbc:log4jdbc:oracle:thin:@127.0.0.1:1521:orcl
     username: KOOBS97
     password: ENC(MlggygeeIo9+Sxo2N6ekjZ4FUaWNCtRe)
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+      validation-timeout: 2000
+      minimum-idle: 10
+      idle-timeout: 600000
+      max-lifetime: 1800000

@@ -1,6 +1,6 @@
 package com.koo.bonscore.sample.vo;
 
-import com.koo.bonscore.common.page.Page;
+import com.koo.bonscore.common.paging.Page;
 import lombok.Data;
 
 @Data

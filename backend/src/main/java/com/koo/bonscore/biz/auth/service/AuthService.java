@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import oracle.core.lmx.CoreException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class AuthService {
      * @return LoginResponseDto
      * @throws Exception
      */
+    @Transactional(rollbackFor = Exception.class)
     public LoginResponseDto login(LoginDto request) throws Exception {
 
         LoginResponseDto response = new LoginResponseDto();

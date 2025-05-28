@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.page;
+package com.koo.bonscore.common.paging;
 
 import com.koo.bonscore.core.config.annotation.Pageable;
 import org.apache.ibatis.executor.Executor;
@@ -6,8 +6,6 @@ import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.*;
-import org.apache.ibatis.reflection.MetaObject;
-import org.apache.ibatis.reflection.SystemMetaObject;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.scripting.defaults.DefaultParameterHandler;
@@ -47,19 +45,28 @@ public class PagingInterceptor implements Interceptor {
 
         // 1. Count 쿼리 실행
         String countSql = "SELECT COUNT(*) FROM (" + originalSql + ") TEMP_COUNT";
-        Connection connection = ms.getConfiguration().getEnvironment().getDataSource().getConnection();
-        PreparedStatement countStmt = connection.prepareStatement(countSql);
-        DefaultParameterHandler countPh = new DefaultParameterHandler(ms, parameter, boundSql);
-        countPh.setParameters(countStmt);
-        ResultSet rs = countStmt.executeQuery();
-        long total = 0;
-        if (rs.next()) {
-            total = rs.getLong(1);
-        }
-        rs.close();
-        countStmt.close();
 
-        PageContext.setTotalCount((int) total);
+        Connection connection = null;
+        PreparedStatement countStmt = null;
+        ResultSet rs = null;
+        try {
+            connection = ms.getConfiguration().getEnvironment().getDataSource().getConnection();
+            countStmt = connection.prepareStatement(countSql);
+            DefaultParameterHandler countPh = new DefaultParameterHandler(ms, parameter, boundSql);
+            countPh.setParameters(countStmt);
+            rs = countStmt.executeQuery();
+            long total = 0;
+            if (rs.next()) {
+                total = rs.getLong(1);
+            }
+            PageContext.setTotalCount((int) total);
+        } finally {
+            if (rs != null) try { rs.close(); } catch (Exception ignored) {}
+            if (countStmt != null) try { countStmt.close(); } catch (Exception ignored) {}
+            if (connection != null) try { connection.close(); } catch (Exception ignored) {}
+        }
+
+
 
         // 2. 페이징 SQL 조작 (Oracle 기준 ROWNUM 사용)
         String pagingSql =

@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.page;
+package com.koo.bonscore.common.paging;
 
 public class PageContext {
     private static final ThreadLocal<Integer> totalCountHolder = new ThreadLocal<>();

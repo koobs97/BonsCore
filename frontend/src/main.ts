@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from '../router';
 import * as ElIcons from '@element-plus/icons-vue';
 import { userStore } from '@/store/userStore';
+import ko from 'element-plus/es/locale/lang/ko';
 
 // App
 const app = createApp(App);
@@ -24,7 +25,9 @@ import { createPinia } from "pinia";
 app
     .use(router)
     .use(createPinia())
-    .use(ElementPlus)
+    .use(ElementPlus, {
+        locale: ko
+    })
     .mount('#app')
 
 // ✅ 로그인 정보 복원
