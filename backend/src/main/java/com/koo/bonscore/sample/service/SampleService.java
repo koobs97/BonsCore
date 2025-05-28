@@ -1,5 +1,8 @@
 package com.koo.bonscore.sample.service;
 
+import com.koo.bonscore.common.page.Page;
+import com.koo.bonscore.common.page.PageContext;
+import com.koo.bonscore.common.page.PageResult;
 import com.koo.bonscore.sample.mapper.SampleMapper;
 import com.koo.bonscore.sample.vo.SampleVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,12 +16,21 @@ public class SampleService {
     @Autowired
     public SampleMapper sampleMapper;
 
-    public List<SampleVo> test(SampleVo vo) {
-        System.out.println(":: Test Start ::");
-        List<SampleVo> result = sampleMapper.testSelect();
-        System.out.println("cnt = " + result);
-        System.out.println(":: Test End ::");
+    public PageResult<SampleVo> test(SampleVo vo) {
 
-        return result;
+
+        vo.setPage(new Page(1, 10));
+        System.out.println(":: Test Start ::");
+        List<SampleVo> list = sampleMapper.testSelect(vo);
+        int totalCount = PageContext.getTotalCount() != null ? PageContext.getTotalCount() : 0;
+
+        System.err.println("totalCount :" + totalCount);
+        System.err.println(":: Test End ::");
+
+        // 사용 후 메모리 누수 방지를 위해 clear()
+        PageContext.clear();
+
+
+        return new PageResult<>(list, totalCount, 1, totalCount);
     }
 }
