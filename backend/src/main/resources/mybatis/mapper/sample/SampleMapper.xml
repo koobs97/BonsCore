@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-
+<!--
+==========================
+  SampleMapper.xml
+==========================
+  @author  : koobonsang
+  @version : 1.0
+  @since   : 2025-05-25
+==========================
+-->
 <mapper namespace="com.koo.bonscore.sample.mapper.SampleMapper">
     <!-- Paging 처리 테스트용 임시 sql -->
-    <select id="testSelect" resultType="com.koo.bonscore.sample.vo.SampleVo" parameterType="com.koo.bonscore.sample.vo.SampleVo">
-        SELECT USER_ID                          /* 사용자 ID */
+    <select id="testSelect" resultType="com.koo.bonscore.sample.vo.PagingVo" parameterType="com.koo.bonscore.sample.vo.PagingVo">
+        SELECT /* com.koo.bonscore.sample.mapper.SampleMapper : testSelect 페이징 샘플 조회 sql */
+               USER_ID                          /* 사용자 ID */
              , USER_NAME                        /* 사용자 이름 */
              , EMAIL                            /* 사용자 이메일 */
              , PHONE_NUMBER                     /* 사용자 전화번호 */
              , BIRTH_DATE                       /* 사용자 생년월일 */
              , GENDER_CODE                      /* 성별 코드 */
           FROM USER_INFO                        /* 유저정보 테이블 */
-         WHERE 1 = 1
-        <if test="page != null">
-            AND 1 = 1 <!-- page 객체 존재 알리기용 -->
-        </if>
          ORDER BY USER_ID DESC
     </select>
 </mapper>

@@ -1,4 +1,4 @@
-package com.koo.bonscore.core.config.annotation;
+package com.koo.bonscore.common.paging.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

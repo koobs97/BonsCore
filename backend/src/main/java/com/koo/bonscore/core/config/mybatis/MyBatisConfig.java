@@ -1,6 +1,6 @@
 package com.koo.bonscore.core.config.mybatis;
 
-import com.koo.bonscore.common.paging.PagingInterceptor;
+import com.koo.bonscore.common.paging.interceptor.PagingInterceptor;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;

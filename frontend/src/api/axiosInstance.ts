@@ -4,6 +4,7 @@ import { ElLoading } from 'element-plus';
 import router from '../../router';
 import { ElMessage } from 'element-plus'
 import { userStore } from '@/store/userStore';
+import { nextTick } from "vue";
 
 const axiosInstance = axios.create();
 
@@ -111,7 +112,12 @@ export class Api {
                     ElMessage.error("세션만료");
                     ElMessage.error("로그인 화면으로 이동합니다.");
                     userStore().delUserInfo();
-                    await router.push("/login");
+                    await nextTick();
+
+                    if(router.currentRoute.value.path !== '/login') {
+                        await router.push("/login");
+                    }
+
                 }
 
                 return Error.response;

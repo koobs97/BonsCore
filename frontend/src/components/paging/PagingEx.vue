@@ -1,11 +1,24 @@
 <script setup lang="ts">
+/**
+ * ========================================
+ * 파일명   : PagingEx.vue
+ * ----------------------------------------
+ * 설명     : 페이징 사용 예시를 위한 컴포넌트
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-05-28
+ * ========================================
+ */
+
+// import
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
 import {reactive, ref} from 'vue';
-import TableColumn from "@/components/TableColumn.vue";
+import TableColumn, { ColumnDef } from "@/components/TableColumn.vue";
 import {Page} from "@/common/types/Page";
 
-interface SampleVo {
+// paging request vo
+interface PagingVo {
   page: Page;
   userId: string;
   userName: string;
@@ -15,7 +28,7 @@ interface SampleVo {
 // define state
 const state = reactive({
   list1: [] as any,
-  sampleVo: {} as SampleVo,
+  pagingVo: {} as PagingVo,
   page: {
     total: 0,
     pageNum: 1,
@@ -23,43 +36,46 @@ const state = reactive({
   } as Page,
 });
 
-const columns1 = ref([
+// column define
+const columns1: ColumnDef[] = [
   { prop: 'userId', label: '유저ID', width: 110, align: "center" },
   { prop: 'userName', label: '유저명', width: 300, align: "center" },
   { prop: 'email', label: 'email', width: 300, align: "center" },
-]);
+];
 
+/**
+ * 조회버튼 클릭 이벤트
+ */
 const onClickSearchPaging = async () => {
 
-  state.sampleVo.page = {pageNum: 1, pageSize: 10} as Page;
-
-  const retData = await Api.post(ApiUrls.PAGING, state.sampleVo, true);
+  state.pagingVo.page = { pageNum: 1, pageSize: 10 } as Page;
+  const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
 
   state.page.total = retData.data.total;
-  state.page.pageSize = state.sampleVo.page.pageSize;
-  state.page.pageNum = state.sampleVo.page.pageNum;
+  state.page.pageSize = state.pagingVo.page.pageSize;
+  state.page.pageNum = state.pagingVo.page.pageNum;
 
   state.list1 = retData.data.list
-  console.log(state.list1)
 }
 
+/**
+ * 페이지 num 클릭 이벤트
+ * @param currentPage
+ */
 const handleOnChange = async (currentPage: number) => {
 
-  state.sampleVo.page = {pageNum: currentPage, pageSize: 10} as Page;
-
-  const retData = await Api.post(ApiUrls.PAGING, state.sampleVo, true);
+  state.pagingVo.page = {pageNum: currentPage, pageSize: 10} as Page;
+  const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
 
   state.page.total = retData.data.total;
-  state.page.pageSize = state.sampleVo.page.pageSize;
+  state.page.pageSize = state.pagingVo.page.pageSize;
 
   state.list1 = retData.data.list
-  console.log(state.list1)
 }
 
 </script>
 
 <template>
-  <div>
     <el-card shadow="never">
       <div class="toolbar">
         <el-tag effect="plain" size="large">
@@ -67,9 +83,11 @@ const handleOnChange = async (currentPage: number) => {
         </el-tag>
         <el-button icon="Search" type="info" plain @click="onClickSearchPaging">조회</el-button>
       </div>
+
       <el-table border highlight-current-row :data="state.list1" style="height: 200px;">
         <TableColumn :columns="columns1" />
       </el-table>
+
       <el-pagination
           background
           size="small"
@@ -82,7 +100,6 @@ const handleOnChange = async (currentPage: number) => {
           style="margin-top: 8px;"
       />
     </el-card>
-  </div>
 </template>
 
 <style scoped>

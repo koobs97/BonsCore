@@ -1,6 +1,8 @@
-package com.koo.bonscore.common.paging;
+package com.koo.bonscore.common.paging.interceptor;
 
-import com.koo.bonscore.core.config.annotation.Pageable;
+import com.koo.bonscore.common.paging.dto.req.Page;
+import com.koo.bonscore.common.paging.PageContext;
+import com.koo.bonscore.common.paging.annotation.Pageable;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -19,6 +21,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * <pre>
+ * PagingInterceptor.java
+ * 설명 : MyBatis sql을 itercept해서 페이징 처리 관련 sql로 변환
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-05-28
+ */
 @Intercepts({
         @Signature(type = Executor.class, method = "query", args = {
                 MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class

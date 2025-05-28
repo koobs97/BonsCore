@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 
-interface ColumnDef {
+export interface ColumnDef {
     prop?: string;
     label: string;
     width?: number | string;
@@ -16,9 +16,7 @@ interface ColumnDef {
 
 const props = defineProps<{ columns: ColumnDef[] }>();
 
-onMounted(() => {
-    setTimeout(()=>{console.log('📐 FiveLevelTableColumn props.columns:', JSON.stringify(props.columns, null, 2));}, 500)
-});
+onMounted(() => {});
 
 const getSortable = (col: ColumnDef): boolean => {
     return col.children ? false : col.sortable ?? true;
@@ -37,9 +35,6 @@ const getSortable = (col: ColumnDef): boolean => {
             :align="col1.align ?? 'left'"
             :formatter="!col1.code ? col1.formatter : undefined"
         >
-<!--            <template v-if="col1.code" #default="{ row }">-->
-<!--                <span>{{ Common.getCodeName(col1.code, row[col1.prop]) }}</span>-->
-<!--            </template>-->
 
             <template v-if="col1.children" #default>
                 <template v-for="(col2, i2) in col1.children" :key="'l2-' + i1 + '-' + i2">
@@ -53,9 +48,6 @@ const getSortable = (col: ColumnDef): boolean => {
                         :align="col2.align ?? 'left'"
                         :formatter="!col2.code ? col2.formatter : undefined"
                     >
-<!--                        <template v-if="col2.code" #default="{ row }">-->
-<!--                            <span>{{ Common.getCodeName(col2.code, row[col2.prop]) }}</span>-->
-<!--                        </template>-->
 
                         <template v-if="col2.children" #default>
                             <template v-for="(col3, i3) in col2.children" :key="'l3-' + i1 + '-' + i2 + '-' + i3">
@@ -69,9 +61,6 @@ const getSortable = (col: ColumnDef): boolean => {
                                     :align="col3.align ?? 'left'"
                                     :formatter="!col3.code ? col3.formatter : undefined"
                                 >
-<!--                                    <template v-if="col3.code" #default="{ row }">-->
-<!--                                        <span>{{ Common.getCodeName(col3.code, row[col3.prop]) }}</span>-->
-<!--                                    </template>-->
 
                                     <template v-if="col3.children" #default>
                                         <template v-for="(col4, i4) in col3.children" :key="'l4-' + i1 + '-' + i2 + '-' + i3 + '-' + i4">
@@ -85,9 +74,6 @@ const getSortable = (col: ColumnDef): boolean => {
                                                 :align="col4.align ?? 'left'"
                                                 :formatter="!col4.code ? col4.formatter : undefined"
                                             >
-<!--                                                <template v-if="col4.code" #default="{ row }">-->
-<!--                                                    <span>{{ Common.getCodeName(col4.code, row[col4.prop]) }}</span>-->
-<!--                                                </template>-->
 
                                                 <template v-if="col4.children" #default>
                                                     <template v-for="(col5, i5) in col4.children" :key="'l5-' + i1 + '-' + i2 + '-' + i3 + '-' + i4 + '-' + i5">
@@ -101,9 +87,7 @@ const getSortable = (col: ColumnDef): boolean => {
                                                             :align="col5.align ?? 'left'"
                                                             :formatter="!col5.code ? col5.formatter : undefined"
                                                         >
-<!--                                                            <template v-if="col5.code" #default="{ row }">-->
-<!--                                                                <span>{{ Common.getCodeName(col5.code, row[col5.prop]) }}</span>-->
-<!--                                                            </template>-->
+
                                                         </el-table-column>
                                                     </template>
                                                 </template>

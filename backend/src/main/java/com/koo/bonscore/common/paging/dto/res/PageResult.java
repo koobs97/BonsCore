@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.paging;
+package com.koo.bonscore.common.paging.dto.res;
 
 import lombok.Getter;
 import lombok.Setter;
