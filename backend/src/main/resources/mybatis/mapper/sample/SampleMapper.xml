@@ -23,4 +23,17 @@
           FROM USER_INFO                        /* 유저정보 테이블 */
          ORDER BY USER_ID DESC
     </select>
+
+    <!-- Masking 처리 테스트용 임시 sql -->
+    <select id="testSelect2" resultType="com.koo.bonscore.sample.vo.MaskingVo" parameterType="com.koo.bonscore.sample.vo.MaskingVo">
+        SELECT /* com.koo.bonscore.sample.mapper.SampleMapper : testSelect 페이징 샘플 조회 sql */
+               USER_ID                          /* 사용자 ID */
+             , USER_NAME                        /* 사용자 이름 */
+             , EMAIL                            /* 사용자 이메일 */
+             , PHONE_NUMBER                     /* 사용자 전화번호 */
+             , BIRTH_DATE                       /* 사용자 생년월일 */
+             , GENDER_CODE                      /* 성별 코드 */
+          FROM USER_INFO                        /* 유저정보 테이블 */
+         ORDER BY USER_ID DESC
+    </select>
 </mapper>

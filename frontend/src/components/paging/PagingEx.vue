@@ -13,7 +13,7 @@
 // import
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
-import {reactive, ref} from 'vue';
+import {reactive} from 'vue';
 import TableColumn, { ColumnDef } from "@/components/TableColumn.vue";
 import {Page} from "@/common/types/Page";
 
@@ -38,9 +38,9 @@ const state = reactive({
 
 // column define
 const columns1: ColumnDef[] = [
-  { prop: 'userId', label: '유저ID', width: 110, align: "center" },
-  { prop: 'userName', label: '유저명', width: 300, align: "center" },
-  { prop: 'email', label: 'email', width: 300, align: "center" },
+  { prop: 'userId', label: '유저ID', width: 200, align: "center" },
+  { prop: 'userName', label: '유저명', width: 150, align: "center" },
+  { prop: 'email', label: 'email', minWidth: 250, align: "center" },
 ];
 
 /**
@@ -50,6 +50,7 @@ const onClickSearchPaging = async () => {
 
   state.pagingVo.page = { pageNum: 1, pageSize: 10 } as Page;
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
+  if (!retData) return;
 
   console.log(retData)
 
@@ -68,6 +69,7 @@ const handleOnChange = async (currentPage: number) => {
 
   state.pagingVo.page = { pageNum: currentPage, pageSize: state.page.pageSize } as Page;
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
+  if (!retData) return;
 
   state.page.total = retData.data.page.totalCount;
   state.page.pageSize = state.pagingVo.page.pageSize;
@@ -84,11 +86,13 @@ const handlePageSizeChange = async (pageSize: number) => {
   state.page.pageNum = 1; // 페이지 변경 시 보통 1페이지부터 다시 시작
 
   state.pagingVo.page = {
+    total: state.page.total,
     pageNum: state.page.pageNum,
     pageSize: pageSize,
   };
 
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
+  if (!retData) return;
 
   state.page.total = retData.data.page.totalCount;
   state.list1 = retData.data.list;
@@ -97,31 +101,29 @@ const handlePageSizeChange = async (pageSize: number) => {
 </script>
 
 <template>
-    <el-card shadow="never">
-      <div class="toolbar">
-        <el-tag effect="plain" size="large" style="font-weight: bold;">
-          페이징 샘플
-        </el-tag>
-        <el-button icon="Search" style="font-weight: bold; color: #001233;" @click="onClickSearchPaging">조회</el-button>
-      </div>
+  <div class="toolbar">
+    <el-tag effect="plain" size="large" style="font-weight: bold;">
+      페이징 샘플
+    </el-tag>
+    <el-button icon="Search" style="font-weight: bold; color: #001233;" @click="onClickSearchPaging">조회</el-button>
+  </div>
 
-      <el-table stripe border highlight-current-row :data="state.list1" style="height: 200px;">
-        <TableColumn :columns="columns1" />
-      </el-table>
+  <el-table stripe border highlight-current-row :data="state.list1" style="height: 200px;">
+    <TableColumn :columns="columns1" />
+  </el-table>
 
-      <el-pagination
-          background
-          size="small"
-          layout="sizes, prev, pager, next, total"
-          :total="state.page.total"
-          v-model:page-size="state.page.pageSize"
-          v-model:current-page="state.page.pageNum"
-          @current-change="handleOnChange"
-          @size-change="handlePageSizeChange"
-          class="mt-4"
-          style="margin-top: 8px;"
-      />
-    </el-card>
+  <el-pagination
+      background
+      size="small"
+      layout="sizes, prev, pager, next, total"
+      :total="state.page.total"
+      v-model:page-size="state.page.pageSize"
+      v-model:current-page="state.page.pageNum"
+      @current-change="handleOnChange"
+      @size-change="handlePageSizeChange"
+      class="mt-4"
+      style="margin-top: 8px;"
+  />
 </template>
 
 <style scoped>

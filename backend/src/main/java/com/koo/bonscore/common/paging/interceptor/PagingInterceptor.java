@@ -40,9 +40,9 @@ public class PagingInterceptor implements Interceptor {
 
     /**
      * 실제 쿼리 실행 전에 페이징 처리 및 Count 쿼리를 수행하여 페이징 SQL로 변환
-     * @param invocation
-     * @return
-     * @throws Throwable
+     * @param invocation Invocation
+     * @return invocation.proceed() or List<Object> resultList
+     * @throws Throwable ex
      */
     @Override
     public Object intercept(Invocation invocation) throws Throwable {

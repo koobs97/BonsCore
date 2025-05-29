@@ -108,23 +108,30 @@ export class Api {
                     ElMessage.error("서버와 연결할 수 없습니다");
                 }
 
+                // Unauthorized
                 if(Error.status === 401) {
                     ElMessage.error("세션만료");
+                    await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 대기
+
                     ElMessage.error("로그인 화면으로 이동합니다.");
+                    await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 대기
+
                     userStore().delUserInfo();
                     await nextTick();
 
+                    // 인증실패 시 로그인 화면으로 이동
                     if(router.currentRoute.value.path !== '/login') {
                         await router.push("/login");
+                        window.location.reload();
                     }
 
+                    return false;
                 }
 
                 return Error.response;
             }
         }
         else {
-
             try {
                 return await axios.post(url, params)
             } catch (error) {

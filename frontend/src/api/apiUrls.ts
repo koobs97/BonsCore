@@ -10,4 +10,5 @@ export enum ApiUrls {
 
 
     PAGING = '/api/sample/paging',
+    MASKING = '/api/sample/masking',
 }
