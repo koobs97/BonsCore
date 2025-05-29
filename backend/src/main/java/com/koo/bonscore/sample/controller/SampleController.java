@@ -1,6 +1,7 @@
 package com.koo.bonscore.sample.controller;
 
 import com.koo.bonscore.common.paging.dto.res.PageResult;
+import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.sample.service.SampleService;
 import com.koo.bonscore.sample.vo.PagingVo;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,8 @@ public class SampleController {
      * @return PageResult<PagingVo>
      */
     @PostMapping("/paging")
-    public PageResult<PagingVo> test(@RequestBody PagingVo vo) {
-        return sampleService.test(vo);
+    public ApiResponse<PageResult<PagingVo>> test(@RequestBody PagingVo vo) {
+        PageResult<PagingVo> result = sampleService.test(vo);
+        return ApiResponse.success("조회 성공", result);
     }
 }

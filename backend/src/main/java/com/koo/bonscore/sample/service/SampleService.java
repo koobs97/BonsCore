@@ -1,11 +1,11 @@
 package com.koo.bonscore.sample.service;
 
 import com.koo.bonscore.common.paging.dto.res.PageResult;
-import com.koo.bonscore.common.paging.PageResultFactory;
+import com.koo.bonscore.common.paging.support.PageResultFactory;
 import com.koo.bonscore.sample.mapper.SampleMapper;
 import com.koo.bonscore.sample.vo.PagingVo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +23,10 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SampleService {
 
-    @Autowired
-    public SampleMapper sampleMapper;
+    private final SampleMapper sampleMapper;
 
     /**
      * 페이징 처리 샘플 서비스
@@ -34,7 +34,7 @@ public class SampleService {
      * @param vo
      * @return PageResult
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public PageResult<PagingVo> test(PagingVo vo) {
 
         log.info("test Service Start");

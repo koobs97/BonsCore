@@ -51,7 +51,9 @@ const onClickSearchPaging = async () => {
   state.pagingVo.page = { pageNum: 1, pageSize: 10 } as Page;
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
 
-  state.page.total = retData.data.total;
+  console.log(retData)
+
+  state.page.total = retData.data.page.totalCount;
   state.page.pageSize = state.pagingVo.page.pageSize;
   state.page.pageNum = state.pagingVo.page.pageNum;
 
@@ -64,38 +66,58 @@ const onClickSearchPaging = async () => {
  */
 const handleOnChange = async (currentPage: number) => {
 
-  state.pagingVo.page = {pageNum: currentPage, pageSize: 10} as Page;
+  state.pagingVo.page = { pageNum: currentPage, pageSize: state.page.pageSize } as Page;
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
 
-  state.page.total = retData.data.total;
+  state.page.total = retData.data.page.totalCount;
   state.page.pageSize = state.pagingVo.page.pageSize;
 
   state.list1 = retData.data.list
 }
+
+/**
+ * 페이지 사이즈 변경 이벤트
+ * @param pageSize
+ */
+const handlePageSizeChange = async (pageSize: number) => {
+  state.page.pageSize = pageSize;
+  state.page.pageNum = 1; // 페이지 변경 시 보통 1페이지부터 다시 시작
+
+  state.pagingVo.page = {
+    pageNum: state.page.pageNum,
+    pageSize: pageSize,
+  };
+
+  const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
+
+  state.page.total = retData.data.page.totalCount;
+  state.list1 = retData.data.list;
+};
 
 </script>
 
 <template>
     <el-card shadow="never">
       <div class="toolbar">
-        <el-tag effect="plain" size="large">
-          Paging example
+        <el-tag effect="plain" size="large" style="font-weight: bold;">
+          페이징 샘플
         </el-tag>
-        <el-button icon="Search" type="info" plain @click="onClickSearchPaging">조회</el-button>
+        <el-button icon="Search" style="font-weight: bold; color: #001233;" @click="onClickSearchPaging">조회</el-button>
       </div>
 
-      <el-table border highlight-current-row :data="state.list1" style="height: 200px;">
+      <el-table stripe border highlight-current-row :data="state.list1" style="height: 200px;">
         <TableColumn :columns="columns1" />
       </el-table>
 
       <el-pagination
           background
           size="small"
-          layout="prev, pager, next, sizes, total"
+          layout="sizes, prev, pager, next, total"
           :total="state.page.total"
           v-model:page-size="state.page.pageSize"
           v-model:current-page="state.page.pageNum"
           @current-change="handleOnChange"
+          @size-change="handlePageSizeChange"
           class="mt-4"
           style="margin-top: 8px;"
       />

@@ -1,6 +1,6 @@
 package com.koo.bonscore.common.paging.interceptor;
 
-import com.koo.bonscore.common.paging.PageContext;
+import com.koo.bonscore.common.paging.support.PageContext;
 import com.koo.bonscore.core.config.web.WebConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

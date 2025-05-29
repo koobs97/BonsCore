@@ -3,6 +3,16 @@ package com.koo.bonscore.common.paging.dto.req;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * <pre>
+ * Page.java
+ * 설명 : 페이징 정보.
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-05-28
+ */
 @Getter
 @Setter
 public class Page {

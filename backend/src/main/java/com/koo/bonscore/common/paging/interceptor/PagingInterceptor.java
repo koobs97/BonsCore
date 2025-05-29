@@ -1,7 +1,7 @@
 package com.koo.bonscore.common.paging.interceptor;
 
 import com.koo.bonscore.common.paging.dto.req.Page;
-import com.koo.bonscore.common.paging.PageContext;
+import com.koo.bonscore.common.paging.support.PageContext;
 import com.koo.bonscore.common.paging.annotation.Pageable;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -38,6 +38,13 @@ import java.util.Properties;
 })
 public class PagingInterceptor implements Interceptor {
 
+    /**
+     * 실제 쿼리 실행 전에 페이징 처리 및 Count 쿼리를 수행하여 페이징 SQL로 변환
+     * @param invocation
+     * @return
+     * @throws Throwable
+     */
+    @Override
     public Object intercept(Invocation invocation) throws Throwable {
         Object[] args = invocation.getArgs();
         MappedStatement ms = (MappedStatement) args[0];
