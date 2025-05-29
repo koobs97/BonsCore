@@ -1,7 +1,6 @@
 package com.koo.bonscore.sample.vo;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.koo.bonscore.common.masking.annotation.Mask;
 import com.koo.bonscore.common.masking.support.MaskingSerializer;
 import com.koo.bonscore.common.masking.support.MaskingType;
