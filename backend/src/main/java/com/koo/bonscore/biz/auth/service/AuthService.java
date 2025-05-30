@@ -54,7 +54,7 @@ public class AuthService {
             response.setMessage(ErrorCode.INVALID_CREDENTIALS.getMessage());
 
             throw new BsCoreException(
-                      HttpStatusCode.UNAUTHORIZED
+                      HttpStatusCode.INTERNAL_SERVER_ERROR
                     , ErrorCode.INVALID_CREDENTIALS
                     , ErrorCode.INVALID_CREDENTIALS.getMessage());
         }

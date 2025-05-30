@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.ContextualSerializer;
 import com.koo.bonscore.common.masking.annotation.Mask;
 import com.koo.bonscore.core.config.web.WebConfig;
@@ -39,51 +40,28 @@ import java.io.IOException;
  */
 public class MaskingSerializer extends JsonSerializer<String> implements ContextualSerializer {
 
-    // 마스킹 타입 (이름, 이메일 등)
-    private MaskingType type;
+    private final MaskingType type;
 
-    /**
-     * 기본 생성자 (ContextualSerializer가 인스턴스를 동적으로 만들기 위해 필요)
-     */
+    // 기본 생성자 (ContextualSerializer가 사용)
     public MaskingSerializer() {
-        // 기본 생성자 필요
+        this.type = null;
     }
 
-    /**
-     * 마스킹 타입을 지정하는 생성자
-     *
-     * @param type 마스킹 처리 방식 (예: NAME, EMAIL)
-     */
     public MaskingSerializer(MaskingType type) {
         this.type = type;
     }
 
-    /**
-     * 실제 JSON 직렬화 과정에서 호출되며, 주어진 문자열 값을 마스킹 처리하여 출력
-     *
-     * @param value        직렬화할 원본 값
-     * @param gen          JSON 생성기
-     * @param serializers  Serializer 제공자
-     * @throws IOException JSON 출력 예외
-     */
     @Override
     public void serialize(String value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        String masked = switch (type) {
-            case NAME -> MaskingUtil.maskName(value);
-            case EMAIL -> MaskingUtil.maskEmail(value);
-            default -> value;
-        };
+        if (!MaskingContext.isMaskingEnabled() || type == null) {
+            gen.writeString(value);
+            return;
+        }
+
+        String masked = MaskingUtil.mask(value, type);
         gen.writeString(masked);
     }
 
-    /**
-     * 필드에 선언된 {@link Mask} 어노테이션을 분석하여 해당 타입으로 마스킹 처리 인스턴스를 생성
-     *
-     * @param prov     Serializer 제공자
-     * @param property 현재 직렬화 중인 필드 정보
-     * @return 새로운 MaskingSerializer 인스턴스
-     * @throws JsonMappingException 매핑 예외
-     */
     @Override
     public JsonSerializer<?> createContextual(SerializerProvider prov, BeanProperty property) throws JsonMappingException {
         if (property != null) {
@@ -95,6 +73,6 @@ public class MaskingSerializer extends JsonSerializer<String> implements Context
                 return new MaskingSerializer(mask.type());
             }
         }
-        return this; // 어노테이션이 없으면 기존 인스턴스 그대로 사용
+        return new MaskingSerializer(); // 마스킹 설정 없음
     }
 }
