@@ -1,6 +1,6 @@
 package com.koo.bonscore.common.masking.annotation;
 
-import com.koo.bonscore.common.masking.support.MaskingType;
+import com.koo.bonscore.common.masking.type.MaskingType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

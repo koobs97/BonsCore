@@ -16,9 +16,16 @@ import {ApiUrls} from "@/api/apiUrls";
 import {reactive} from 'vue';
 import TableColumn, { ColumnDef } from "@/components/TableColumn.vue";
 
+// paging request vo
+interface MaskingVo {
+  maskingEnabled: boolean;
+}
+
 // define state
 const state = reactive({
-  makingVo: {},
+  maskingVo: {
+    maskingEnabled: true,
+  } as MaskingVo,
   list1: [] as any,
 });
 
@@ -34,7 +41,7 @@ const columns1: ColumnDef[] = [
  */
 const onClickSearchPaging = async () => {
 
-  const retData = await Api.post(ApiUrls.MASKING, {}, true);
+  const retData = await Api.post(ApiUrls.MASKING, state.maskingVo, true);
   if (!retData) return;
 
   console.log(retData)
@@ -48,7 +55,18 @@ const onClickSearchPaging = async () => {
       <el-tag effect="plain" size="large" style="font-weight: bold;">
         마스킹 샘플
       </el-tag>
+      <div class="right-group">
+      <el-form-item
+          label="마스킹"
+          style="margin-top: 3px; margin-bottom: 0;">
+        <el-switch
+            v-model="state.maskingVo.maskingEnabled"
+            class="ml-2"
+            inline-prompt
+        />
+      </el-form-item>
       <el-button icon="Search" style="font-weight: bold; color: #001233;" @click="onClickSearchPaging">조회</el-button>
+        </div>
     </div>
 
     <el-table stripe border highlight-current-row :data="state.list1" style="height: 200px;">
@@ -62,5 +80,11 @@ const onClickSearchPaging = async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px; /* 여유 있는 간격 */
+}
+.right-group {
+  display: flex;
+  align-items: center;
+  margin-left: auto; /* 오른쪽으로 밀기 */
+  gap: 8px; /* 스위치와 버튼 사이 간격 */
 }
 </style>

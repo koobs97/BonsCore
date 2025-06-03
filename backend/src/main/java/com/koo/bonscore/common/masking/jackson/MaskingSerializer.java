@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.masking.support;
+package com.koo.bonscore.common.masking.jackson;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.BeanProperty;
@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.ContextualSerializer;
 import com.koo.bonscore.common.masking.annotation.Mask;
-import com.koo.bonscore.core.config.web.WebConfig;
+import com.koo.bonscore.common.masking.context.MaskingContext;
+import com.koo.bonscore.common.masking.type.MaskingType;
+import com.koo.bonscore.common.masking.util.MaskingUtil;
 
 import java.io.IOException;
 
@@ -68,6 +70,11 @@ public class MaskingSerializer extends JsonSerializer<String> implements Context
      */
     @Override
     public void serialize(String value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        if (!MaskingContext.isMaskingEnabled()) {
+            gen.writeString(value); // 마스킹 OFF → 원본 그대로 출력
+            return;
+        }
+
         String masked = switch (type) {
             case NAME -> MaskingUtil.maskName(value);
             case EMAIL -> MaskingUtil.maskEmail(value);

@@ -1,5 +1,6 @@
 package com.koo.bonscore.sample.service;
 
+import com.koo.bonscore.common.masking.context.MaskingContext;
 import com.koo.bonscore.common.paging.dto.res.PageResult;
 import com.koo.bonscore.common.paging.support.PageResultFactory;
 import com.koo.bonscore.sample.mapper.SampleMapper;
@@ -38,9 +39,9 @@ public class SampleService {
     @Transactional
     public PageResult<PagingVo> pagingTest(PagingVo vo) {
 
-        log.info("test Service Start");
+        log.info("pagingTest Start");
         List<PagingVo> list = sampleMapper.testSelect(vo);
-        log.info("test Service End");
+        log.info("pagingTest End");
 
         return PageResultFactory.create(list, vo);
     }
@@ -54,10 +55,14 @@ public class SampleService {
     @Transactional
     public List<MaskingVo> maskingTest(MaskingVo vo) {
 
-        log.info("test Service Start");
-        List<MaskingVo> list = sampleMapper.testSelect2(vo);
-        log.info("test Service End");
+        log.info("maskingTest Start");
+        List<MaskingVo> list;
+        System.err.println("vo = " + vo);
 
+        MaskingContext.setMaskingEnabled(vo.getMaskingEnabled());
+        list = sampleMapper.testSelect2(vo);
+
+        log.info("maskingTest End");
         return list;
     }
 }

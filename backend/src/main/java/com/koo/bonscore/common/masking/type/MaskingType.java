@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.masking.support;
+package com.koo.bonscore.common.masking.type;
 
 /**
  * <pre>
