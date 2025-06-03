@@ -56,11 +56,9 @@ public class SampleService {
     public List<MaskingVo> maskingTest(MaskingVo vo) {
 
         log.info("maskingTest Start");
-        List<MaskingVo> list;
-        System.err.println("vo = " + vo);
 
         MaskingContext.setMaskingEnabled(vo.getMaskingEnabled());
-        list = sampleMapper.testSelect2(vo);
+        List<MaskingVo> list = sampleMapper.testSelect2(vo);
 
         log.info("maskingTest End");
         return list;
