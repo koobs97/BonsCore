@@ -1,4 +1,4 @@
-package com.koo.bonscore.core.config.web;
+package com.koo.bonscore.core.config.web.security;
 
 import io.jsonwebtoken.*;
 import jakarta.servlet.http.HttpServletRequest;

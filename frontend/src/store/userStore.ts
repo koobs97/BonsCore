@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-interface userState {
+export interface userState {
     userId      : string,
     userName    : string,
     email       : string,

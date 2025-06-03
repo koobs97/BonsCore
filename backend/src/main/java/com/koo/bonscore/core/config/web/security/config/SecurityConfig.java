@@ -1,5 +1,8 @@
-package com.koo.bonscore.core.config.web;
+package com.koo.bonscore.core.config.web.security.config;
 
+import com.koo.bonscore.core.config.web.security.filter.JwtAuthenticationFilter;
+import com.koo.bonscore.core.config.web.security.JwtTokenProvider;
+import com.koo.bonscore.core.config.web.security.filter.RedirectValidationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +43,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)                                                      // REST API를 위한 CSRF 비활성화
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT 사용 시 세션 비활성화
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class) // JWT 인증 필터 추가
+                .addFilterBefore(new RedirectValidationFilter(), JwtAuthenticationFilter.class) // 검증되지 않은 리다이렉트 및 포워드 방어
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()  // 로그인 API는 인증 없이 허용
                         .requestMatchers("/api/public-key/**").permitAll()

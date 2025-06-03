@@ -8,7 +8,7 @@ import JSEncrypt from 'jsencrypt';
 import { ElMessage } from 'element-plus';
 import { Common } from '@/common/common';
 import { useRouter } from 'vue-router';
-import { userStore } from '@/store/userStore';
+import { userStore, userState } from '@/store/userStore';
 
 const router = useRouter();
 
@@ -41,6 +41,10 @@ const togglePassword = () => {
 
 // 화면진입 시
 onMounted(() => {
+
+  localStorage.removeItem('userInfo');
+  userStore().delUserInfo();
+
   if(rememberId.value && !Common.isEmpty(localStorage.getItem('userId'))) {
     userId.value = localStorage.getItem('userId');
     passwordInput.value?.focus();
@@ -110,7 +114,7 @@ const onClickLogin = async () => {
       const userInfo = user.data as userState
 
       localStorage.setItem('userInfo', JSON.stringify(userInfo));
-      userStore().setUserInfo(userInfo)
+      userStore().setUserInfo(userInfo);
 
       // 아이디 기억하기
       if(rememberId.value) {
