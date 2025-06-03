@@ -111,10 +111,10 @@ export class Api {
                 // Unauthorized
                 if(Error.status === 401) {
                     ElMessage.error("세션만료");
-                    await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 대기
+                    await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
 
                     ElMessage.error("로그인 화면으로 이동합니다.");
-                    await new Promise(resolve => setTimeout(resolve, 500)); // 0.5초 대기
+                    await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
 
                     userStore().delUserInfo();
                     await nextTick();
