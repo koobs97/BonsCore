@@ -1,5 +1,7 @@
 package com.koo.bonscore.core.config.web.security.util;
 
+import io.micrometer.common.util.StringUtils;
+
 import java.util.regex.Pattern;
 
 /**
@@ -25,7 +27,7 @@ public class CommandInjectionPreventUtil {
      * @return 안전하면 true, 아니면 false
      */
     public static boolean isSafeInput(String input) {
-        if (input == null || input.isEmpty()) {
+        if (StringUtils.isEmpty(input)) {
             return false;
         }
         return SAFE_INPUT_PATTERN.matcher(input).matches();
