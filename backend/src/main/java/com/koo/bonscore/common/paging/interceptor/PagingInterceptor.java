@@ -55,7 +55,7 @@ public class PagingInterceptor implements Interceptor {
         }
 
         Page page = extractPageParam(parameter);
-        if (page == null) {
+        if (page == null || !page.isEnablePaging()) {
             return invocation.proceed(); // 페이징 객체 없으면 그대로 실행
         }
 

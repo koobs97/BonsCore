@@ -18,6 +18,7 @@ import lombok.Setter;
 public class Page {
     private int pageNum;    // 1-based
     private int pageSize;
+    private boolean enablePaging;
 
     public Page(int pageNum, int pageSize) {
         this.pageNum = Math.max(pageNum, 1);

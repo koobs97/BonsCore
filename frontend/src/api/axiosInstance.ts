@@ -49,7 +49,7 @@ axiosInstance.interceptors.response.use(
                 sessionStorage.removeItem('token');
                 if(error.response.data.message) {
                     ElMessage.error(error.response.data.message);
-                }
+                }''
 
                 await router.push('/login');
                 return Promise.reject(refreshError);

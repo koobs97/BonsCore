@@ -33,6 +33,7 @@ const state = reactive({
     total: 0,
     pageNum: 1,
     pageSize: 10,
+    enablePaging: true,
   } as Page,
 });
 
