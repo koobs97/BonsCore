@@ -63,6 +63,8 @@ const onClickSearchPaging = async () => {
             v-model="state.maskingVo.maskingEnabled"
             class="ml-2"
             inline-prompt
+            active-text="Y"
+            inactive-text="N"
         />
       </el-form-item>
       <el-button icon="Search" style="font-weight: bold; color: #001233;" @click="onClickSearchPaging">조회</el-button>

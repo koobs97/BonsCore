@@ -49,7 +49,7 @@ const columns1: ColumnDef[] = [
  */
 const onClickSearchPaging = async () => {
 
-  state.pagingVo.page = { pageNum: 1, pageSize: 10 } as Page;
+  state.pagingVo.page = { pageNum: 1, pageSize: 10, enablePaging: true } as Page;
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
   if (!retData) return;
 
@@ -68,7 +68,7 @@ const onClickSearchPaging = async () => {
  */
 const handleOnChange = async (currentPage: number) => {
 
-  state.pagingVo.page = { pageNum: currentPage, pageSize: state.page.pageSize } as Page;
+  state.pagingVo.page = { pageNum: currentPage, pageSize: state.page.pageSize, enablePaging: true } as Page;
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);
   if (!retData) return;
 
@@ -90,6 +90,7 @@ const handlePageSizeChange = async (pageSize: number) => {
     total: state.page.total,
     pageNum: state.page.pageNum,
     pageSize: pageSize,
+    enablePaging: true
   };
 
   const retData = await Api.post(ApiUrls.PAGING, state.pagingVo, true);

@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import PagingEx from "@/components/paging/PagingEx.vue";
 import MaskingEx from "@/components/masking/MaskingEx.vue";
+import TimeViewr from "@/components/TimeViewr.vue";
 import {Reading} from "@element-plus/icons-vue";
+
 </script>
 
 <template>
   <div>
-    <h2>로그인 성공</h2>
+    <el-card shadow="never" style="height: 90px; margin-bottom: 4px;">
+      <template #default>
+        <div style="padding: 8px;">
+          <h2 style="margin: 0px;">로그인 성공</h2>
+        </div>
+      </template>
+    </el-card>
   </div>
 
   <el-tabs type="border-card" class="demo-tabs" style="height: 350px;">
@@ -21,6 +29,9 @@ import {Reading} from "@element-plus/icons-vue";
       </div>
     </el-tab-pane>
   </el-tabs>
+  <div style="text-align: right; margin-top: 4px;">
+    <TimeViewr />
+  </div>
 </template>
 
 <style scoped>
