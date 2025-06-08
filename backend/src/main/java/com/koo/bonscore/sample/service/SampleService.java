@@ -61,15 +61,6 @@ public class SampleService {
         MaskingContext.setMaskingEnabled(vo.getMaskingEnabled());
         List<MaskingVo> list = sampleMapper.testSelect2(vo);
 
-        try {
-            String result = CommandInjectionPreventUtil.executeSafeCommand("ls", "/home/user");
-            System.out.println(result);
-        } catch (IllegalArgumentException e) {
-            System.out.println("잘못된 입력입니다: " + e.getMessage());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         log.info("maskingTest End");
         return list;
     }

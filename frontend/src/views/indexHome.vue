@@ -2,19 +2,29 @@
 import PagingEx from "@/components/paging/PagingEx.vue";
 import MaskingEx from "@/components/masking/MaskingEx.vue";
 import TimeViewr from "@/components/TimeViewr.vue";
-import {Reading} from "@element-plus/icons-vue";
+import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 
 </script>
 
 <template>
-  <div>
-    <el-card shadow="never" style="height: 90px; margin-bottom: 4px;">
+
+  <div style="display: flex;">
+    <el-card shadow="never" style="height: 90px; width: 630px; margin-bottom: 4px;">
       <template #default>
         <div style="padding: 8px;">
           <h2 style="margin: 0px;">로그인 성공</h2>
         </div>
       </template>
     </el-card>
+
+    <div style="text-align: right; width: 100px;">
+      <TimeViewr />
+    </div>
+
+    <div style="margin-left: 4px; margin-top: 20px; width: calc(100% - 630px); text-align: center;">
+      <UserInfoAvatar />
+    </div>
+
   </div>
 
   <el-tabs type="border-card" class="demo-tabs" style="height: 350px;">
@@ -29,9 +39,6 @@ import {Reading} from "@element-plus/icons-vue";
       </div>
     </el-tab-pane>
   </el-tabs>
-  <div style="text-align: right; margin-top: 4px;">
-    <TimeViewr />
-  </div>
 </template>
 
 <style scoped>
