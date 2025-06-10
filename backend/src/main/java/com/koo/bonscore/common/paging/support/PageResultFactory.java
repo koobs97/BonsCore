@@ -22,7 +22,7 @@ public class PageResultFactory {
      *
      * @param <T> 결과 리스트의 제네릭 타입
      * @param list 현재 페이지에 해당하는 데이터 리스트
-     * @param vo 페이징 요청 정보를 담고 있는 객체
+     * @param vo 페이징 요청 정보를 담고11 있는 객체
      * @return 페이징 정보를 포함한 {@link PageResult} 객체
      *
      */

@@ -9,7 +9,7 @@ import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 <template>
 
   <div style="display: flex;">
-    <el-card shadow="never" style="height: 90px; width: 630px; margin-bottom: 4px;">
+    <el-card shadow="never" style="height: 90px; width: calc(100% - 115px); margin-bottom: 4px;">
       <template #default>
         <div style="padding: 8px;">
           <h2 style="margin: 0px;">로그인 성공</h2>
@@ -17,12 +17,8 @@ import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
       </template>
     </el-card>
 
-    <div style="text-align: right; width: 100px;">
+    <div style="text-align: right; width: 110px;">
       <TimeViewr />
-    </div>
-
-    <div style="margin-left: 4px; margin-top: 20px; width: calc(100% - 630px); text-align: center;">
-      <UserInfoAvatar />
     </div>
 
   </div>

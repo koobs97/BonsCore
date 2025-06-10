@@ -41,7 +41,7 @@ public class MyBatisConfig {
                 new PagingInterceptor()
         });
 
-        // Mapper XML 경로 설정
+        // Mapper XML 경로 설정a
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         factoryBean.setMapperLocations(resolver.getResources("classpath:mybatis/mapper/**/*.xml"));
 
