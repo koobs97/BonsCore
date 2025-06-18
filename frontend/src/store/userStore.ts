@@ -7,6 +7,7 @@ export interface userState {
     phoneNumber : string,
     birthDate   : string,
     genderCode  : string,
+    loginTime   : string,
 }
 
 export const userStore = defineStore('user', {
@@ -18,6 +19,7 @@ export const userStore = defineStore('user', {
             phoneNumber : '' as string,
             birthDate   : '' as string,
             genderCode  : '' as string,
+            loginTime   : '' as string,
         } as userState
     }),
     getters: {

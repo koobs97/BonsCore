@@ -3,19 +3,49 @@ import PagingEx from "@/components/paging/PagingEx.vue";
 import MaskingEx from "@/components/masking/MaskingEx.vue";
 import TimeViewr from "@/components/TimeViewr.vue";
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
+import springIcon from '@/assets/images/spring-icon.svg'
+import { SegmentedProps } from "element-plus";
+import { ref } from "vue";
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+
+const size = ref<SegmentedProps['size']>('Dash Board' as any)
+const sizeOptions = ['Dash Board']
+
+const onClickRefresh = () => {
+  router.push("/");
+  location.href = '/';
+}
 </script>
 
 <template>
 
   <div style="display: flex;">
-    <el-card shadow="never" style="height: 90px; width: calc(100% - 115px); margin-bottom: 4px;">
+    <el-card shadow="never" style="height: 90px; width: calc(100% - 352px); margin-bottom: 4px; position: relative;">
       <template #default>
-        <div style="padding: 8px;">
-          <h2 style="margin: 0px;">로그인 성공</h2>
+
+        <!-- 중앙 텍스트 -->
+        <div style="height: 100%; margin: 10px 0 0 0; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+          <div style="display: flex; align-items: center;">
+            <el-image
+                style="border: 2px solid var(--el-color-primary); border-radius: 4px; padding: 3px;"
+                :src="springIcon" />
+            <el-segmented
+                v-model="size"
+                :options="sizeOptions"
+                style="font-size: 24px; font-weight: bold; margin: 0 0 0 2px;"
+                @click="onClickRefresh"
+            />
+          </div>
         </div>
+
       </template>
     </el-card>
+
+
+          <UserInfoAvatar />
+
 
     <div style="text-align: right; width: 110px;">
       <TimeViewr />
@@ -38,5 +68,16 @@ import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 </template>
 
 <style scoped>
-
+.custom-el-card {
+  --el-card-border-color: var(--el-border-color-light);
+  --el-card-border-radius: 4px;
+  --el-card-padding: 0px;
+  --el-card-bg-color: var(--el-fill-color-blank);
+  background-color: var(--el-card-bg-color);
+  border: 1px solid var(--el-card-border-color);
+  border-radius: var(--el-card-border-radius);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  transition: var(--el-transition-duration);
+}
 </style>

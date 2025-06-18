@@ -5,7 +5,7 @@ spring:
     location: templates/banner/banner.txt
 
 jwt:
-  secret: kjasd8123u1k3j123nmd8123u1lkj12ui31
+  secret: ${JASYPT_KEY}
 
 logging:
   level:

@@ -2,6 +2,8 @@ package com.koo.bonscore.biz.auth.dto;
 
 import lombok.Data;
 
+import java.sql.Timestamp;
+
 /**
  * UserDto
  * <p>
