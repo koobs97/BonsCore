@@ -14,7 +14,7 @@
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
 import {reactive} from 'vue';
-import TableColumn, { ColumnDef } from "@/components/TableColumn.vue";
+import TableColumn, { ColumnDef } from "@/components/el-tlable-custom/TableColumn.vue";
 
 // paging request vo
 interface MaskingVo {

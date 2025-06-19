@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, onMounted } from 'vue';
 import { userStore, userState } from '@/store/userStore';
-import { Female, Male } from "@element-plus/icons-vue";
+import {Female, Male, Setting, UserFilled} from "@element-plus/icons-vue";
 
 const userStoreObj = userStore();
 
@@ -52,7 +52,10 @@ const formattedPhoneNumber = computed(() => {
   }
 })
 
-
+// pop over 제어 함수
+const custromTrigger = () => {
+  buttonRef.value = !buttonRef.value
+}
 
 </script>
 
@@ -65,18 +68,65 @@ const formattedPhoneNumber = computed(() => {
 
           <el-popover
               :width="300"
-              :virtual-ref="buttonRef"
-              trigger="click"
+              v-model:visible="buttonRef"
+              trigger="manual"
               placement="right-start"
               popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 12px;"
           >
             <template #reference>
-              <el-avatar shape="square" :size="40">
-                <el-text style="font-size: 12px; color: white">
-                  {{ state.User.userName.slice(-2) }}
-                </el-text>
-              </el-avatar>
+              <div style="display: inline-flex; align-items: center;">
+                <!-- 메인 아바타 -->
+                <div style="position: relative; width: 40px; height: 40px;">
+                  <el-avatar shape="square" :size="40">
+                    <el-icon style="font-size: 24px;">
+                      <UserFilled />
+                    </el-icon>
+                  </el-avatar>
+
+                  <!-- 설정 아이콘 -->
+                  <el-icon
+                      style="
+                        position: absolute;
+                        bottom: -4px;
+                        right: -4px;
+                        background: white;
+                        border-radius: 50%;
+                        font-size: 14px;
+                        padding: 2px;
+                        box-shadow: 0 0 2px rgba(0,0,0,0.2);
+                        cursor: pointer;
+                      "
+                      @click="custromTrigger"
+                  >
+                    <Setting />
+                  </el-icon>
+                </div>
+
+                <!-- 이름/이메일 세로 배치 -->
+                <div
+                    style="
+                      display: flex;
+                      flex-direction: column;
+                      justify-content: flex-start;
+                      margin-left: 8px;
+                      user-select: none;
+                      min-width: 150px;
+                      text-align: left;
+                    "
+                >
+                  <!-- 이름 -->
+                  <div style="font-weight: bold; font-size: 14px; user-select: text;">
+                    {{ state.User.userName }}
+                  </div>
+
+                  <!-- 이메일 -->
+                  <div style="font-size: 12px; color: #666; user-select: text; margin-top: 2px;">
+                    {{ state.User.email }}
+                  </div>
+                </div>
+              </div>
             </template>
+
             <el-card shadow="never">
               <template #default>
                 <div
@@ -156,7 +206,7 @@ const formattedPhoneNumber = computed(() => {
                   </el-descriptions>
                   <div>
                     <el-button icon="EditPen" style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;">정보수정</el-button>
-                    <el-button icon="Promotion" style="font-size: 12px; width: 90px; height: 30px; margin: 12px 0 0 2px;">로그아웃</el-button>
+                    <el-button icon="Promotion" style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;">로그아웃</el-button>
                   </div>
                 </div>
               </template>
@@ -167,8 +217,8 @@ const formattedPhoneNumber = computed(() => {
       </div>
     </template>
     <div style="text-align: left;">
-      <el-tag style="margin-left: 8px;">로그인일시</el-tag>
-      <el-tag style="margin-left: 4px;">{{ state.User.loginTime }}</el-tag>
+      <el-tag type="info" effect="Light" style="margin-left: 8px;">로그인일시</el-tag>
+      <el-tag type="info" effect="Light" style="margin-left: 4px;">{{ state.User.loginTime }}</el-tag>
     </div>
   </el-card>
 </template>

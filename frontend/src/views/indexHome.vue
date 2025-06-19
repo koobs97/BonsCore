@@ -7,6 +7,7 @@ import springIcon from '@/assets/images/spring-icon.svg'
 import { SegmentedProps } from "element-plus";
 import { ref } from "vue";
 import { useRouter } from 'vue-router'
+import VirtualizedTable from "@/components/el-tlable-custom/VirtualizedTable.vue";
 
 const router = useRouter()
 
@@ -22,6 +23,9 @@ const onClickRefresh = () => {
 <template>
 
   <div style="display: flex;">
+    <div style="text-align: left; margin-right: 4px; width: 110px;">
+      <TimeViewr />
+    </div>
     <el-card shadow="never" style="height: 90px; width: calc(100% - 352px); margin-bottom: 4px; position: relative;">
       <template #default>
 
@@ -43,13 +47,11 @@ const onClickRefresh = () => {
       </template>
     </el-card>
 
+    <!-- 유저 card 영역 -->
+    <UserInfoAvatar />
 
-          <UserInfoAvatar />
+    <!-- 시계 -->
 
-
-    <div style="text-align: right; width: 110px;">
-      <TimeViewr />
-    </div>
 
   </div>
 
@@ -62,6 +64,12 @@ const onClickRefresh = () => {
     <el-tab-pane label="마스킹">
       <div style="width: 700px;">
         <MaskingEx/>
+      </div>
+    </el-tab-pane>
+    <el-tab-pane label="EL테이블">
+      <div style="width: 700px;">
+<!--        <VirtualizedTable-->
+<!--        />-->
       </div>
     </el-tab-pane>
   </el-tabs>

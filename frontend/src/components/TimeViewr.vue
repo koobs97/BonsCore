@@ -31,7 +31,7 @@ onUnmounted(() => {
 
   <el-tooltip
       content="Right Top prompts info"
-      placement="right-start"
+      placement="left-start"
       :visible="visible"
       effect="light"
       style="width: 400px;"
@@ -42,7 +42,7 @@ onUnmounted(() => {
       ></VDatePicker>
     </template>
 
-    <el-tag effect="light" style="margin-left: 4px; text-align: center; height: 92px; width: 110px;">
+    <el-tag effect="light" style="margin-right: 4px; text-align: center; height: 92px; width: 110px;">
 
       <div style="display: inline-flex; align-items: center; font-size: 10px;">
         <el-icon style="margin-right: 4px" :size="12" @click="visible = !visible">
