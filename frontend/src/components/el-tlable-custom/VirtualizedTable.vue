@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onActivated, ref, h, computed } from 'vue';
 import { onDeactivated, PropType } from "@vue/runtime-dom";
-import { SortBy } from "element-plus";
+import {ElCheckbox, SortBy, TableV2SortOrder} from "element-plus";
 
 // ColumnDef 인터페이스
 interface ColumnDef {
@@ -131,7 +131,204 @@ const v2Columns = computed(() => {
       return column;
     });
   };
+
+  const dataColumns = transformColumns(props.columns)
+
+  if(props.selectionMode) {
+    return [selectionColumn, ...dataColumns]
+  }
+  else {
+    return dataColumns;
+  }
 })
+
+/***************************
+ * 정렬 로직
+ ***************************/
+
+// 그리드 정렬 ref 정의
+const sortBy = ref<SortBy>({ key: '', order: TableV2SortOrder.ASC })
+
+/**
+ * 그리드 정렬
+ */
+const sortedData = computed(() => {
+  const { key, order } = sortBy.value;
+  const multiplier = order === TableV2SortOrder.ASC ? 1 : -1;
+
+  if(!key || !order) return [...dataWithIds.value];
+
+  return [...dataWithIds.value].sort((a, b) => {
+    const valA = a[key];
+    const valB = b[key];
+
+    return String(valA).localeCompare(String(valB), undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    }) * multiplier;
+  })
+})
+
+const handleColumnSort = (newSortBy: SortBy) => {
+  const currentKey = sortBy.value.key;
+  const currentOrder = sortBy.value.order;
+  const newKey = newSortBy.key;
+
+  if(currentKey != newKey) {
+    sortBy.value = { key: newKey, order: 'asc' as TableV2SortOrder }
+  }
+  else {
+    if(currentOrder === 'asc') {
+      sortBy.value = { key: newKey, order: 'desc' as TableV2SortOrder }
+    }
+    else if(currentOrder === 'desc') {
+      sortBy.value = { key: '', order: '' as TableV2SortOrder }
+    }
+  }
+}
+
+/***************************
+ * selection 로직
+ ***************************/
+
+// 각 행 선택을 위한 id 값 넣어주기
+const dataWithIds = computed(() => {
+  return props.data.map((item, index) => ({
+    ...item,
+    _internalId: `internal-id-${index}`,
+    checked: item.checked ?? false,
+  }))
+})
+
+// 선택된 행들만 필터링하여 보여주기
+const selectedRows = computed(() => dataWithIds.value.filter(row => row.checked))
+
+// 헤더의 '전체선택' 체크박스 상태
+const isAllSelected = computed(() => {
+  if(dataWithIds.value.length === 0) return false;
+  return selectedRows.value.length === dataWithIds.value.length;
+})
+
+// 부분선택 상태
+const containsChecked = computed(() => {
+  return selectedRows.value.length > 0 && !isAllSelected.value;
+})
+
+/**
+ * 전체선택 핸들러
+ * @param value
+ */
+const handleSelectAll = (value: any) => {
+  const newData = dataWithIds.value.map(row => ({
+    ...row,
+    checked: value,
+  }))
+  emitUpdate(newData);
+}
+
+/**
+ * 부분선택 핸들러
+ * @param rowData
+ * @param value
+ */
+const handleRowSelect = (rowData: any, value: any) => {
+
+  let newData;
+
+  if(props.selectionMode === 'single') {
+    const clickedId = rowData._internalId;
+    const isCurrentlyChecked = rowData.checked;
+
+    newData = dataWithIds.value.map(row => {
+      return {
+        ...row,
+        checked: (row._internalId === clickedId) ? !isCurrentlyChecked : false
+      }
+    })
+  }
+  else {
+    newData = dataWithIds.value.map(row => {
+      if(row._internalId === rowData._internalId) {
+        return { ...row, checked: value };
+      }
+      return row;
+    })
+  }
+
+  emitUpdate(newData);
+}
+
+/**
+ * 부모컴포넌트에 원본 데이터 전달
+ * @param newData
+ */
+const emitUpdate = (newData: any) => {
+  const originData = newData.map((item: any) => {
+    const { _internalId, ...rest } = item;
+    return rest;
+  })
+  emit('update:data', originData)
+}
+
+/**
+ * selection 컬럼 정의
+ */
+const selectionColumn = {
+  key: 'selection',
+  width: 40,
+  align: 'center',
+  cellRenderer: ({ rowData }: any) => h(ElCheckbox,{
+    modelValue: rowData.checked,
+    onChange(val) {
+      handleRowSelect(rowData, val);
+    },
+  }),
+  headerCellRenderer: props.selectionMode === 'multiple'
+    ? () => h(ElCheckbox, {
+        modelValue: isAllSelected.value,
+        ineterminate: containsChecked.value,
+        onChange: handleSelectAll,
+      })
+      : () => null,
+}
+
+/**
+ * 선택된 행 리턴
+ */
+const getSelectionRows = () => {
+  const selectedInternalRows = selectedRows.value;
+  const originalSelectedRows = selectedInternalRows.map(item => {
+    const { _internalId, ...rest } = item;
+    return rest;
+  })
+  return originalSelectedRows;
+}
+
+
+/**
+ * 그리드 더블클릭 이벤트
+ * @param data
+ */
+const onRowDbClick = (data: any) => {
+  emit('row-dbclick', data);
+}
+
+/**
+ * 그리드 핸들러
+ */
+const handleRowDbClick = {
+  ondbclick: ({ rowData, rowIndex, rowKey }: any) => {
+    const { _internalId, ...originalRowData } = rowData
+    onRowDbClick(originalRowData)
+  }
+}
+
+/**
+ * 외부에서 함수 사용할 수 있도록 정의
+ */
+defineExpose(({
+  getSelectionRows,
+}))
 
 </script>
 
@@ -141,8 +338,19 @@ const v2Columns = computed(() => {
       <el-table-v2
         ref="tableRef"
         :key="tableKey"
+        :columns="v2Columns"
+        :data="sortedData"
         :height="height"
         :width="width"
+        :header-height="35"
+        :row-height="35"
+        :estimated-row-height="35"
+        :sort-by="sortBy"
+        :row-event-handlers="handleRowDbClick"
+        @row-dbclick="onRowDbClick"
+        @column-solt="handleColumnSort"
+        @scroll="onTableScroll"
+        fixed
       />
     </templage>
   </el-auto-resizer>
