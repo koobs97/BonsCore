@@ -1,4 +1,4 @@
-package com.koo.bonscore.core.aspect;
+package com.koo.bonscore.core.aop;
 
 import com.koo.bonscore.core.config.web.security.util.CommandInjectionPreventUtil;
 import org.aspectj.lang.JoinPoint;

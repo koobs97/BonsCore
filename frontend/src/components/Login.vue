@@ -28,6 +28,7 @@ const passwordInput = ref();
 // reactive 정의
 const state = reactive({
   isVisible: false,
+  isProcessing: false, // 화면 제어
 })
 
 // 패스워드 아이콘 변경
@@ -90,6 +91,12 @@ const onClickLogin = async () => {
 
   // 입력값 검증
   if(await validateInput()) {
+
+    if (state.isProcessing) {
+      ElMessage.warning("이미 요청 처리 중입니다. 잠시 후 다시 시도해주세요.");
+      return; // 즉시 함수 종료
+    }
+
     // 서버에서 공개키 get
     const encryptedPassword = await encryptPassword(password.value);
 
@@ -98,6 +105,7 @@ const onClickLogin = async () => {
       password : encryptedPassword
     }
 
+    state.isProcessing = true;
     const res = await Api.post(ApiUrls.LOGIN, params, true);
 
     if(res.data.accessToken) {
@@ -123,10 +131,13 @@ const onClickLogin = async () => {
         localStorage.removeItem('userId');
       }
 
+      state.isProcessing = false;
+
       // main 화면 진입
       await router.push("/");
 
     } else {
+      state.isProcessing = false;
       console.log('login failed ->', res);
     }
 

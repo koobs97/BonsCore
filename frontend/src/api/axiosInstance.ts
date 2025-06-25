@@ -73,71 +73,65 @@ export class Api {
      * @returns
      */
     public static post = async (url: ApiUrls, params: Object, loadingOption?: Boolean): Promise<any> => {
-
+        let loading: any;
         if(loadingOption) {
-            const loading = ElLoading.service({
+            loading = ElLoading.service({
                 lock: true,
                 text: 'Loading',
                 background: 'rgba(0, 0, 0, 0.7)',
             })
-
-            try {
-
-                const retData = await axiosInstance.post(url, params)
-                const returnData = retData.data
-
-                loading.close()
-
-                return returnData
-            } catch (error) {
-                loading.close();
-
-                // 타입에러에 따른 에러 정의
-                const Error = error as any;
-
-                // 에러 내용 출력
-                console.error('❗API Error Response:', Error);
-                console.error('❗API Error Response:', Error.response.data);
-
-                // 에러 response message 출력Error
-                if(Error.response.data.message) {
-                    ElMessage.error(Error.response.data.message);
-                }
-                // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
-                else if (Error.response.data?.includes('CORS')) {
-                    ElMessage.error("서버와 연결할 수 없습니다");
-                }
-
-                // Unauthorized
-                if(Error.status === 401) {
-                    ElMessage.error("세션만료");
-                    await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
-
-                    ElMessage.error("로그인 화면으로 이동합니다.");
-                    await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
-
-                    userStore().delUserInfo();
-                    await nextTick();
-
-                    // 인증실패 시 로그인 화면으로 이동
-                    if(router.currentRoute.value.path !== '/login') {
-                        await router.push("/login");
-                        window.location.reload();
-                    }
-
-                    return false;
-                }
-
-                return Error.response;
-            }
         }
-        else {
-            try {
-                return await axios.post(url, params)
-            } catch (error) {
-                return Promise.reject(error)
+
+        try {
+
+            const retData = await axiosInstance.post(url, params)
+            const returnData = retData.data
+
+            if(loadingOption) loading.close();
+
+            return returnData
+        } catch (error) {
+            if(loadingOption) loading.close();
+
+            // 타입에러에 따른 에러 정의
+            const Error = error as any;
+
+            // 에러 내용 출력
+            console.error('❗API Error Response:', Error);
+            console.error('❗API Error Response:', Error.response.data);
+
+            // 에러 response message 출력Error
+            if(Error.response.data.message) {
+                ElMessage.error(Error.response.data.message);
             }
+            // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
+            else if (Error.response.data?.includes('CORS')) {
+                ElMessage.error("서버와 연결할 수 없습니다");
+            }
+
+            // Unauthorized
+            if(Error.status === 401) {
+                ElMessage.error("세션만료");
+                await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
+
+                ElMessage.error("로그인 화면으로 이동합니다.");
+                await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
+
+                userStore().delUserInfo();
+                await nextTick();
+
+                // 인증실패 시 로그인 화면으로 이동
+                if(router.currentRoute.value.path !== '/login') {
+                    await router.push("/login");
+                    window.location.reload();
+                }
+
+                return false;
+            }
+
+            return Error.response;
         }
+
     }
 
     /**

@@ -4,6 +4,7 @@ import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.service.AuthService;
+import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.config.web.security.JwtTokenProvider;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
@@ -27,6 +28,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
 
+    @PreventDoubleClick
     @PostMapping("/login")
     public LoginResponseDto login(@RequestBody LoginDto request, HttpServletResponse httpResponse) throws Exception {
         LoginResponseDto responseDto = authService.login(request);
