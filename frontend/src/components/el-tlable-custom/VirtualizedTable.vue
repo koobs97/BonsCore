@@ -101,7 +101,13 @@ const v2Columns = computed(() => {
         sortable: col.sortable ?? false,
         align: col.align || 'left',
         headerAlign: col.headerAlign || 'center',
-        cellRenderer: ({ rowData }: any) => {
+        cellRenderer: ({ rowData }: any) => { // rowData는 { userId: '...', userName: '...' } 같은 객체
+          const cellValue = rowData[column.dataKey];
+
+          const formattedValue = col.formatter
+              ? col.formatter(rowData, column, cellValue, -1) // -1은 인덱스를 알 수 없음을 의미
+              : cellValue;
+
           return h('div', {
             style: {
               width: '100%',
@@ -111,8 +117,8 @@ const v2Columns = computed(() => {
               textAlign: col.align || 'left',
               fontSize: '12px'
             },
-            title: rowData
-          }, rowData);
+            title: formattedValue
+          }, formattedValue);
         },
         headerCellRenderer: ({ column }: any) => {
           const headerStyle = {
@@ -334,7 +340,7 @@ defineExpose(({
 
 <template>
   <el-auto-resizer>
-    <templage #default="{ height, width }">
+    <template #default="{ height, width }">
       <el-table-v2
         ref="tableRef"
         :key="tableKey"
@@ -351,11 +357,41 @@ defineExpose(({
         @column-solt="handleColumnSort"
         @scroll="onTableScroll"
         fixed
-      />
-    </templage>
+      >
+        <!-- No Data 영역을 위한 슬롯 추가 -->
+        <template #empty>
+          <div class="el-empty-custom">
+            <el-text style="color: var(--el-text-color-secondary);">데이터 없음</el-text>
+          </div>
+        </template>
+      </el-table-v2>
+    </template>
   </el-auto-resizer>
 </template>
 
 <style scoped>
-
+.el-empty-custom {
+  --el-empty-padding: 20px 0;
+  --el-empty-image-width: 160px;
+  --el-empty-description-margin-top: 20px;
+  --el-empty-bottom-margin-top: 20px;
+  --el-empty-fill-color-0: var(--el-color-white);
+  --el-empty-fill-color-1: #fcfcfd;
+  --el-empty-fill-color-2: #f8f9fb;
+  --el-empty-fill-color-3: #f7f8fc;
+  --el-empty-fill-color-4: #eeeff3;
+  --el-empty-fill-color-5: #edeef2;
+  --el-empty-fill-color-6: #e9ebef;
+  --el-empty-fill-color-7: #e5e7e9;
+  --el-empty-fill-color-8: #e0e3e9;
+  --el-empty-fill-color-9: #d5d7de;
+  align-items: center;
+  box-sizing: border-box;
+  display: flex
+;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--el-empty-padding);
+  text-align: center;
+}
 </style>

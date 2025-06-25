@@ -64,4 +64,19 @@ public class SampleService {
         log.info("maskingTest End");
         return list;
     }
+
+    /**
+     * el-table 속도비교 서비스
+     *
+     * @param vo PagingVo
+     * @return List<PagingVo>
+     */
+    @Transactional
+    public List<PagingVo> tableSpeedTest(PagingVo vo) {
+
+        log.info("tableSpeedTest Start");
+        List<PagingVo> list = sampleMapper.testSelect3(vo);
+        log.info("tableSpeedTest End");
+        return list;
+    }
 }

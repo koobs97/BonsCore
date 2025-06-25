@@ -36,4 +36,26 @@
           FROM USER_INFO                        /* 유저정보 테이블 */
          ORDER BY USER_ID DESC
     </select>
+
+    <!-- el-table 성능비교테스트용 sql -->
+    <select id="testSelect3" resultType="com.koo.bonscore.sample.vo.PagingVo" parameterType="com.koo.bonscore.sample.vo.PagingVo">
+        <![CDATA[
+            SELECT /* com.koo.bonscore.sample.mapper.SampleMapper : testSelect3 el-table 성능비교테스트용 sql */
+                   *
+              FROM (
+                   SELECT
+                          ROW_NUMBER() OVER (ORDER BY USER_ID DESC) AS rn
+                        , USER_ID
+                        , USER_NAME
+                        , EMAIL
+                        , PHONE_NUMBER
+                        , BIRTH_DATE
+                        , GENDER_CODE
+                     FROM USER_INFO
+               CROSS JOIN (SELECT LEVEL AS seq FROM dual CONNECT BY LEVEL <= 200)
+                   )
+             WHERE rn <= 10000
+        ]]>
+    </select>
+
 </mapper>

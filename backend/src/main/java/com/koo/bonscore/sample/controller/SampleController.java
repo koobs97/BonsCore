@@ -56,4 +56,15 @@ public class SampleController {
         result.setList(list);
         return result;
     }
+
+    /**
+     * el-table 속도비교 샘플
+     * @param vo Masking
+     * @return PageResult<PagingVo>
+     */
+    @PostMapping("/tableTest")
+    public ApiResponse<List<PagingVo>> tableTest(@RequestBody PagingVo vo) {
+        List<PagingVo> list = sampleService.tableSpeedTest(vo);
+        return ApiResponse.success("조회 성공", list);
+    }
 }

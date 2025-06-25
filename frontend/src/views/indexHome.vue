@@ -7,7 +7,7 @@ import springIcon from '@/assets/images/spring-icon.svg'
 import { SegmentedProps } from "element-plus";
 import { ref } from "vue";
 import { useRouter } from 'vue-router'
-import VirtualizedTable from "@/components/el-tlable-custom/VirtualizedTable.vue";
+import TableSpeedTest from "@/components/el-tlable-custom/TableSpeedTest.vue";
 
 const router = useRouter()
 
@@ -50,12 +50,9 @@ const onClickRefresh = () => {
     <!-- 유저 card 영역 -->
     <UserInfoAvatar />
 
-    <!-- 시계 -->
-
-
   </div>
 
-  <el-tabs type="border-card" class="demo-tabs" style="height: 350px;">
+  <el-tabs type="border-card" class="demo-tabs" style="height: 420px;">
     <el-tab-pane label="페이징">
       <div style="width: 700px;">
         <PagingEx/>
@@ -68,8 +65,7 @@ const onClickRefresh = () => {
     </el-tab-pane>
     <el-tab-pane label="EL테이블">
       <div style="width: 700px;">
-<!--        <VirtualizedTable-->
-<!--        />-->
+        <TableSpeedTest/>
       </div>
     </el-tab-pane>
   </el-tabs>

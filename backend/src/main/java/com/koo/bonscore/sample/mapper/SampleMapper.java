@@ -34,4 +34,11 @@ public interface SampleMapper {
      * @return List<MaskingVo>
      */
     List<MaskingVo> testSelect2(MaskingVo vo);
+
+    /**
+     * el-table 성능비교 예시
+     * @param vo PagingVo
+     * @return List<PagingVo>
+     */
+    List<PagingVo> testSelect3(PagingVo vo);
 }

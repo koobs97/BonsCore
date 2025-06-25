@@ -71,7 +71,7 @@ const onClickSearchPaging = async () => {
         </div>
     </div>
 
-    <el-table stripe border highlight-current-row :data="state.list1" style="height: 200px;">
+    <el-table stripe border highlight-current-row :data="state.list1" style="height: 270px;">
       <TableColumn :columns="columns1" />
     </el-table>
 </template>
