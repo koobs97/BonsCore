@@ -1,14 +1,15 @@
 <script setup lang="ts">
 
 import { Hide, View } from "@element-plus/icons-vue";
-import { computed, reactive, ref, onMounted } from 'vue';
+import {computed, reactive, ref, onMounted, h} from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import JSEncrypt from 'jsencrypt';
-import { ElMessage } from 'element-plus';
+import {ElMessage, ElMessageBox} from 'element-plus';
 import { Common } from '@/common/common';
 import { useRouter } from 'vue-router';
 import { userStore, userState } from '@/store/userStore';
+import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
 
 const router = useRouter();
 
@@ -87,7 +88,7 @@ const validateInput = async () => {
 /**
  * 로그인 버튼 클릭 이벤트
  */
-const onClickLogin = async () => {
+const onClickLogin = async (isForced: boolean) => {
 
   // 입력값 검증
   if(await validateInput()) {
@@ -102,11 +103,15 @@ const onClickLogin = async () => {
 
     const params = {
       userId : userId.value,
-      password : encryptedPassword
+      password : encryptedPassword,
+      force: isForced,
     }
+
+    console.log(params)
 
     state.isProcessing = true;
     const res = await Api.post(ApiUrls.LOGIN, params, true);
+    console.log(res)
 
     if(res.data.accessToken) {
       console.log('login success ->', res);
@@ -138,7 +143,45 @@ const onClickLogin = async () => {
 
     } else {
       state.isProcessing = false;
-      console.log('login failed ->', res);
+      console.log('login failed -> {}', res);
+
+      // 중복 로그인 시
+      if(res.data.reason === 'DUPLICATE_LOGIN') {
+
+        await ElMessageBox.confirm(
+            // message 옵션에 h(컴포넌트, props) 전달
+            h(CustomConfirm, {
+              title: '중복 로그인 감지',
+              message: res.data.message, // 서버에서 받은 메시지 ("...<br>...")
+            }),
+            // title 옵션은 빈 문자열로 두거나, h()를 사용하면 무시됨
+            '',
+            {
+              // 버튼 텍스트는 그대로 유지
+              confirmButtonText: '로그인',
+              cancelButtonText: '취소',
+
+              // 추가적인 스타일링을 위한 클래스
+              customClass: 'custom-message-box',
+
+              // 아이콘을 컴포넌트 안에서 직접 그리므로, 기본 아이콘은 숨김
+              showClose: false,
+              distinguishCancelAndClose: true, // ESC나 닫기 버튼을 취소와 구분
+              type: '' // 기본 'warning' 타입 아이콘을 숨기기 위해 빈 값으로 설정
+            }
+        ).then(() => {
+          // '로그인' 버튼 클릭 시
+          onClickLogin(true);
+        }).catch((action) => {
+          // '취소' 버튼 클릭 또는 ESC, 닫기 버튼 클릭
+          if (action === 'cancel') {
+            ElMessage.info('로그인을 취소했습니다.');
+          }
+        });
+
+
+      }
+
     }
 
   }
@@ -156,7 +199,7 @@ const onClickLogin = async () => {
 
     <el-form
         style="margin-top: 45px;"
-        @keydown.enter.prevent="onClickLogin">
+        @keydown.enter.prevent="onClickLogin(false)">
       <div style="text-align: left;">
         <el-checkbox label="아이디 기억하기" v-model="rememberId" />
       </div>
@@ -185,7 +228,7 @@ const onClickLogin = async () => {
       </el-input>
       <el-button
           type="primary"
-          @click="onClickLogin"
+          @click="onClickLogin(false)"
           style="
             width: 100%;
             height: 45px;

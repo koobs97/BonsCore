@@ -6,7 +6,8 @@ import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.service.AuthService;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
-import com.koo.bonscore.core.config.web.security.JwtTokenProvider;
+import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
+import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,13 +28,34 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final LoginSessionManager loginSessionManager;
 
     @PreventDoubleClick
     @PostMapping("/login")
     public LoginResponseDto login(@RequestBody LoginDto request, HttpServletResponse httpResponse) throws Exception {
+
+        // 1. 사용자 ID로 중복 로그인 확인
+        // 강제 로그인이 아니고, 이미 로그인된 세션이 있다면
+        if (!request.isForce() && loginSessionManager.isDuplicateLogin(request.getUserId())) {
+            LoginResponseDto responseDto = new LoginResponseDto();
+            responseDto.setSuccess(false);
+            responseDto.setReason("DUPLICATE_LOGIN"); // 프론트와 약속된 이유 전달
+            responseDto.setMessage("다른 기기에서 로그인 중입니다.<br>접속을 강제로 끊고 로그인하시겠습니까?");
+            return responseDto;
+        }
+
+        // 실제 로그인 처리
         LoginResponseDto responseDto = authService.login(request);
 
+        // 로그인 성공 시 세션 처리
         if (responseDto.getSuccess()) {
+            String userId = request.getUserId();
+            String accessToken = responseDto.getAccessToken();
+            
+
+            // 새로운 세션 등록 (이 과정에서 기존 세션은 블랙리스트 처리됨
+            loginSessionManager.registerSession(userId, accessToken);
+
             // Refresh Token 쿠키로 전달
             ResponseCookie cookie = ResponseCookie.from("refresh_token", responseDto.getRefreshToken())
                     .httpOnly(true)

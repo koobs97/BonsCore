@@ -1,10 +1,19 @@
 import axios from 'axios';
 import { ApiUrls } from './apiUrls';
-import { ElLoading } from 'element-plus';
+import {ElLoading, ElMessageBox} from 'element-plus';
 import router from '../../router';
 import { ElMessage } from 'element-plus'
 import { userStore } from '@/store/userStore';
-import { nextTick } from "vue";
+import { h } from "vue";
+import type { Router } from 'vue-router';
+import SessionExpiredAlert from "@/components/MessageBox/SessionExpiredAlert.vue";
+
+let routerInstance: Router | null = null;
+
+// 라우터 인스턴스를 주입하는 함수
+export function setupAxiosInterceptors(router: Router) {
+    routerInstance = router;
+}
 
 const axiosInstance = axios.create();
 
@@ -31,6 +40,7 @@ axiosInstance.interceptors.response.use(
     async error => {
         const originalRequest = error.config;
 
+        // 403 - FORBIDDEN
         if (error.response && error.response.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
 
@@ -55,9 +65,60 @@ axiosInstance.interceptors.response.use(
                 return Promise.reject(refreshError);
             }
 
-            // 다른 상태 코드 처리 가능
-            // if (status === 401) { ... }
         }
+        // 401 - UNAUTHORIZED
+        if(error.response && error.response.status === 401) {
+
+            // 로그인 페이지로 이동하는 로직
+            const redirectToLogin = async () => {
+                userStore().delUserInfo();
+                if(router.currentRoute.value.path !== '/login') {
+                    await router.push("/login");
+                    window.location.reload();
+                }
+            };
+
+            // 1. SessionExpiredAlert 컴포넌트의 props 타입을 가져옵니다.
+            type AlertProps = InstanceType<typeof SessionExpiredAlert>['$props'];
+
+            // 2. props 객체를 타입과 함께 별도의 변수로 선언합니다.
+            const alertProps: AlertProps = {
+                initialSeconds: 10,
+                onComplete: () => {
+                    redirectToLogin();
+                }
+            };
+
+            // 메시지 박스 호출
+            const messageBoxPromise = ElMessageBox.alert(
+                h(SessionExpiredAlert, alertProps),
+                '',
+                {
+                    confirmButtonText: '즉시 로그아웃',
+
+                    // --- 버튼 가운데 정렬을 위한 옵션 ---
+                    center: false,
+
+                    type: '',
+                    showClose: false,
+                    closeOnClickModal: false,
+                    closeOnPressEscape: false,
+                }
+            ).catch(() => {});
+
+            messageBoxPromise.then(() => {
+                // '확인' 버튼을 누르거나, 코드로 close()가 호출되어 성공적으로 닫혔을 때 실행
+                redirectToLogin();
+            }).catch(() => {
+                console.log('MessageBox가 비정상적으로 닫혔습니다.');
+                redirectToLogin(); // 어떤 경우든 로그인 페이지로 이동하도록 보장
+            });
+
+            return false;
+        }
+
+        // 다른 상태 코드 처리 가능
+        // if (status === 401) { ... }
 
         return Promise.reject(error);
     }
@@ -90,46 +151,23 @@ export class Api {
             if(loadingOption) loading.close();
 
             return returnData
-        } catch (error) {
+        } catch (error: any) {
             if(loadingOption) loading.close();
 
-            // 타입에러에 따른 에러 정의
-            const Error = error as any;
-
             // 에러 내용 출력
-            console.error('❗API Error Response:', Error);
-            console.error('❗API Error Response:', Error.response.data);
+            console.error('❗API Error Response -> {}', error);
+            console.error('❗API Error Response -> {}', error.response.data);
 
             // 에러 response message 출력Error
-            if(Error.response.data.message) {
-                ElMessage.error(Error.response.data.message);
+            if(error.response.data.message) {
+                ElMessage.error(error.response.data.message);
             }
             // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
-            else if (Error.response.data?.includes('CORS')) {
+            else if (error.response.data?.includes('CORS')) {
                 ElMessage.error("서버와 연결할 수 없습니다");
             }
 
-            // Unauthorized
-            if(Error.status === 401) {
-                ElMessage.error("세션만료");
-                await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
-
-                ElMessage.error("로그인 화면으로 이동합니다.");
-                await new Promise(resolve => setTimeout(resolve, 200)); // 0.2초 대기
-
-                userStore().delUserInfo();
-                await nextTick();
-
-                // 인증실패 시 로그인 화면으로 이동
-                if(router.currentRoute.value.path !== '/login') {
-                    await router.push("/login");
-                    window.location.reload();
-                }
-
-                return false;
-            }
-
-            return Error.response;
+            return error.response;
         }
 
     }

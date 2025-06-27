@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PagingEx from "@/components/paging/PagingEx.vue";
 import MaskingEx from "@/components/masking/MaskingEx.vue";
-import TimeViewr from "@/components/TimeViewr.vue";
+import TimeViewr from "@/components/time/TimeViewr.vue";
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 import springIcon from '@/assets/images/spring-icon.svg'
 import { SegmentedProps } from "element-plus";

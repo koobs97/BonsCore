@@ -1,4 +1,4 @@
-package com.koo.bonscore.core.config.web.security;
+package com.koo.bonscore.core.config.web.security.config;
 
 import io.jsonwebtoken.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +17,7 @@ import java.util.List;
 
 @Component
 public class JwtTokenProvider {
+
     @Value("${jwt.secret}")
     private String secretKey;
 
@@ -82,5 +83,20 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    public Claims getClaimsFromToken(String token) {
+        return parseClaims(token);
+    }
+
+    private Claims parseClaims(String accessToken) {
+        try {
+            Key key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
+            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
+        } catch (ExpiredJwtException e) {
+            // 만료된 토큰이라도 Claim 값은 필요할 수 있으므로, 예외적으로 Claim을 반환합니다.
+            // LoginSessionManager의 cleanupBlacklist에서 만료 여부를 확인하기 위함입니다.
+            return e.getClaims();
+        }
     }
 }
