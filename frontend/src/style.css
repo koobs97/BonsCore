@@ -167,3 +167,8 @@ button:focus-visible {
 .el-table th.el-table__cell {
   background-color: var(--el-color-primary) !important;
 }
+
+/* el-message box 버튼간격 조정 */
+.el-button+.el-button {
+  margin-left: 4px !important;
+}

@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from 'vue';
+import { computed, reactive, ref, onMounted, h } from 'vue';
 import { userStore, userState } from '@/store/userStore';
-import {Female, Male, Setting, UserFilled} from "@element-plus/icons-vue";
+import { Female, Male, Setting, UserFilled } from "@element-plus/icons-vue";
+import {ElLoading, ElMessage, ElMessageBox} from "element-plus";
+import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import router from "../../../router";
 
 const userStoreObj = userStore();
 
@@ -55,6 +60,49 @@ const formattedPhoneNumber = computed(() => {
 // pop over 제어 함수
 const custromTrigger = () => {
   buttonRef.value = !buttonRef.value
+}
+
+const onClickLogOut = async () => {
+  try {
+    await ElMessageBox.confirm(
+        // message에 커스텀 컴포넌트를 렌더링
+        h(LogOutConfirm),
+        // title은 컴포넌트가 자체적으로 가지고 있으므로 비워둠
+        {
+          confirmButtonText: '로그아웃',
+          cancelButtonText: '취소',
+
+          // --- 스타일링을 위한 옵션 ---
+          customClass: 'logout-confirm-box', // CSS에서 사용할 클래스
+          type: '', // 기본 아이콘 숨기기
+          showClose: false, // X 닫기 버튼 숨기기
+        }
+    );
+
+    // '로그아웃' 버튼을 눌렀을 때 실행될 로직
+
+    await Api.post(ApiUrls.LOGOUT, {}, true);
+
+    ElLoading.service({
+      lock: true,
+      text: 'Loading',
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+    ElMessage.success('성공적으로 로그아웃되었습니다.');
+
+    setTimeout(()=>{
+      userStore().delUserInfo();
+      sessionStorage.clear();
+      router.push("/login");
+      window.location.reload();
+    }, 1000);
+
+  } catch (error) {
+    if (error === 'cancel') {
+      console.log('로그아웃이 취소되었습니다.');
+      ElMessage.info('로그아웃을 취소했습니다.');
+    }
+  }
 }
 
 </script>
@@ -206,7 +254,11 @@ const custromTrigger = () => {
                   </el-descriptions>
                   <div>
                     <el-button icon="EditPen" style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;">정보수정</el-button>
-                    <el-button icon="Promotion" style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;">로그아웃</el-button>
+                    <el-button
+                        icon="Promotion"
+                        style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
+                        @click="onClickLogOut"
+                    >로그아웃</el-button>
                   </div>
                 </div>
               </template>

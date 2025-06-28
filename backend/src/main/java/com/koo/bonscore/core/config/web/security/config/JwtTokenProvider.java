@@ -1,6 +1,8 @@
 package com.koo.bonscore.core.config.web.security.config;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,8 +20,13 @@ import java.util.List;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret}")
-    private String secretKey;
+    private final Key key;
+
+    // 생성자에서 Key 객체를 한 번만 생성
+    public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+    }
 
     private final long expirationMs = 1000L * 60 * 60 * 2; // 2시간
 
@@ -34,8 +41,6 @@ public class JwtTokenProvider {
         Claims claims = Jwts.claims().setSubject(userId);
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMillis);
-
-        Key key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -58,7 +63,7 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jws<Claims> claims = Jwts.parserBuilder()
-                    .setSigningKey(secretKey.getBytes(StandardCharsets.UTF_8))
+                    .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token);
 
@@ -78,7 +83,7 @@ public class JwtTokenProvider {
 
     public String getUserId(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(secretKey.getBytes(StandardCharsets.UTF_8))
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
@@ -91,7 +96,6 @@ public class JwtTokenProvider {
 
     private Claims parseClaims(String accessToken) {
         try {
-            Key key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
             return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
         } catch (ExpiredJwtException e) {
             // 만료된 토큰이라도 Claim 값은 필요할 수 있으므로, 예외적으로 Claim을 반환합니다.

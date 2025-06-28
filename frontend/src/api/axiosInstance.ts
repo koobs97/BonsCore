@@ -20,7 +20,8 @@ const axiosInstance = axios.create();
 // 요청 인터셉터 설정
 axiosInstance.interceptors.request.use(
     (config) => {
-        if (config.url && config.url.startsWith('/api/auth/')) {
+        const noAuthUrls = ['/api/auth/login', '/api/auth/refresh'];
+        if (config.url && noAuthUrls.includes(config.url)) {
             // 로그인 요청은 토큰을 추가하지 않도록 설정
             delete config.headers.Authorization;
         } else {

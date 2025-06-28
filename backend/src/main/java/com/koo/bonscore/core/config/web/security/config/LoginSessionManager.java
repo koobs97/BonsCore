@@ -79,4 +79,25 @@ public class LoginSessionManager {
             }
         });
     }
+
+    /**
+     * 사용자의 세션을 완전히 종료시킨다.
+     * @param userId 사용자 ID
+     * @param accessToken 무효화할 Access Token
+     * @param refreshToken 무효화할 Refresh Token
+     */
+    public void logoutSession(String userId, String accessToken, String refreshToken) {
+        // 1. 활성 세션 맵에서 사용자 제거
+        activeSessions.remove(userId);
+
+        // 2. 현재 사용하던 Access Token을 블랙리스트에 추가
+        if (accessToken != null) {
+            tokenBlacklist.add(accessToken);
+        }
+
+        // 3. Refresh Token도 블랙리스트에 추가하여 재발급 방지
+        if (refreshToken != null) {
+            tokenBlacklist.add(refreshToken);
+        }
+    }
 }

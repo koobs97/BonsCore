@@ -10,6 +10,7 @@ import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,13 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
 
+    /**
+     * 로그인
+     * @param request
+     * @param httpResponse
+     * @return
+     * @throws Exception
+     */
     @PreventDoubleClick
     @PostMapping("/login")
     public LoginResponseDto login(@RequestBody LoginDto request, HttpServletResponse httpResponse) throws Exception {
@@ -39,7 +47,7 @@ public class AuthController {
         if (!request.isForce() && loginSessionManager.isDuplicateLogin(request.getUserId())) {
             LoginResponseDto responseDto = new LoginResponseDto();
             responseDto.setSuccess(false);
-            responseDto.setReason("DUPLICATE_LOGIN"); // 프론트와 약속된 이유 전달
+            responseDto.setReason("DUPLICATE_LOGIN");
             responseDto.setMessage("다른 기기에서 로그인 중입니다.<br>접속을 강제로 끊고 로그인하시겠습니까?");
             return responseDto;
         }
@@ -74,6 +82,12 @@ public class AuthController {
         return responseDto;
     }
 
+    /**
+     * Refresh Token 검증 및 Access Token 생성
+     * @param refreshTokenDto
+     * @param request
+     * @return
+     */
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<Object>> refreshAccessToken(@RequestBody RefreshTokenDto refreshTokenDto, HttpServletRequest request) {
         String refreshToken = refreshTokenDto.getRefreshToken();
@@ -101,6 +115,54 @@ public class AuthController {
 
         // 새로운 Access Token 반환
         return ResponseEntity.ok(ApiResponse.success("Token refreshed", newAccessToken));
+    }
+
+    /**
+     * 로그아웃
+     * @param request
+     * @param response
+     * @return
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Object>> logout(HttpServletRequest request, HttpServletResponse response) {
+
+        // 1. Request Header에서 Access Token 추출
+        String accessToken = jwtTokenProvider.resolveToken(request);
+        if (accessToken == null) {
+            // 토큰이 없는 요청은 처리할 필요 없음
+            return ResponseEntity.ok(ApiResponse.success("No active session to log out.", null));
+        }
+
+        // 2. Access Token에서 사용자 ID 추출
+        String userId = jwtTokenProvider.getUserId(accessToken);
+
+        // 3. 쿠키에서 Refresh Token 값 찾기 (HttpOnly 쿠키이므로 서버에서 직접 읽기)
+        String refreshToken = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("refresh_token".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        // 4. LoginSessionManager를 통해 서버 측 세션 정보 및 토큰 무효화
+        loginSessionManager.logoutSession(userId, accessToken, refreshToken);
+
+        // 5. 클라이언트(브라우저)의 Refresh Token 쿠키를 삭제하라는 응답 생성
+        ResponseCookie deleteCookie = ResponseCookie.from("refresh_token", "")
+                .maxAge(0) // maxAge를 0으로 설정하여 즉시 만료
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+
+        return ResponseEntity.ok(ApiResponse.success("Successfully logged out.", null));
     }
 
 }
