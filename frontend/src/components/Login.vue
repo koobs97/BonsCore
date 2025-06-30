@@ -5,11 +5,12 @@ import {computed, reactive, ref, onMounted, h} from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import JSEncrypt from 'jsencrypt';
-import {ElMessage, ElMessageBox} from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Common } from '@/common/common';
 import { useRouter } from 'vue-router';
 import { userStore, userState } from '@/store/userStore';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
+import TheFooter from "@/components/layout/TheFooter.vue";
 
 const router = useRouter();
 
@@ -72,12 +73,20 @@ const encryptPassword = async (password: string): Promise<string> => {
  */
 const validateInput = async () => {
   if(Common.isEmpty(userId.value)) {
-    ElMessage.error('사용자ID를 입력하세요.');
+    ElMessage({
+      message: '사용자ID를 입력하세요.',
+      grouping: true,
+      type: 'error',
+    })
     userIdInput.value?.focus();
     return;
   }
   if(Common.isEmpty(password.value)) {
-    ElMessage.error('비밀번호를 입력하세요.');
+    ElMessage({
+      message: '비밀번호를 입력하세요.',
+      grouping: true,
+      type: 'error',
+    });
     passwordInput.value?.focus();
     return;
   }
@@ -257,15 +266,9 @@ const onClickLogin = async (isForced: boolean) => {
     </el-button>
   </el-card>
 
-  <div style="
-    position: fixed;
-    bottom: 2%;
-    left: 0;
-    right: 0;
-    font-size: 12px;
-    text-align: center;">
-    <strong>Copyright</strong> KooBonSang &copy; 2025 All Rights Reserved.
-  </div>
+  <!-- Footer -->
+  <TheFooter />
+  <!-- Footer -->
 
 </template>
 

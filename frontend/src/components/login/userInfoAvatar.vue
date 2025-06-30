@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, onMounted, h } from 'vue';
 import { userStore, userState } from '@/store/userStore';
-import { Female, Male, Setting, UserFilled } from "@element-plus/icons-vue";
-import {ElLoading, ElMessage, ElMessageBox} from "element-plus";
+import { CopyDocument, Female, Male, Setting, UserFilled } from "@element-plus/icons-vue";
+import { ElLoading, ElMessage, ElMessageBox } from "element-plus";
 import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
 import router from "../../../router";
 
 const userStoreObj = userStore();
@@ -105,10 +105,24 @@ const onClickLogOut = async () => {
   }
 }
 
+/**
+ * 이메일 복사 함수
+ * @param email
+ */
+const copyEmail = (email: string) => {
+  navigator.clipboard.writeText(email)
+      .then(() => {
+        ElMessage.success('이메일이 복사되었습니다.')
+      })
+      .catch(() => {
+        ElMessage.error('복사에 실패했습니다.')
+      })
+}
+
 </script>
 
 <template>
-  <el-card class="custom-el-card" shadow="never" style="height: 90px; width: 230px; margin: 0 0 4px 4px; position: relative;">
+  <el-card class="custom-el-card" shadow="never" style="height: 90px; width: 230px; margin: 0 0 5px 4px; position: relative;">
     <template #header>
       <div style="height: 60px; display: flex; align-items: center;">
         <div style="display: flex; justify-content: flex-start; padding: 0 0 0 8px;">
@@ -224,9 +238,14 @@ const onClickLogOut = async () => {
                           이메일
                         </div>
                       </template>
-                      <el-text style="font-weight: bold; font-size: 11px;">
-                        {{ state.User.email }}
-                      </el-text>
+                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <el-text style="font-weight: bold; font-size: 11px;">
+                          {{ state.User.email }}
+                        </el-text>
+                        <el-tag type="success" style="width: 24px;" @click="copyEmail(state.User.email)">
+                          <el-icon><CopyDocument /></el-icon>
+                        </el-tag>
+                      </div>
                     </el-descriptions-item>
 
                     <el-descriptions-item>

@@ -62,6 +62,7 @@ axiosInstance.interceptors.response.use(
                     ElMessage.error(error.response.data.message);
                 }
 
+                await Api.post(ApiUrls.LOGOUT, {}, true);
                 await router.push('/login');
                 return Promise.reject(refreshError);
             }
@@ -72,6 +73,7 @@ axiosInstance.interceptors.response.use(
 
             // 로그인 페이지로 이동하는 로직
             const redirectToLogin = async () => {
+                await Api.post(ApiUrls.LOGOUT, {}, true);
                 userStore().delUserInfo();
                 if(router.currentRoute.value.path !== '/login') {
                     await router.push("/login");

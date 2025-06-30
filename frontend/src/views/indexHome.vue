@@ -8,6 +8,7 @@ import { SegmentedProps } from "element-plus";
 import { ref } from "vue";
 import { useRouter } from 'vue-router'
 import TableSpeedTest from "@/components/el-tlable-custom/TableSpeedTest.vue";
+import TheFooter from "@/components/layout/TheFooter.vue";
 
 const router = useRouter()
 
@@ -23,9 +24,14 @@ const onClickRefresh = () => {
 <template>
 
   <div style="display: flex;">
+
+    <!-- 시계영역 -->
     <div style="text-align: left; margin-right: 4px; width: 110px;">
       <TimeViewr />
     </div>
+    <!-- 시계영역 -->
+
+    <!-- 중탕 타이틀 영역 -->
     <el-card shadow="never" style="height: 90px; width: calc(100% - 352px); margin-bottom: 4px; position: relative;">
       <template #default>
 
@@ -46,12 +52,13 @@ const onClickRefresh = () => {
 
       </template>
     </el-card>
+    <!-- 중탕 타이틀 영역 -->
 
     <!-- 유저 card 영역 -->
     <UserInfoAvatar />
-
   </div>
 
+  <!-- main 영역 -->
   <el-tabs type="border-card" class="demo-tabs" style="height: 420px;">
     <el-tab-pane label="페이징">
       <div style="width: 700px;">
@@ -69,9 +76,16 @@ const onClickRefresh = () => {
       </div>
     </el-tab-pane>
   </el-tabs>
+  <!-- main 영역 -->
+
+  <!-- Footer -->
+  <TheFooter />
+  <!-- Footer -->
+
 </template>
 
 <style scoped>
+/* UserInfo 에서 사용중인 스타일 */
 .custom-el-card {
   --el-card-border-color: var(--el-border-color-light);
   --el-card-border-radius: 4px;

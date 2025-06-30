@@ -79,4 +79,20 @@ public class SampleService {
         log.info("tableSpeedTest End");
         return list;
     }
+
+    /**
+     * poi 엑셀 다운로드
+     *
+     * @param vo PagingVo
+     * @return List<PagingVo>
+     */
+    @Transactional
+    public List<PagingVo> downloadUsersAsExcel(PagingVo vo) {
+
+        log.info("downloadUsersAsExcel Start");
+        List<PagingVo> list = sampleMapper.testSelect3(vo);
+        log.info("downloadUsersAsExcel End");
+
+        return list;
+    }
 }

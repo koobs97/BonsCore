@@ -42,7 +42,7 @@ onUnmounted(() => {
       ></VDatePicker>
     </template>
 
-    <el-tag effect="light" style="margin-right: 4px; text-align: center; height: 92px; width: 110px;">
+    <el-tag type="info" effect="plain" style="margin-right: 4px; text-align: center; height: 92px; width: 110px;">
 
       <div style="display: inline-flex; align-items: center; font-size: 10px;">
         <el-icon style="margin-right: 4px" :size="12" @click="visible = !visible">

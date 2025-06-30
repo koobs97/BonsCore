@@ -26,6 +26,20 @@ const columns1: ColumnDef[] = [
 ];
 
 /**
+ * 초기화
+ */
+const onClickPageClear = () => {
+  // 성능시간 초기화
+  state.performance.fetchTime = 0;
+  state.performance.elTableRenderTime = 0;
+  state.performance.virtualizedTableRenderTime = 0;
+
+  // 데이터 초기화
+  state.elTableData = [];
+  state.virtualizedTableData = [];
+}
+
+/**
  * 조회버튼 클릭 이벤트
  */
 const onClickSearchPaging = async () => {
@@ -50,7 +64,7 @@ const onClickSearchPaging = async () => {
   const originalData = retData.data;
 
   // =================================================================
-  // ★★★ 변경점 2: 렌더링 시간 측정 로직을 완전히 분리합니다.
+  // ★★★ 변경점 2: 렌더링 시간 측정 로직을 완전히 분리.
   // =================================================================
 
   // --- 2. el-table 렌더링 시간 측정 ---
@@ -93,6 +107,9 @@ const onClickSearchPaging = async () => {
           <el-button icon="Search" style="font-weight: bold; color: #001233;" @click="onClickSearchPaging" :loading="state.isLoading">
             성능 측정
           </el-button>
+          <el-button type="info" plain icon="Refresh" size="small" @click="onClickPageClear">
+            초기화
+          </el-button>
         </div>
         <div>
           <div>
@@ -109,7 +126,7 @@ const onClickSearchPaging = async () => {
                 {{ state.performance.fetchTime.toFixed(2) }} ms
               </el-descriptions-item>
               <el-descriptions-item label="el-table 렌더링">
-                <span style="color: blue; font-weight: bold;">{{ state.performance.fetchTime.toFixed(2) }} ms</span>
+                <span style="color: blue; font-weight: bold;">{{ state.performance.elTableRenderTime.toFixed(2) }} ms</span>
               </el-descriptions-item>
               <el-descriptions-item label="el-table-v2 렌더링">
                 <span style="color: green; font-weight: bold;">{{ state.performance.virtualizedTableRenderTime.toFixed(2) }} ms</span>
@@ -164,7 +181,8 @@ const onClickSearchPaging = async () => {
 }
 .right-group {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   margin-right: auto; /* 왼쪽으로 밀기 */
   gap: 2px; /* 스위치와 버튼 사이 간격 */
 }
