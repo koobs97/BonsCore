@@ -4,7 +4,7 @@
   </footer>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 
 // 매번 수정할 필요 없이 현재 연도를 자동으로 가져옵니다.

@@ -9,6 +9,7 @@ import { ref } from "vue";
 import { useRouter } from 'vue-router'
 import TableSpeedTest from "@/components/el-tlable-custom/TableSpeedTest.vue";
 import TheFooter from "@/components/layout/TheFooter.vue";
+import FileUpload from "@/components/fileUpload/FileUpload.vue";
 
 const router = useRouter()
 
@@ -73,6 +74,14 @@ const onClickRefresh = () => {
     <el-tab-pane label="EL테이블">
       <div style="width: 700px;">
         <TableSpeedTest/>
+      </div>
+    </el-tab-pane>
+    <el-tab-pane label="파일업로드">
+      <div style="width: 700px;">
+        <FileUpload
+            :max-size-m-b="5"
+            :allowed-extensions="['jpg', 'png', 'txt']"
+        />
       </div>
     </el-tab-pane>
   </el-tabs>
