@@ -16,10 +16,17 @@ const allPages = { ...viewPages, ...componentPages };
 // 모든 파일을 순회하며 라우터 설정 추가
 for (const path in allPages) {
     // 라우터 경로로 사용할 path 생성
+
     const routePath = path
-        .replace(/^\.\/src\/views/, '')      // views 폴더 경로 제거
+        .replace(/^\.\/src\/views\/[^/]+\//, '/')
+        .replace(/^\.\/src\/views\//, '/')
         .replace(/^\.\/src\/components/, '') // components 폴더 경로 제거
-        .replace(/\.vue$/, '');              // .vue 확장자 제거
+
+        // .vue 확장자를 제거
+        .replace(/\.vue$/, '')
+
+        // /index 로 끝나는 경우, /index를 제거
+        .replace(/\/index$/, '') || '/';
 
     routes.push({
         path: '/' + routePath,

@@ -196,82 +196,146 @@ const onClickLogin = async (isForced: boolean) => {
   }
 
 }
+
+/**
+ * 회원가입창으로 이동
+ */
+const onClickToOpenSignup = () => {
+  router.push("/SignUp");
+}
 </script>
 
 <template>
-  <el-card
-      shadow="never"
-      style="width: 350px; height: 370px;">
-    <h2 style="font-size: 30px; color: #0D1B2A">
-      로그인
-    </h2>
+  <!-- 전체 레이아웃을 감싸는 컨테이너 추가 -->
+  <div class="login-container">
+    <el-card class="login-card" shadow="never">
+      <h2 class="login-title">로그인</h2>
 
-    <el-form
-        style="margin-top: 45px;"
-        @keydown.enter.prevent="onClickLogin(false)">
-      <div style="text-align: left;">
-        <el-checkbox label="아이디 기억하기" v-model="rememberId" />
+      <el-form class="login-form" @keydown.enter.prevent="onClickLogin(false)">
+        <div class="form-options">
+          <el-checkbox v-model="rememberId" label="아이디 기억하기" />
+        </div>
+
+        <el-input
+            v-model="userId"
+            ref="userIdInput"
+            class="login-input"
+            placeholder="사용자 ID"
+        />
+        <el-input
+            v-model="password"
+            ref="passwordInput"
+            class="login-input"
+            placeholder="비밀번호"
+            :type="passwdType"
+        >
+          <template #append>
+            <el-button @click="togglePassword">
+              <el-icon><component :is="passwdIcon" /></el-icon>
+            </el-button>
+          </template>
+        </el-input>
+
+        <el-button
+            type="primary"
+            class="login-button"
+            @click="onClickLogin(false)"
+        >
+          로그인
+        </el-button>
+      </el-form>
+
+      <div class="find-links">
+        <el-button type="info" link>아이디 찾기</el-button>
+        <el-divider direction="vertical" />
+        <el-button type="info" link>비밀번호 찾기</el-button>
       </div>
-      <el-input
-          v-model="userId"
-          ref="userIdInput"
-          placeholder="사용자ID"
-          style="
-            height: 40px;
-            font-size: 15px;
-            margin-bottom: 8px;"/>
-      <el-input
-          v-model="password"
-          ref="passwordInput"
-          placeholder="비밀번호"
-          :type="passwdType"
-          style="
-            height: 40px;
-            font-size: 15px;
-            margin-bottom: 16px;">
-        <template #append>
-          <el-button @click="togglePassword">
-            <el-icon><component :is="passwdIcon" /></el-icon>
-          </el-button>
-        </template>
-      </el-input>
-      <el-button
-          type="primary"
-          @click="onClickLogin(false)"
-          style="
-            width: 100%;
-            height: 45px;
-            font-weight: bold;
-            font-size: 16px;">
-        로그인
+    </el-card>
+
+    <el-card class="signup-prompt-card" shadow="never">
+      <el-button type="primary" link class="signup-link" @click="onClickToOpenSignup">
+        회원가입
       </el-button>
-    </el-form>
+    </el-card>
 
-    <div style="margin-top: 12px;">
-      <el-button type="info" link >아이디 찾기</el-button>
-      <el-button type="info" link >비밀번호 찾기</el-button>
-    </div>
-  </el-card>
-
-  <el-card
-      shadow="never"
-      style="margin-top: 12px; height: 70px;">
-    <el-button
-          type="primary"
-          link
-          style="
-            font-weight: bold;"
-    >
-      회원가입
-    </el-button>
-  </el-card>
-
-  <!-- Footer -->
-  <TheFooter />
-  <!-- Footer -->
-
+    <!-- Footer -->
+    <TheFooter />
+    <!-- Footer -->
+  </div>
 </template>
 
 <style scoped>
+/* 전체 페이지 레이아웃 */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
 
+/* 로그인 카드 */
+.login-card {
+  width: 380px;
+  padding: 8px;
+  box-sizing: border-box; /* 패딩이 너비에 영향을 주지 않도록 설정 */
+}
+
+.login-title {
+  font-size: 28px;
+  color: #0D1B2A;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* 로그인 폼 */
+.login-form {
+  margin-top: 20px;
+}
+
+.form-options {
+  text-align: left;
+  margin-bottom: 15px;
+}
+
+.login-input {
+  height: 45px;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+/* Element Plus의 내부 스타일을 덮어쓰기 위해 더 구체적인 선택자 사용 */
+.login-input :deep(.el-input__inner) {
+  height: 45px;
+}
+
+.login-button {
+  width: 100%;
+  height: 48px;
+  font-weight: bold;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.find-links {
+  margin-top: 20px;
+  text-align: center;
+}
+
+/* 회원가입 카드 */
+.signup-prompt-card {
+  width: 380px;
+  margin-top: 12px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 8px;
+  box-sizing: border-box;
+}
+
+.signup-link {
+  font-weight: bold;
+  margin-left: 8px;
+}
 </style>
