@@ -172,3 +172,9 @@ button:focus-visible {
 .el-button+.el-button {
   margin-left: 4px !important;
 }
+
+/* custom-error-popover 클래스를 가진 popover의 화살표에만 스타일 적용 */
+.el-popper.custom-error-popover[data-popper-placement^=right] .el-popper__arrow::before {
+  border-left-color: #e53e3e !important;
+  border-bottom-color: #e53e3e !important;
+}
