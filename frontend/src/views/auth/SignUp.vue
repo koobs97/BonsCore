@@ -1,4 +1,7 @@
 <script setup>
+import { onMounted, onUnmounted, reactive, ref } from "vue";
+import { InfoFilled } from "@element-plus/icons-vue";
+
 
 // 알림 popover style 속성
 const popoverStyle = {
@@ -13,6 +16,117 @@ const popoverStyle = {
   boxShadow: 'none',
 };
 
+// focus 용 ref
+const formRef = ref();
+const keys = ['userId', 'password', 'email'];
+const form = Object.fromEntries(keys.map(k => [k, ref('')]))
+
+// reactive 정의
+const state = reactive({
+  data: {
+    userId: '',
+    password: '',
+  },
+  message: {
+    password: {
+      required: '비밀번호는 필수조건입니다.',
+      noUserId: '비밀번호에 아이디를 포함할 수 없습니다.',
+      minLength: '비밀번호는 최소 8자 이상이어야 합니다.',
+      maxLength: '비밀번호는 최대 20자 이하이어야 합니다.',
+      hasNumber: '비밀번호에 숫자를 포함해야 합니다.',
+      hasUpperCase: '비밀번호에 대문자를 포함해야 합니다.',
+      hasLowerCase: '비밀번호에 소문자를 포함해야 합니다.',
+      hasSpecialChar: '비밀번호에 특수문자를 하나 이상 포함해야 합니다.',
+      noWhitespace: '비밀번호에 공백을 포함할 수 없습니다.',
+      weakPassword: '너무 쉬운 비밀번호는 사용할 수 없습니다.',
+    },
+  },
+  rules: {
+    userId: { required: true, message: '아이디는 필수조건입니다.', trigger: 'blur' },
+    password: { required: true, message: '비밀번호는 필수조건입니다.', trigger: 'blur' },
+  },
+  visible: {
+    userId: false,
+    password: false,
+  }
+})
+
+onMounted(() => {
+  document.addEventListener('mousemove', mousemoveHandler)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', mousemoveHandler)
+})
+
+/**
+ * 비밀번호 생성 규칙 툴팁 오픈
+ */
+const handleClickInfo = () => {
+  visible.value = !visible.value;
+}
+
+const visible = ref(false)
+const position = ref({
+  top: 0,
+  left: 0,
+  bottom: 0,
+  right: 0,
+})
+
+const triggerRef = ref({
+  getBoundingClientRect: () => position.value,
+})
+
+const mousemoveHandler = ({ clientX, clientY }) => {
+  position.value = DOMRect.fromRect({
+    x: clientX,
+    y: clientY,
+  })
+}
+
+/**
+ * 필드 포커스 시 에러 메시지 숨기기
+ * @param fieldName
+ */
+const handleFieldFocus = (fieldName) => {
+  state.visible[fieldName] = false;
+}
+
+/**
+ * 필드 블러 시 유효성 검사 실행
+ * @param fieldName
+ */
+const handleFieldValidation = (fieldName) => {
+  formRef.value.validateField(fieldName, (isValid, invalidFields) => {
+    state.visible[fieldName] = !isValid;
+    if (!isValid) {
+      // rules에 정의된 메시지를 state에 저장
+      state.message[fieldName] = invalidFields[fieldName][0].message;
+    }
+  })
+}
+
+/**
+ * 가입하기
+ * @returns {Promise<void>}
+ */
+const onClickSignUp = async () => {
+
+  await formRef.value.validate((valid, fields) => {
+    if (valid) {
+      console.log('submit!')
+    } else {
+      console.log('error submit!', fields)
+
+      if('userId' in fields) {
+        state.visible.userId = true;
+      }
+
+    }
+  })
+}
+
 </script>
 
 <template>
@@ -26,7 +140,10 @@ const popoverStyle = {
       </template>
 
       <el-form
-          ref="ruleFormRef"
+          ref="formRef"
+          :model="state.data"
+          :rules="state.rules"
+          :show-message="false"
           label-position="left"
           class="signup-form"
           label-width="120px"
@@ -40,17 +157,20 @@ const popoverStyle = {
         <el-popover
             popper-class="custom-error-popover"
             :popper-style="popoverStyle"
-            content="아이디는 필수조건입니다."
+            :content="state.rules.userId.message"
             placement="right-start"
             width="250"
-            :visible="true"
+            :visible="state.visible.userId"
         >
           <template #reference>
-            <el-form-item label="아이디" prop="id" required>
+            <el-form-item label="아이디" prop="userId" required>
               <el-input
                   placeholder="6~12자의 영문/숫자 조합"
                   clearable
                   class="input-with-button"
+                  v-model="state.data.userId"
+                  ref="userId"
+                  @blur="() => handleFieldValidation('userId')"
               >
                 <template #append>
                   <el-button type="primary">중복 체크</el-button>
@@ -67,7 +187,7 @@ const popoverStyle = {
             content="비밀번호는 필수조건입니다."
             placement="right-start"
             width="250"
-            :visible="true"
+            :visible="state.visible.password"
         >
           <template #reference>
             <el-form-item label="비밀번호" prop="password" required>
@@ -76,10 +196,27 @@ const popoverStyle = {
                   show-password
                   placeholder="8자 이상 입력해 주세요"
                   clearable
-              />
+              >
+                <template #suffix>
+                  <el-icon @click="handleClickInfo" class="cursor-pointer">
+                    <InfoFilled />
+                  </el-icon>
+                </template>
+              </el-input>
             </el-form-item>
           </template>
         </el-popover>
+
+        <!-- 비밀번호 안내 tooltip (마우스 따라다니는 이벤트) -->
+        <el-tooltip
+            v-model:visible="visible"
+            content="Bottom center"
+            placement="bottom"
+            effect="light"
+            trigger="click"
+            virtual-triggering
+            :virtual-ref="triggerRef"
+        />
 
         <!-- 비밀번호 확인 -->
         <el-popover
@@ -238,6 +375,7 @@ const popoverStyle = {
         <el-button
             type="primary"
             class="signup-button"
+            @click="onClickSignUp"
         >
           가입하기
         </el-button>
