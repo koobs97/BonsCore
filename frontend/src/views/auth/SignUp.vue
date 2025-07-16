@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { InfoFilled } from "@element-plus/icons-vue";
 
@@ -74,10 +74,19 @@ const position = ref({
   right: 0,
 })
 
+/**
+ * 비밀번호 도움말 클릭 시 position
+ * @type {Ref<UnwrapRef<{getBoundingClientRect: (function(): UnwrapRef<{top: number, left: number, bottom: number, right: number}>)}>, UnwrapRef<{getBoundingClientRect: (function(): UnwrapRef<{top: number, left: number, bottom: number, right: number}>)}> | {getBoundingClientRect: (function(): UnwrapRef<{top: number, left: number, bottom: number, right: number}>)}>}
+ */
 const triggerRef = ref({
   getBoundingClientRect: () => position.value,
 })
 
+/**
+ * 비밀번호 도움말 클릭 시 마우스 이동 핸들러
+ * @param clientX
+ * @param clientY
+ */
 const mousemoveHandler = ({ clientX, clientY }) => {
   position.value = DOMRect.fromRect({
     x: clientX,
@@ -210,13 +219,30 @@ const onClickSignUp = async () => {
         <!-- 비밀번호 안내 tooltip (마우스 따라다니는 이벤트) -->
         <el-tooltip
             v-model:visible="visible"
-            content="Bottom center"
-            placement="bottom"
+            placement="right"
             effect="light"
             trigger="click"
             virtual-triggering
             :virtual-ref="triggerRef"
-        />
+        >
+          <template #content>
+            <div class="password-info">
+              <el-text class="password-info-title">
+                <el-icon>
+                  <InfoFilled />
+                </el-icon>
+                비밀번호 생성규칙
+              </el-text>
+              <el-divider class="password-info-divider"></el-divider>
+              <el-tag class="password-info-content">1. 8자리 이상</el-tag>
+              <el-tag class="password-info-content">2. 영문/특수기호/숫자 전부 포함</el-tag>
+              <el-tag class="password-info-content">3. ID와 동일하게 사용불가</el-tag>
+              <el-tag class="password-info-content">4. 생년월일/전화번호 포함 불가</el-tag>
+              <el-divider class="password-info-divider"></el-divider>
+              <el-tag class="password-info-footer">생성규칙에 맞춰 비밀번호를 생성해주세요</el-tag>
+            </div>
+          </template>
+        </el-tooltip>
 
         <!-- 비밀번호 확인 -->
         <el-popover
@@ -421,5 +447,30 @@ const onClickSignUp = async () => {
 :deep(.el-popper[data-popper-placement^=right]>.el-popper__arrow:before) {
   border-right-color: #e53e3e !important;
   border-top-color: #e53e3e !important;
+}
+.password-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.password-info-title {
+  font-weight: bold;
+}
+.password-info-content {
+  margin-bottom: 4px;
+  width: 275px;
+  justify-content: left;
+  color: #4527A0;
+}
+.password-info-divider {
+  margin-bottom: 4px;
+  margin-top: 4px;
+}
+.password-info-footer {
+  margin-bottom: 4px;
+  width: 275px;
+  justify-content: left;
+  background-color: #F5F5F5;
+  color: #212121;
 }
 </style>
