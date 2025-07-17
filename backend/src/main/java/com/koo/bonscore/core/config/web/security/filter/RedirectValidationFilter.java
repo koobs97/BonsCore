@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,6 +23,7 @@ import java.io.IOException;
  * @version : 1.0
  * @since   : 2025-06-03
  */
+@Slf4j
 @Order(2)
 public class RedirectValidationFilter extends OncePerRequestFilter {
 
@@ -33,10 +35,11 @@ public class RedirectValidationFilter extends OncePerRequestFilter {
         String redirectParam = request.getParameter("redirect");
 
         if (redirectParam != null) {
-            // ✅ /로 시작하고 알파벳/숫자/-/_/만 허용
+            // /로 시작하고 알파벳/숫자/-/_/만 허용
             boolean isSafe = redirectParam.matches("^/([a-zA-Z0-9\\-_/]*)$");
             if (!isSafe) {
-                // 로그 찍기 or 에러 응답
+                log.warn("Invalid redirect parameter detected. Input: {}, RemoteIP: {}",
+                        redirectParam, request.getRemoteAddr());
                 // 서블릿 수준에서의 오류로 에러핸들러로 가지 않고 처리됨
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid redirect URL");
                 return;

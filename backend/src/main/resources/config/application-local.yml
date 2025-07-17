@@ -9,4 +9,4 @@ spring:
     driver-class-name: ${DATASOURCE_DRIVER_CLASS_NAME}
     url: ${DATASOURCE_URL}
     username: ${DATASOURCE_USERNAME}
-    password: ${DATASOURCE_PASSWORD}
+    password: ${DATASOURCE_PASSWORD}ㄴㄷ
