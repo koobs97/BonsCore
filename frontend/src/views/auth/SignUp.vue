@@ -282,8 +282,8 @@ const showPrivacyPolicyPopup = () => {
         h('thead', null, [
           h('tr', null, [
             h('th', { style: 'width: 15%' }, '구분'),
-            h('th', { style: 'width: 30%' }, '수집 목적'),
-            h('th', { style: 'width: 25%' }, '수집 항목'),
+            h('th', { style: 'width: 28%' }, '수집 목적'),
+            h('th', { style: 'width: 27%' }, '수집 항목'),
             h('th', { style: 'width: 30%' }, '보유 및 이용기간'),
           ]),
         ]),
@@ -291,16 +291,16 @@ const showPrivacyPolicyPopup = () => {
           // 필수 항목
           h('tr', null, [
             h('td', null, h(ElTag, { type: 'danger', size: 'small', effect: 'light' }, '필수')),
-            h('td', null, '회원 식별 및 서비스 제공'),
-            h('td', null, '아이디, 비밀번호, 이메일 주소'),
+            h('td', { class: 'retention-period' }, '회원 식별 및 서비스 제공'),
+            h('td', { class: 'retention-period' }, '아이디, 비밀번호, 이메일 주소'),
             // 보유 기간 내용을 한 곳으로 모아 명확성을 높입니다.
             h('td', { rowspan: 2, class: 'retention-period' }, '회원 탈퇴 시 즉시 파기. 단, 관련 법령에 따라 보관이 필요한 경우 해당 기간 동안 보존됩니다.'),
           ]),
           // 선택 항목
           h('tr', null, [
             h('td', null, h(ElTag, { type: 'info', size: 'small', effect: 'light' }, '선택')),
-            h('td', null, '마케팅 및 광고 활용'),
-            h('td', null, '연락처, 주소'),
+            h('td', { class: 'retention-period' }, '마케팅 및 광고 활용'),
+            h('td', { class: 'retention-period' }, '연락처, 주소'),
           ]),
         ]),
       ]);
@@ -314,7 +314,11 @@ const showPrivacyPolicyPopup = () => {
             closable: false,
             showIcon: true,
           },
-          () => '귀하는 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. 다만, 필수 항목에 대한 동의를 거부하실 경우 회원가입 및 관련 서비스 이용이 제한될 수 있습니다.'
+          () => [
+            '귀하는 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. ', // 첫 번째 줄 문자열
+            h('br'), // <br> 태그에 해당하는 VNode를 삽입하여 줄바꿈
+            '다만, 필수 항목에 대한 동의를 거부하실 경우 회원가입 및 관련 서비스 이용이 제한될 수 있습니다.' // 두 번째 줄 문자열
+          ]
       );
 
       // 하단 동의 체크박스 영역: 클래스를 추가하여 스타일링을 용이하게 합니다.
@@ -365,6 +369,176 @@ const showPrivacyPolicyPopup = () => {
         // '확인' 버튼을 눌렀을 때, 팝업의 두 상태를 모두 메인 state에 반영합니다.
         state.agreePersonalInfo = popupState.isAgreedRequired;
         state.agreeMarketing = popupState.isAgreedMarketing;
+      })
+      .catch(() => {});
+};
+
+/**
+ * 제3자 정보 제공 동의 보기 팝업
+ */
+const showThirdPartyPopup = () => {
+  // 1. 팝업 내부에서만 사용할 반응형 상태를 생성합니다.
+  const popupState = reactive({
+    isAgreed: state.agreeThirdParty, // '제3자 정보 제공 동의' 상태와 연결
+  });
+
+  // 2. 가독성을 높인 VNode를 생성합니다.
+  const messageVNode = h(ReactiveVNode, {
+    renderFn: () => {
+      // 섹션 제목
+      const titleVNode = h('h4',
+          { class: 'privacy-section-title' },
+          '개인정보 국외 이전 및 처리 위탁 내역'
+      );
+
+      // 테이블 내용: Oracle Cloud에 데이터 처리를 위탁하는 내용으로 변경
+      const policyTableVNode = h('table', { class: 'privacy-table' }, [
+        h('thead', null, [
+          h('tr', null, [
+            h('th', { style: { width: '25%' } }, '이전받는 자'),
+            h('th', { style: { width: '35%' } }, '이전 목적'),
+            h('th', { style: { width: '20%' } }, '개인정보 항목'),
+            h('th', { style: { width: '20%' } }, '보유/이용기간'),
+          ]),
+        ]),
+        h('tbody', null, [
+          h('tr', null, [
+            h('td', null, 'Oracle Corporation (미국)'),
+            h('td', { class: 'retention-period' }, '클라우드 데이터베이스 서버 운영 및 데이터의 안전한 저장/관리'),
+            h('td', { class: 'retention-period' }, '회원가입 시 수집된 개인정보 일체 (아이디, 비밀번호, 이메일 등)'),
+            h('td', { class: 'retention-period' }, '회원 탈퇴 또는 위탁 계약 종료 시까지'),
+          ]),
+        ]),
+      ]);
+
+      // 안내 문구: 클라우드 사용 시나리오에 맞게 수정
+      const refusalInfoVNode = h(ElAlert,
+          {
+            class: 'refusal-info-alert',
+            title: '동의 거부 권리 및 불이익 안내',
+            type: 'info',
+            closable: false,
+            showIcon: true,
+          },
+          () => [
+            '귀하는 개인정보의 국외 이전 및 처리 위탁에 대한 동의를 거부할 권리가 있습니다.',
+            h('br'),
+            '다만, 동의를 거부하실 경우 서비스의 핵심 기능이 동작하지 않으므로 회원가입 및 모든 서비스 이용이 불가능합니다.'
+          ]
+      );
+
+      // 하단 동의 체크박스 영역: 문구 수정
+      const agreementFooterVNode = h('div', { class: 'privacy-agreement-footer' }, [
+        h(ElCheckbox as any, {
+          modelValue: popupState.isAgreed,
+          'onUpdate:modelValue': (newValue: boolean) => { popupState.isAgreed = newValue; },
+          size: 'large',
+        }, () => [
+          h('span', null, '(필수) 위 내용을 모두 확인하였으며, 개인정보의 국외 이전 및 처리 위탁에 동의합니다.')
+        ]),
+      ]);
+
+      // 최종 VNode 조합
+      return h('div', { class: 'privacy-dialog-content' }, [
+        h('div', { class: 'privacy-scroll-content' }, [
+          titleVNode,
+          policyTableVNode,
+          refusalInfoVNode,
+        ]),
+        agreementFooterVNode,
+      ]);
+    },
+  });
+
+  // 3. ElMessageBox 호출: 팝업 제목 수정
+  ElMessageBox.alert(messageVNode, '개인정보 국외 이전 및 처리 위탁 동의', {
+    confirmButtonText: '확인',
+    customClass: 'privacy-policy-message-box-modern',
+    dangerouslyUseHTMLString: false,
+  })
+      .then(() => {
+        // '확인' 버튼 클릭 시, 팝업의 상태를 메인 state에 최종 반영
+        state.agreeThirdParty = popupState.isAgreed;
+      })
+      .catch(() => {});
+};
+
+/**
+ * 기타 사항 동의 보기 팝업
+ */
+const showEtcPopup = () => {
+  // 1. 팝업 내부에서만 사용할 반응형 상태를 생성합니다.
+  const popupState = reactive({
+    isAgreed: state.agreeEtc, // '기타 사항 동의' 상태와 연결
+  });
+
+  // 2. 가독성을 높인 VNode를 생성합니다.
+  const messageVNode = h(ReactiveVNode, {
+    renderFn: () => {
+      // 아이콘을 사용하기 위해 InfoFilled 컴포넌트를 h() 함수로 감쌉니다.
+      const iconVNode = (component: any) => h('div', { class: 'etc-icon-wrapper' }, h(component, { class: 'etc-icon' }));
+
+      // --- 각 섹션을 VNode로 정의합니다. 내용은 주석을 참고하여 자유롭게 채우시면 됩니다. ---
+
+      // 첫 번째 섹션
+      const sectionOne = h('div', { class: 'etc-section' }, [
+        h('div', { class: 'etc-section-header' }, [
+          iconVNode(InfoFilled),
+          h('h5', { class: 'etc-section-title' }, '첫 번째 주요 정책')
+        ]),
+        h('p', { class: 'etc-section-content' },
+            '이곳에 첫 번째 주요 정책 또는 기타 안내 사항에 대한 내용을 상세하게 기술합니다. 필요에 따라 여러 문단으로 구성할 수 있습니다. 사용자가 꼭 알아야 할 중요한 정보를 명확하고 간결하게 전달하는 것이 좋습니다.'
+        ),
+      ]);
+
+      // 두 번째 섹션
+      const sectionTwo = h('div', { class: 'etc-section' }, [
+        h('div', { class: 'etc-section-header' }, [
+          iconVNode(InfoFilled),
+          h('h5', { class: 'etc-section-title' }, '두 번째 고려 사항')
+        ]),
+        h('p', { class: 'etc-section-content' },
+            '이곳에는 두 번째 안내 사항을 작성합니다. 예를 들어, 서비스 이용 규칙, 콘텐츠 저작권 정책, 혹은 분쟁 해결 절차 등에 대한 내용을 포함할 수 있습니다.'
+        ),
+        // 필요하다면 목록(ul/li)을 추가하여 가독성을 높일 수 있습니다.
+        h('ul', { class: 'etc-list' }, [
+          h('li', null, '항목 1: 관련된 세부 규칙이나 가이드라인을 명시합니다.'),
+          h('li', null, '항목 2: 사용자가 준수해야 할 또 다른 중요한 사항입니다.'),
+        ]),
+      ]);
+
+      // 하단 동의 체크박스 영역
+      const agreementFooterVNode = h('div', { class: 'privacy-agreement-footer' }, [
+        h(ElCheckbox as any, {
+          modelValue: popupState.isAgreed,
+          'onUpdate:modelValue': (newValue: boolean) => { popupState.isAgreed = newValue; },
+          size: 'large',
+        }, () => [
+          h('span', null, '(선택) 위 기타 사항을 모두 확인하였으며, 내용에 동의합니다.')
+        ]),
+      ]);
+
+      // 최종 VNode 조합
+      return h('div', { class: 'privacy-dialog-content' }, [
+        h('div', { class: 'privacy-scroll-content' }, [
+          // 생성한 섹션들을 배열 안에 나열합니다.
+          sectionOne,
+          sectionTwo,
+        ]),
+        agreementFooterVNode,
+      ]);
+    },
+  });
+
+  // 3. ElMessageBox 호출
+  ElMessageBox.alert(messageVNode, '기타 사항 안내 및 동의', {
+    confirmButtonText: '확인',
+    customClass: 'privacy-policy-message-box-modern',
+    dangerouslyUseHTMLString: false,
+  })
+      .then(() => {
+        // '확인' 버튼 클릭 시, 팝업의 상태를 메인 state에 최종 반영
+        state.agreeEtc = popupState.isAgreed;
       })
       .catch(() => {});
 };
@@ -679,7 +853,7 @@ const onClickSignUp = async () => {
                 <el-checkbox v-model="state.agreeThirdParty" label="제3자정보제공동의" />
               </div>
             </template>
-            <el-button link type="info">보기</el-button>
+            <el-button link type="info" @click="showThirdPartyPopup">보기</el-button>
           </el-descriptions-item>
 
           <el-descriptions-item>
@@ -689,7 +863,7 @@ const onClickSignUp = async () => {
               </div>
             </template>
             <div style="text-align: right;">
-              <el-button link type="info">보기</el-button>
+              <el-button link type="info" @click="showEtcPopup">보기</el-button>
             </div>
           </el-descriptions-item>
         </el-descriptions>
@@ -756,9 +930,9 @@ const onClickSignUp = async () => {
 }
 /* MessageBox 자체의 스타일링 */
 .privacy-policy-message-box-modern {
-  max-width: 680px;
+  max-width: 830px;
   width: 90%;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 0; /* 내부에서 패딩을 제어하기 위해 초기화 */
 }
 
@@ -843,6 +1017,66 @@ const onClickSignUp = async () => {
   line-height: 1.5;
   color: #303133;
   font-weight: 500;
+}
+
+/* 기타사항 */
+.etc-section {
+  margin-bottom: 24px; /* 섹션 간의 간격 */
+}
+
+/* 섹션 헤더 (아이콘 + 제목) */
+.etc-section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* 아이콘을 감싸는 래퍼 */
+.etc-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background-color: #eef2ff; /* 아이콘 배경색 */
+}
+
+/* 아이콘 스타일 */
+.etc-icon {
+  font-size: 14px;
+  color: #4338ca; /* 아이콘 색상 */
+}
+
+/* 섹션 제목 스타일 */
+.etc-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+}
+
+/* 섹션 내용 스타일 */
+.etc-section-content {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #606266;
+  padding-left: 32px; /* 아이콘 너비만큼 들여쓰기하여 정렬 */
+  margin: 0;
+}
+
+/* 목록 스타일 */
+.etc-list {
+  padding-left: 52px; /* 들여쓰기 추가 */
+  margin-top: 10px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.etc-list li {
+  margin-bottom: 6px;
 }
 </style>
 
