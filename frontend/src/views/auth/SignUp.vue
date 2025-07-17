@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref, watch, computed, h } from "vue";
 import { InfoFilled } from "@element-plus/icons-vue";
-import { ElMessageBox, ElCheckbox } from 'element-plus';
+import { ElMessageBox, ElCheckbox, ElTag, ElAlert } from 'element-plus';
 import type { VNode } from 'vue';
+import { defineComponent } from "@vue/runtime-dom";
 
 
 // 알림 popover style 속성
@@ -31,10 +32,10 @@ const fieldLabels = {
   phoneNumber: '전화번호',
   birthDate: '생년월일',
   genderCode: '성별',
-};
+} as any;
 
 // 동적 객체 생성
-const initialData = formFields.reduce((acc, field) => ({ ...acc, [field]: '' }), {});
+const initialData = formFields.reduce((acc, field) => ({ ...acc, [field]: '' }), {}) as any;
 const initialRules = formFields.reduce((acc, field) => ({
   ...acc,
   [field]: {
@@ -50,22 +51,17 @@ const state = reactive({
   data: { ...initialData },
   rules: {
     ...initialRules,
-    password: { // required 외에 다른 validator를 추가할 때
-      // validator: customValidator,
-      ...initialRules.password, // 기본 required 규칙은 유지
-      // 다른 규칙 추가...
-    },
-  },
-  visible: initialVisible,
+  } as any,
+  visible: initialVisible as any,
   /* 패스워드 복잡도 상태 */
   complexity: {
     percentage: 0, // 초기값은 0으로 설정
     status: '', // 초기에는 상태 없음
   },
-  // 개별 동의 항목의 체크 상태
-  agreePersonalInfo: false,
+  agreePersonalInfo: false, // (필수) 개인정보 수집 및 이용 동의
   agreeThirdParty: false,
   agreeEtc: false,
+  agreeMarketing: false, // (선택) 마케팅 정보 수신 동의 <--- 이 항목을 추가하세요.
 
   // '전체 동의' 체크박스의 상태
   agreeAll: false,
@@ -83,7 +79,7 @@ onUnmounted(() => {
  * 새로운 규칙에 맞춰 비밀번호 복잡도를 계산하고 state를 업데이트하는 함수
  * @param {string} password - 검사할 비밀번호 문자열
  */
-const updatePasswordComplexity = (password) => {
+const updatePasswordComplexity = (password: any) => {
   // 비밀번호가 비어있으면 초기 상태로 리셋
   if (!password) {
     state.complexity.percentage = 0;
@@ -185,7 +181,7 @@ const triggerRef = ref({
  * @param clientX
  * @param clientY
  */
-const mousemoveHandler = ({ clientX, clientY }) => {
+const mousemoveHandler = ({ clientX, clientY }: any) => {
   position.value = DOMRect.fromRect({
     x: clientX,
     y: clientY,
@@ -196,7 +192,7 @@ const mousemoveHandler = ({ clientX, clientY }) => {
  * 필드 포커스 시 에러 메시지 숨기기
  * @param fieldName
  */
-const handleFieldFocus = (fieldName) => {
+const handleFieldFocus = (fieldName: any) => {
   state.visible[fieldName] = false;
 }
 
@@ -204,13 +200,9 @@ const handleFieldFocus = (fieldName) => {
  * 필드 블러 시 유효성 검사 실행
  * @param fieldName
  */
-const handleFieldValidation = (fieldName) => {
-  formRef.value.validateField(fieldName, (isValid, invalidFields) => {
+const handleFieldValidation = (fieldName: any) => {
+  formRef.value.validateField(fieldName, (isValid: any, invalidFields: any) => {
     state.visible[fieldName] = !isValid;
-    if (!isValid) {
-      // rules에 정의된 메시지를 state에 저장
-      state.message[fieldName] = invalidFields[fieldName][0].message;
-    }
   })
 }
 
@@ -225,81 +217,156 @@ const requiredAgreements = computed(() => [
  * '전체 동의' 체크박스를 클릭했을 때 실행되는 함수
  * @param {boolean} isChecked - '전체 동의' 체크박스의 새로운 값
  */
-const handleAgreeAllChange = (isChecked) => {
+const handleAgreeAllChange = (isChecked: any) => {
   // 모든 개별 동의 항목의 상태를 '전체 동의' 상태와 동일하게 맞춰준다.
   state.agreePersonalInfo = isChecked;
   state.agreeThirdParty = isChecked;
   state.agreeEtc = isChecked;
+  state.agreeMarketing = isChecked;
 };
 
 // 개별 동의 항목들의 상태가 변경되는 것을 감시 (watch)
-watch(requiredAgreements, (currentValues) => {
-  // currentValues 배열에 false가 하나라도 포함되어 있는지 확인
-  if (currentValues.includes(false)) {
-    // 하나라도 체크 해제되면 '전체 동의'도 해제
-    state.agreeAll = false;
-  } else {
-    // 모든 항목이 체크되었으면 '전체 동의'도 체크
-    state.agreeAll = true;
-  }
+watch(
+    [() => state.agreePersonalInfo, () => state.agreeThirdParty, () => state.agreeEtc, () => state.agreeMarketing],
+    (currentValues) => {
+      // currentValues 배열에 false가 하나라도 포함되어 있는지 확인
+      if (currentValues.includes(false)) {
+        // 하나라도 체크 해제되면 '전체 동의'도 해제
+        state.agreeAll = false;
+      } else {
+        // 모든 항목이 체크되었으면 '전체 동의'도 체크
+        state.agreeAll = true;
+      }
+    });
+
+const ReactiveVNode = defineComponent({
+  props: {
+    // 렌더링할 VNode를 만드는 함수를 prop으로 받습니다.
+    renderFn: {
+      type: Function,
+      required: true,
+    },
+  },
+  setup(props) {
+    // setup 함수는 render 함수를 반환합니다.
+    // prop으로 받은 함수를 실행하여 최종 VNode를 생성합니다.
+    // 이 컴포넌트 덕분에 renderFn 내부에서 사용하는 반응형 데이터가 변경될 때마다
+    // UI가 자동으로 다시 렌더링됩니다.
+    return () => props.renderFn();
+  },
 });
 
+/**
+ * 개인정보 수집 및 이용 동의 보기 팝업
+ */
 const showPrivacyPolicyPopup = () => {
-  // 표 형식으로 약관 내용을 구조화하여 가독성 향상
-  const policyTableVNode = h('table', { class: 'privacy-table' }, [
-    h('thead', null, [
-      h('tr', null, [
-        h('th', null, '수집 목적'),
-        h('th', null, '수집 항목'),
-        h('th', null, '보유 기간'),
-      ]),
-    ]),
-    h('tbody', null, [
-      h('tr', null, [
-        h('td', null, '회원 식별 및 서비스 제공'),
-        h('td', null, '아이디, 비밀번호, 이메일 주소'),
-        h('td', { rowspan: 2 }, '회원 탈퇴 시 즉시 파기 (단, 관계 법령에 따라 보존 필요 시 해당 기간까지 보관)'),
-      ]),
-      h('tr', null, [
-        h('td', null, '마케팅 및 광고 활용 (선택)'),
-        h('td', null, '연락처, 주소'),
-      ]),
-    ]),
-  ]);
+  // 1. 팝업 내부에서만 사용할 반응형 상태를 생성합니다. (기존과 동일)
+  const popupState = reactive({
+    isAgreedRequired: state.agreePersonalInfo,
+    isAgreedMarketing: state.agreeMarketing,
+  });
 
-  // 동의 거부 관련 안내 문구
-  const refusalInfoVNode = h('p', { class: 'refusal-info' },
-      '※ 귀하는 위 동의를 거부할 권리가 있으나, 필수 항목에 대한 동의 거부 시 서비스 이용이 제한될 수 있습니다.'
-  );
+  // 2. 가독성을 높인 VNode를 생성합니다.
+  const messageVNode = h(ReactiveVNode, {
+    renderFn: () => {
+      // --- 디자인 개선을 위한 VNode 재구성 ---
 
-  // 하단 동의 체크박스 영역
-  const agreementFooterVNode = h('div', { class: 'privacy-agreement-footer' }, [
-    h(ElCheckbox, {
-      modelValue: state.agreePersonalInfo,
-      'onUpdate:modelValue': (newValue: boolean) => {
-        state.agreePersonalInfo = newValue;
-      },
-      label: '위 내용을 모두 확인하였으며, 개인정보 수집 및 이용에 동의합니다.',
-      size: 'default', // 팝업 안에서는 default 사이즈가 더 잘 어울립니다.
-    }),
-  ]);
+      // 섹션 제목: 팝업 내용이 무엇인지 명확하게 알려줍니다.
+      const titleVNode = h('h4',
+          { class: 'privacy-section-title' },
+          '개인정보 수집·이용 내역'
+      );
 
-  // 위의 모든 VNode를 조합하여 최종 메시지 구성
-  const messageVNode: VNode = h('div', { class: 'privacy-dialog-content' }, [
-    h('div', { class: 'privacy-scroll-content' }, [
-      policyTableVNode,
-      refusalInfoVNode,
-    ]),
-    agreementFooterVNode,
-  ]);
+      // 테이블: '구분' 열을 추가하고 ElTag를 사용해 필수/선택 항목을 시각적으로 강조합니다.
+      const policyTableVNode = h('table', { class: 'privacy-table' }, [
+        h('thead', null, [
+          h('tr', null, [
+            h('th', { style: 'width: 15%' }, '구분'),
+            h('th', { style: 'width: 30%' }, '수집 목적'),
+            h('th', { style: 'width: 25%' }, '수집 항목'),
+            h('th', { style: 'width: 30%' }, '보유 및 이용기간'),
+          ]),
+        ]),
+        h('tbody', null, [
+          // 필수 항목
+          h('tr', null, [
+            h('td', null, h(ElTag, { type: 'danger', size: 'small', effect: 'light' }, '필수')),
+            h('td', null, '회원 식별 및 서비스 제공'),
+            h('td', null, '아이디, 비밀번호, 이메일 주소'),
+            // 보유 기간 내용을 한 곳으로 모아 명확성을 높입니다.
+            h('td', { rowspan: 2, class: 'retention-period' }, '회원 탈퇴 시 즉시 파기. 단, 관련 법령에 따라 보관이 필요한 경우 해당 기간 동안 보존됩니다.'),
+          ]),
+          // 선택 항목
+          h('tr', null, [
+            h('td', null, h(ElTag, { type: 'info', size: 'small', effect: 'light' }, '선택')),
+            h('td', null, '마케팅 및 광고 활용'),
+            h('td', null, '연락처, 주소'),
+          ]),
+        ]),
+      ]);
 
-  // ElMessageBox 호출
+      // 안내 문구: ElAlert를 사용해 동의 거부 권리에 대한 내용을 강조합니다.
+      const refusalInfoVNode = h(ElAlert,
+          {
+            class: 'refusal-info-alert',
+            title: '동의 거부 권리 및 불이익 안내',
+            type: 'info',
+            closable: false,
+            showIcon: true,
+          },
+          () => '귀하는 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. 다만, 필수 항목에 대한 동의를 거부하실 경우 회원가입 및 관련 서비스 이용이 제한될 수 있습니다.'
+      );
+
+      // 하단 동의 체크박스 영역: 클래스를 추가하여 스타일링을 용이하게 합니다.
+      const agreementFooterVNode = h('div', { class: 'privacy-agreement-footer' }, [
+        // 두 개의 체크박스를 담을 컨테이너
+        h('div', { class: 'privacy-agreement-items' }, [
+          // 필수 동의 체크박스
+          h(ElCheckbox as any, {
+            modelValue: popupState.isAgreedRequired,
+            'onUpdate:modelValue': (newValue: boolean) => { popupState.isAgreedRequired = newValue; },
+            size: 'large',
+          }, () => [
+            h('span', null, '(필수) 개인정보 수집 및 이용에 동의합니다.')
+          ]),
+          // 선택 동의 체크박스
+          h(ElCheckbox as any, {
+            modelValue: popupState.isAgreedMarketing,
+            'onUpdate:modelValue': (newValue: boolean) => { popupState.isAgreedMarketing = newValue; },
+            size: 'large',
+            style: {
+              marginTop: '8px' // 체크박스 자체에 상단 마진을 주어 간격을 만듭니다.
+            },
+          }, () => [
+            h('span', null, '(선택) 마케팅 정보 수신(이메일, SMS)에 동의합니다.')
+          ]),
+        ])
+      ]);
+
+      // 최종 VNode 조합: 각 VNode를 배열로 묶어 렌더링합니다.
+      return h('div', { class: 'privacy-dialog-content' }, [
+        h('div', { class: 'privacy-scroll-content' }, [
+          titleVNode,
+          policyTableVNode,
+          refusalInfoVNode,
+        ]),
+        agreementFooterVNode,
+      ]);
+    },
+  });
+
+  // 3. ElMessageBox 호출 (기존과 동일)
   ElMessageBox.alert(messageVNode, '개인정보 수집 및 이용 동의', {
     confirmButtonText: '확인',
-    // 이전 클래스와 충돌을 피하기 위해 새 클래스 이름 사용
     customClass: 'privacy-policy-message-box-modern',
-    dangerouslyUseHTMLString: false, // VNode를 사용하므로 이 옵션은 false여야 합니다.
-  }).catch(() => {});
+    dangerouslyUseHTMLString: false,
+  })
+      .then(() => {
+        // '확인' 버튼을 눌렀을 때, 팝업의 두 상태를 모두 메인 state에 반영합니다.
+        state.agreePersonalInfo = popupState.isAgreedRequired;
+        state.agreeMarketing = popupState.isAgreedMarketing;
+      })
+      .catch(() => {});
 };
 
 /**
@@ -308,7 +375,7 @@ const showPrivacyPolicyPopup = () => {
  */
 const onClickSignUp = async () => {
 
-  await formRef.value.validate((valid, fields) => {
+  await formRef.value.validate((valid: any, fields: any) => {
     if (valid) {
       console.log('submit!')
     } else {
@@ -645,6 +712,48 @@ const onClickSignUp = async () => {
   전역 스타일로 정의해야 합니다.
 -->
 <style>
+.privacy-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 16px 0; /* 제목과 테이블 사이 간격 */
+}
+
+/* 테이블의 '보유 기간' 셀 스타일 */
+.privacy-table .retention-period {
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.5;
+}
+
+/* ElTag를 가운데 정렬하기 위한 스타일 */
+.privacy-table td .el-tag {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* 동의 거부 안내 Alert 스타일 */
+.refusal-info-alert {
+  margin-top: 20px; /* 테이블과의 간격 */
+}
+.refusal-info-alert .el-alert__description {
+  font-size: 13px !important; /* Element Plus 기본 스타일 덮어쓰기 */
+}
+
+/* 하단 동의 체크박스 사이즈 조정 */
+.privacy-agreement-footer .el-checkbox.el-checkbox--large {
+  height: auto; /* 라벨이 여러 줄일 때를 대비 */
+}
+
+/* 하단 동의 체크박스 라벨의 줄바꿈 처리 및 폰트 강조 */
+.privacy-agreement-footer .el-checkbox__label {
+  white-space: normal;
+  line-height: 1.5;
+  color: #303133;
+  font-weight: 500;
+}
 /* MessageBox 자체의 스타일링 */
 .privacy-policy-message-box-modern {
   max-width: 680px;
@@ -792,7 +901,7 @@ const onClickSignUp = async () => {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 2px 4px 4px 4px;
+  padding: 2px 5px 4px 4px;
 }
 .password-comple-tag-icon {
   cursor: pointer;
