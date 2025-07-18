@@ -197,6 +197,10 @@ const onClickLogin = async (isForced: boolean) => {
 
 }
 
+const onClickFindId = () => {
+  router.push("/FindId");
+}
+
 /**
  * 회원가입창으로 이동
  */
@@ -246,7 +250,7 @@ const onClickToOpenSignup = () => {
       </el-form>
 
       <div class="find-links">
-        <el-button type="info" link>아이디 찾기</el-button>
+        <el-button type="info" link @click="onClickFindId">아이디 찾기</el-button>
         <el-divider direction="vertical" />
         <el-button type="info" link>비밀번호 찾기</el-button>
       </div>
