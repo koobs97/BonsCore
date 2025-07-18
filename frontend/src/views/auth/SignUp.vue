@@ -326,7 +326,9 @@ const onClickSignUp = async () => {
   }
 };
 
-
+/**
+ * 로그인 화면으로 이동
+ */
 const onClickToOpenLogin = () => {
   router.push("/login");
 }

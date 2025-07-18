@@ -1,9 +1,12 @@
 <script setup lang="ts">
-// 로직은 비워둡니다.
 import { ref } from 'vue';
 // DocumentCopy 아이콘과 ElMessage 컴포넌트 추가
-import { QuestionFilled, DocumentCopy } from '@element-plus/icons-vue';
+import { DocumentCopy } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { useRouter } from "vue-router";
+
+// router
+const router = useRouter();
 
 // 탭 상태 관리를 위한 ref (UI 표시용)
 const activeTab = ref('email');
@@ -56,6 +59,14 @@ const copyToClipboard = async (text: string) => {
     console.error('Failed to copy ID: ', err);
   }
 };
+
+/**
+ * 로그인 화면으로 이동
+ */
+const onClickToOpenLogin = () => {
+  router.push("/login");
+}
+
 </script>
 
 <template>
@@ -80,19 +91,6 @@ const copyToClipboard = async (text: string) => {
                 <template #label>
                   <div class="label-with-help">
                     <span>이메일</span>
-                    <el-popover placement="right" title="도움말" :width="320" trigger="click">
-                      <template #reference>
-                        <el-button :icon="QuestionFilled" type="info" link circle class="help-icon-button"/>
-                      </template>
-                      <div class="popover-content">
-                        <p>이메일이 도착하지 않는 경우, 아래 내용을 확인해주세요.</p>
-                        <ul>
-                          <li>입력하신 이름과 이메일 주소가 가입 시 정보와 일치하는지 확인해주세요.</li>
-                          <li>스팸(정크) 메일함으로 자동 분류되지 않았는지 확인해주세요.</li>
-                          <li>통신사나 이메일 서비스 제공사의 문제로 수신이 지연될 수 있습니다. 잠시 후 다시 시도해주세요.</li>
-                        </ul>
-                      </div>
-                    </el-popover>
                   </div>
                 </template>
                 <el-input v-model="userEmail" placeholder="가입 시 등록한 이메일을 입력하세요." size="large" class="input-with-button">
@@ -113,6 +111,7 @@ const copyToClipboard = async (text: string) => {
                     size="large"
                 />
               </el-form-item>
+
             </el-form>
           </el-tab-pane>
         </el-tabs>
@@ -144,7 +143,7 @@ const copyToClipboard = async (text: string) => {
 
       <!-- 하단 공통 링크 -->
       <div class="navigation-links">
-        <el-button type="info" link>로그인</el-button>
+        <el-button type="info" link @click="onClickToOpenLogin">로그인</el-button>
         <el-divider direction="vertical" />
         <el-button type="info" link>비밀번호 찾기</el-button>
       </div>
@@ -170,7 +169,7 @@ const copyToClipboard = async (text: string) => {
   min-height: calc(100vh - 100px);
 }
 /* 아이디 찾기 카드 */
-.find-id-card { width: 450px; padding: 16px; box-sizing: border-box; }
+.find-id-card { width: 450px; padding: 8px; box-sizing: border-box; }
 .title { font-size: 26px; color: #1f2d3d; text-align: center; margin: 0 0 10px; }
 .description { font-size: 15px; color: #8492a6; text-align: center; margin-bottom: 30px; }
 /* 탭 스타일 */
