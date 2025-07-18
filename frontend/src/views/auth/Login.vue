@@ -271,13 +271,13 @@ const onClickToOpenSignup = () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: calc(100vh - 100px);
 }
 
 /* 로그인 카드 */
 .login-card {
   width: 380px;
-  padding: 8px;
+  padding: 4px;
   box-sizing: border-box; /* 패딩이 너비에 영향을 주지 않도록 설정 */
 }
 
