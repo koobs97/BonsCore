@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 // DocumentCopy 아이콘과 ElMessage 컴포넌트 추가
-import { DocumentCopy } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { QuestionFilled, DocumentCopy, MoreFilled, Promotion } from '@element-plus/icons-vue';
+import {ElAlert, ElMessage} from 'element-plus';
 import { useRouter } from "vue-router";
 
 // router
@@ -67,6 +67,31 @@ const onClickToOpenLogin = () => {
   router.push("/login");
 }
 
+// 아이디찾기
+const alertDescription = ref('메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.');
+const checklist = ref([
+  {
+    type: 'primary',
+    icon: MoreFilled,
+    text: `<b>스팸(Junk) 메일함</b>을 가장 먼저 확인해주세요.`
+  },
+  {
+    type: 'primary',
+    icon: MoreFilled,
+    text: `<b>[Gmail]</b>의 경우, <b>'프로모션'</b> 또는 <b>'소셜'</b> 탭으로 분류될 수 있습니다.`
+  },
+  {
+    type: 'primary',
+    icon: MoreFilled,
+    text: `입력하신 이메일 주소: <b>email@example.com</b><br>이메일 주소가 정확한지 확인해주세요.`
+  },
+  {
+    type: 'primary',
+    icon: Promotion,
+    text: `발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다.`
+  }
+]);
+
 </script>
 
 <template>
@@ -87,12 +112,7 @@ const onClickToOpenLogin = () => {
                     size="large"
                 />
               </el-form-item>
-              <el-form-item>
-                <template #label>
-                  <div class="label-with-help">
-                    <span>이메일</span>
-                  </div>
-                </template>
+              <el-form-item label="이메일">
                 <el-input v-model="userEmail" placeholder="가입 시 등록한 이메일을 입력하세요." size="large" class="input-with-button">
                   <template #append>
                     <el-button type="primary" @click="sendAuthCode">
@@ -103,7 +123,7 @@ const onClickToOpenLogin = () => {
               </el-form-item>
 
               <!-- 인증번호 입력 필드는 전송 후에만 활성화되며 표시됩니다. -->
-              <el-form-item label="인증번호">
+              <el-form-item label="인증번호" style="margin-bottom: 4px;">
                 <el-input
                     v-model="authCode"
                     :disabled="!isCodeSent"
@@ -111,6 +131,35 @@ const onClickToOpenLogin = () => {
                     size="large"
                 />
               </el-form-item>
+              <div style="text-align: right">
+                <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+                <el-popover placement="right" :width="600" trigger="click">
+                  <template #reference>
+                    <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
+                  </template>
+                  <div class="email-help-container">
+                    <el-alert
+                        title="이메일이 도착하지 않았나요?"
+                        :description="alertDescription"
+                        type="info"
+                        :closable="false"
+                        show-icon
+                        class="custom-alert"
+                    />
+                    <el-timeline style="margin-top: 20px;">
+                      <el-timeline-item
+                          v-for="(item, index) in checklist"
+                          :key="index"
+                          :type="item.type"
+                          :icon="item.icon"
+                          size="large"
+                      >
+                        <div v-html="item.text"></div>
+                      </el-timeline-item>
+                    </el-timeline>
+                  </div>
+                </el-popover>
+              </div>
 
             </el-form>
           </el-tab-pane>
@@ -151,14 +200,6 @@ const onClickToOpenLogin = () => {
   </div>
 </template>
 
-<style>
-/* Popover 내부 스타일은 scoped로 적용되지 않으므로 일반 style 태그를 사용합니다. */
-.popover-content p { margin-top: 0; margin-bottom: 10px; font-size: 14px; color: #303133; }
-.popover-content ul { padding-left: 20px; margin: 0; font-size: 13px; color: #606266; }
-.popover-content li { margin-bottom: 5px; }
-.popover-content li:last-child { margin-bottom: 0; }
-</style>
-
 <style scoped>
 /* 전체 페이지 레이아웃 */
 .find-id-container {
@@ -169,25 +210,68 @@ const onClickToOpenLogin = () => {
   min-height: calc(100vh - 100px);
 }
 /* 아이디 찾기 카드 */
-.find-id-card { width: 450px; padding: 8px; box-sizing: border-box; }
-.title { font-size: 26px; color: #1f2d3d; text-align: center; margin: 0 0 10px; }
-.description { font-size: 15px; color: #8492a6; text-align: center; margin-bottom: 30px; }
+.find-id-card {
+  width: 450px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.title {
+  font-size: 26px;
+  color: #1f2d3d;
+  text-align: center;
+  margin: 0 0 10px;
+}
+.description {
+  font-size: 15px;
+  color: #8492a6;
+  text-align: center;
+  margin-bottom: 30px;
+}
 /* 탭 스타일 */
-.find-tabs { margin-bottom: 20px; }
-.find-tabs :deep(.el-tabs__nav-wrap::after) { height: 1px; }
-.find-tabs :deep(.el-tabs__item) { font-size: 16px; padding: 0 20px; }
+.find-tabs {
+  margin-bottom: 20px;
+}
+.find-tabs :deep(.el-tabs__nav-wrap::after) {
+  height: 1px;
+}
+.find-tabs :deep(.el-tabs__item) {
+  font-size: 16px;
+  padding: 0 20px;
+}
 /* 폼 스타일 */
 .find-form { margin-top: 15px; }
 .find-form .el-form-item { margin-bottom: 18px; }
-.find-form :deep(.el-form-item__label) { font-size: 14px; color: #475669; padding-bottom: 6px; line-height: normal; width: 100%; }
-.label-with-help { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.help-icon-button { font-size: 16px; }
-.help-icon-button:focus { outline: 0; }
-.input-with-button :deep(.el-input-group__append) { background-color: transparent; padding: 0; }
-.input-with-button :deep(.el-input-group__append .el-button) { border-radius: 0 var(--el-input-border-radius) var(--el-input-border-radius) 0; margin: -1px; }
+.find-form :deep(.el-form-item__label) {
+  font-size: 14px;
+  color: #475669;
+  padding-bottom: 6px;
+  line-height: normal;
+  width: 100%;
+}
+.help-icon-button {
+  font-size: 15px;
+}
+.help-icon-button:focus {
+  outline: 0;
+}
+.input-with-button :deep(.el-input-group__append) {
+  background-color: transparent;
+  padding: 0;
+}
+.input-with-button :deep(.el-input-group__append .el-button) {
+  border-radius: 0 var(--el-input-border-radius) var(--el-input-border-radius) 0;
+  margin: -1px;
+}
 /* 결과 표시 섹션 */
-.result-section { text-align: center; padding: 20px 0; }
-.result-description { font-size: 15px; color: #475669; margin-bottom: 20px; }
+.result-section {
+  text-align: center;
+  padding: 20px 0;
+}
+.result-description {
+  font-size: 15px;
+  color: #475669;
+  margin-bottom: 20px;
+}
 .result-box {
   display: flex;
   justify-content: space-between;
@@ -198,12 +282,49 @@ const onClickToOpenLogin = () => {
   padding: 15px 20px;
   margin-bottom: 30px;
 }
-.result-box span { font-size: 20px; font-weight: 600; color: #303133; letter-spacing: 1px; }
-.copy-button { font-size: 20px; }
-.result-actions { display: flex; gap: 10px; }
-.result-actions .el-button { flex-grow: 1; height: 48px; font-weight: bold; font-size: 16px; }
+.result-box span {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  letter-spacing: 1px;
+}
+.copy-button {
+  font-size: 20px;
+}
+.result-actions {
+  display: flex;
+  gap: 10px;
+}
+.result-actions .el-button {
+  flex-grow: 1;
+  height: 48px;
+  font-weight: bold;
+  font-size: 16px;
+}
 /* 공통 액션 버튼 */
-.action-button { width: 100%; height: 48px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+.action-button {
+  width: 100%;
+  height: 48px;
+  font-weight: bold;
+  font-size: 16px;
+  margin-top: 10px;
+}
 /* 하단 네비게이션 링크 */
 .navigation-links { margin-top: 25px; text-align: center; }
+.email-help-container {
+  padding: 16px;
+  border-radius: 8px;
+}
+.custom-alert :deep(.el-alert__description) {
+  white-space: pre-wrap; /* \n과 같은 공백 문자를 유지하면서 줄바꿈을 허용 */
+}
+/* el-timeline-item 내부의 폰트 크기나 스타일 조절 */
+.email-help-container :deep(.el-timeline-item__content) {
+  font-size: 14px;
+  line-height: 1.6;
+}
+b {
+  color: #409EFF; /* 강조 텍스트 색상 */
+}
+
 </style>

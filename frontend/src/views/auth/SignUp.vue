@@ -651,7 +651,7 @@ const onClickToOpenLogin = () => {
 }
 .signup-card {
   width: 100%;
-  max-width: 500px;
+
 }
 .card-header {
   font-size: 20px;
