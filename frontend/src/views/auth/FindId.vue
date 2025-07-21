@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import {reactive, ref, computed} from 'vue';
 // DocumentCopy 아이콘과 ElMessage 컴포넌트 추가
-import { QuestionFilled, DocumentCopy, MoreFilled, Promotion } from '@element-plus/icons-vue';
+import {QuestionFilled, DocumentCopy, MoreFilled, Promotion, Key, Timer} from '@element-plus/icons-vue';
 import {ElAlert, ElMessage} from 'element-plus';
 import { useRouter } from "vue-router";
+import TheFooter from "@/components/layout/TheFooter.vue";
 
 // router
 const router = useRouter();
 
 // 탭 상태 관리를 위한 ref (UI 표시용)
 const activeTab = ref('email');
+
+const state = reactive({
+  totalSeconds: 180, // 전체 남은 시간을 초 단위로 관리
+  timerId: null as any | null, // setInterval의 ID를 저장하기 위한 변수
+})
 
 // UI 흐름 제어를 위한 상태
 const isCodeSent = ref(false); // 인증번호가 전송되었는지 여부
@@ -30,6 +36,43 @@ const fullFoundUserId = ref('example_full_id'); // 실제 API 응답으로 받�
  */
 const sendAuthCode = () => {
   isCodeSent.value = true;
+
+  startTimer();
+};
+
+// 2. 남은 시간을 'MM:SS' 형식으로 변환하는 computed 속성
+const formattedTime = computed(() => {
+  if (state.totalSeconds <= 0) {
+    return '00:00';
+  }
+  const minutes = Math.floor(state.totalSeconds / 60);
+  const seconds = state.totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+});
+
+// 3. 타이머를 시작하는 함수
+const startTimer = () => {
+  // 이미 실행 중인 타이머가 있다면 초기화
+  if (state.timerId) {
+    clearInterval(state.timerId);
+  }
+
+  // 타이머 초기 시간 설정
+  state.totalSeconds = 180;
+
+  state.timerId = setInterval(() => {
+    state.totalSeconds -= 1; // 1초씩 감소
+
+    // 시간이 다 되면 타이머를 멈추고 메시지 표시
+    if (state.totalSeconds <= 0) {
+      clearInterval(state.timerId as number);
+      state.timerId = null;
+      ElMessage({
+        type: 'error',
+        message: '인증시간이 초과되었습니다.',
+      });
+    }
+  }, 1000);
 };
 
 /**
@@ -129,36 +172,48 @@ const checklist = ref([
                     :disabled="!isCodeSent"
                     placeholder="수신된 인증번호를 입력하세요."
                     size="large"
+                    :prefix-icon="Key"
                 />
               </el-form-item>
-              <div style="text-align: right">
-                <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
-                <el-popover placement="right" :width="600" trigger="click">
-                  <template #reference>
-                    <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
-                  </template>
-                  <div class="email-help-container">
-                    <el-alert
-                        title="이메일이 도착하지 않았나요?"
-                        :description="alertDescription"
-                        type="info"
-                        :closable="false"
-                        show-icon
-                        class="custom-alert"
-                    />
-                    <el-timeline style="margin-top: 20px;">
-                      <el-timeline-item
-                          v-for="(item, index) in checklist"
-                          :key="index"
-                          :type="item.type"
-                          :icon="item.icon"
-                          size="large"
-                      >
-                        <div v-html="item.text"></div>
-                      </el-timeline-item>
-                    </el-timeline>
-                  </div>
-                </el-popover>
+
+              <div class="timer-area">
+
+                <!-- 왼쪽 (타이머) -->
+                <el-text class="timer-text">
+                  <el-icon class="timer-icon"><Timer /></el-icon>
+                  {{ formattedTime }}
+                </el-text>
+
+                <!-- 오른쪽 ("인증번호가 오지 않나요?" 관련 부분) -->
+                <div style="display: flex; align-items: center;">
+                  <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+                  <el-popover placement="right" :width="600" trigger="click">
+                    <template #reference>
+                      <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
+                    </template>
+                    <div class="email-help-container">
+                      <el-alert
+                          title="이메일이 도착하지 않았나요?"
+                          :description="alertDescription"
+                          type="info"
+                          :closable="false"
+                          show-icon
+                          class="custom-alert"
+                      />
+                      <el-timeline style="margin-top: 20px;">
+                        <el-timeline-item
+                            v-for="(item, index) in checklist"
+                            :key="index"
+                            :type="item.type"
+                            :icon="item.icon"
+                            size="large"
+                        >
+                          <div v-html="item.text"></div>
+                        </el-timeline-item>
+                      </el-timeline>
+                    </div>
+                  </el-popover>
+                </div>
               </div>
 
             </el-form>
@@ -184,9 +239,9 @@ const checklist = ref([
               @click="copyToClipboard(fullFoundUserId)"
           />
         </div>
-        <div class="result-actions">
-          <el-button type="default" class="action-button-secondary">비밀번호 재설정</el-button>
-          <el-button type="primary" class="action-button-primary">로그인 하기</el-button>
+        <div>
+          <el-button type="default">비밀번호 재설정</el-button>
+          <el-button type="primary">로그인 하기</el-button>
         </div>
       </div>
 
@@ -197,6 +252,8 @@ const checklist = ref([
         <el-button type="info" link>비밀번호 찾기</el-button>
       </div>
     </el-card>
+
+    <TheFooter />
   </div>
 </template>
 
@@ -291,10 +348,7 @@ const checklist = ref([
 .copy-button {
   font-size: 20px;
 }
-.result-actions {
-  display: flex;
-  gap: 10px;
-}
+
 .result-actions .el-button {
   flex-grow: 1;
   height: 48px;
@@ -312,7 +366,7 @@ const checklist = ref([
 /* 하단 네비게이션 링크 */
 .navigation-links { margin-top: 25px; text-align: center; }
 .email-help-container {
-  padding: 16px;
+  padding: 8px;
   border-radius: 8px;
 }
 .custom-alert :deep(.el-alert__description) {
@@ -326,5 +380,18 @@ const checklist = ref([
 b {
   color: #409EFF; /* 강조 텍스트 색상 */
 }
-
+.timer-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.timer-text {
+  font-weight: bold;
+  font-size: 12px;
+  color: #1f2d3d;
+}
+.timer-icon {
+  margin-right: 1px;
+  vertical-align: middle;
+}
 </style>

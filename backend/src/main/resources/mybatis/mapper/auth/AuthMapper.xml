@@ -3,6 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.koo.bonscore.biz.auth.mapper.AuthMapper">
+
     <!-- 해싱된 패스워드 조회 -->
     <select id="login" resultType="String" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
         SELECT PASSWORD_HASH                    /* 비밀번호 해시 */
@@ -23,4 +24,12 @@
          WHERE USER_ID = #{userId}              /* 사용자 ID */
          ORDER BY USER_ID DESC
     </select>
+
+    <!-- 아이디 중복 체크 -->
+    <select id="existsById" resultType="Integer" parameterType="com.koo.bonscore.biz.auth.dto.req.SignUpDto">
+        SELECT COUNT(1)   AS USER_ID_CNT        /* 사용중인 ID 개수 */
+          FROM USER_INFO                        /* 유저정보 테이블 */
+         WHERE USER_ID = #{userId}              /* 사용자 ID */
+    </select>
+
 </mapper>

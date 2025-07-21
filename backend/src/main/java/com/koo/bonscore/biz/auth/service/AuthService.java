@@ -3,6 +3,7 @@ package com.koo.bonscore.biz.auth.service;
 import com.koo.bonscore.biz.auth.controller.RSAController;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
+import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
@@ -72,5 +73,14 @@ public class AuthService {
         response.setRefreshToken(refreshToken); // 임시 저장
 
         return response;
+    }
+
+    /**
+     * 아이디 중복체크
+     * @param request
+     * @return
+     */
+    public boolean isDuplicateId(SignUpDto request) {
+        return authMapper.existsById(request) > 0;
     }
 }

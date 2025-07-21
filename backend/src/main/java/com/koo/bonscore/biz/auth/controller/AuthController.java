@@ -1,6 +1,7 @@
 package com.koo.bonscore.biz.auth.controller;
 
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
+import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.service.AuthService;
@@ -163,6 +164,19 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
 
         return ResponseEntity.ok(ApiResponse.success("Successfully logged out.", null));
+    }
+
+    /**
+     * 아이디 중복 체크
+     * @param request
+     * @param httpResponse
+     * @return
+     * @throws Exception
+     */
+    @PreventDoubleClick
+    @PostMapping("/isDuplicateId")
+    public boolean isDuplicateId(@RequestBody SignUpDto request, HttpServletResponse httpResponse) throws Exception {
+        return authService.isDuplicateId(request);
     }
 
 }

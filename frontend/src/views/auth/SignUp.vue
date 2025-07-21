@@ -5,6 +5,8 @@ import { ElMessageBox, ElCheckbox, ElTag, ElAlert, ElMessage } from 'element-plu
 import { defineComponent } from "@vue/runtime-dom";
 import TheFooter from "@/components/layout/TheFooter.vue";
 import { useRouter } from "vue-router";
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
 
 // router
 const router = useRouter();
@@ -255,15 +257,23 @@ const showEtcPopup = () => {
 };
 
 // =======================================================
-// 1. 중복 체크: 아이디 필드만 검사 (기존 로직 유지)
+// 1. 중복 체크: 아이디 필드만 검사
 // =======================================================
 const onClickCheckId = () => {
-  formRef.value.validateField('userId', (isValid: boolean) => {
+  formRef.value.validateField('userId', async (isValid: boolean) => {
     if (isValid) {
-      const isDuplicate = Math.random() > 0.5;
-      if (isDuplicate) {
-        state.rules.userId.message = '이미 사용 중인 아이디입니다.';
-        state.visible.userId = true;
+
+      const params = {
+        userId : state.data.userId,
+      }
+
+      const response = await Api.post(ApiUrls.CHECK_ID, params, true);
+      if (response.data) {
+        ElMessage({
+          message: '이미 사용 중인 아이디입니다.',
+          grouping: true,
+          type: 'error',
+        })
         state.userIdCheckStatus = 'error';
       } else {
         ElMessage.success('사용 가능한 아이디입니다.');
@@ -366,13 +376,24 @@ const onClickToOpenLogin = () => {
                     @blur="() => handleFieldValidation('userId')"
                 >
                   <template #append>
-                    <el-button type="primary" @mousedown.prevent="onClickCheckId">중복 체크</el-button>
+                    <el-button type="primary" @click.prevent="onClickCheckId">중복 체크</el-button>
                   </template>
                 </el-input>
 
                 <div :class="['id-check-indicator', state.userIdCheckStatus && `is-${state.userIdCheckStatus}`]">
-                  <el-icon v-if="state.userIdCheckStatus === 'success'"><Check /></el-icon>
-                  <el-icon v-if="state.userIdCheckStatus === 'error'"><Close /></el-icon>
+                  <el-button
+                      v-if="state.userIdCheckStatus === 'success'"
+                      type="success" :icon="Check"
+                      circle
+                      size="small"
+                  />
+                  <el-button
+                      v-if="state.userIdCheckStatus === 'error'"
+                      type="danger"
+                      :icon="Close"
+                      circle
+                      size="small"
+                  />
                 </div>
 
               </div>
