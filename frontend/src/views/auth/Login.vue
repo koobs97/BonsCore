@@ -223,6 +223,7 @@ const onClickToGoPage = (param: string) => {
             ref="userIdInput"
             class="login-input"
             placeholder="사용자 ID"
+            v-byte-limit="50"
         />
         <el-input
             v-model="password"
@@ -230,6 +231,7 @@ const onClickToGoPage = (param: string) => {
             class="login-input"
             placeholder="비밀번호"
             :type="passwdType"
+            v-byte-limit="50"
         >
           <template #append>
             <el-button @click="togglePassword">

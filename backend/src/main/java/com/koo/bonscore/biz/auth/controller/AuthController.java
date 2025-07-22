@@ -179,4 +179,37 @@ public class AuthController {
         return authService.isDuplicateId(request);
     }
 
+    /**
+     * 이메일 중복체크(이메일 입력 blur 이벤트 시 호출)
+     * @param request
+     * @param httpResponse
+     * @return
+     * @throws Exception
+     */
+    @PreventDoubleClick
+    @PostMapping("/isDuplicateEmail")
+    public boolean isDuplicateEmail(@RequestBody SignUpDto request, HttpServletResponse httpResponse) throws Exception {
+        return authService.isDuplicateEmail(request);
+    }
+
+    /**
+     * 회원가입
+     * @param request
+     * @param httpResponse
+     * @return
+     * @throws Exception
+     */
+    @PreventDoubleClick
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<Object>> signup(@RequestBody SignUpDto request, HttpServletResponse httpResponse) throws Exception {
+        try {
+            authService.signup(request);
+            return ResponseEntity.ok(ApiResponse.success("회원가입 성공", true));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.failure(ErrorCode.INVALID_REFRESH_TOKEN.getCode(), "회원가입 처리 중 오류가 발생했습니다.", null));
+        }
+    }
+
 }

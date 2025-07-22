@@ -1,3 +1,6 @@
+import JSEncrypt from 'jsencrypt';
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
 
 export class Common {
 

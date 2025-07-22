@@ -5,6 +5,8 @@ export enum ApiUrls {
     USER_INFO = '/api/user/info',
     REFRESH_TOKEN = '/api/auth/refresh',
     CHECK_ID = '/api/auth/isDuplicateId',
+    CHECK_EMAIL = '/api/auth/isDuplicateEmail',
+    SIGN_UP = '/api/auth/signup',
     // 필요에 따라 API 추가
     AF_LOGIN = '/api/aflogin/afterLogin',
     GET_USER = '/api/aflogin/me',

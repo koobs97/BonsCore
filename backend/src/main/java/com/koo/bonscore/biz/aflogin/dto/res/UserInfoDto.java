@@ -5,6 +5,16 @@ import lombok.Setter;
 
 import java.sql.Timestamp;
 
+/**
+ * <pre>
+ * UserInfoDto.java
+ * 설명 : 유저정보 dto
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-05-16
+ */
 @Getter
 @Setter
 public class UserInfoDto {

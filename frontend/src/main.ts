@@ -6,6 +6,9 @@ import * as ElIcons from '@element-plus/icons-vue';
 import { userStore } from '@/store/userStore';
 import { createPinia } from "pinia";
 
+// custom-directives
+import { byteLimit } from '@/directives/byteLimit'
+
 // v-calendar
 import VCalendar from 'v-calendar';
 import 'v-calendar/style.css';
@@ -31,6 +34,7 @@ app
         locale: ko
     })
     .use(VCalendar, {})
+    .directive('byte-limit', byteLimit)
     .mount('#app')
 
 // ✅ 로그인 정보 복원

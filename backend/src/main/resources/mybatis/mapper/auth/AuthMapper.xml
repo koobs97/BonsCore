@@ -6,7 +6,8 @@
 
     <!-- 해싱된 패스워드 조회 -->
     <select id="login" resultType="String" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
-        SELECT PASSWORD_HASH                    /* 비밀번호 해시 */
+        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.login */
+               PASSWORD_HASH                    /* 비밀번호 해시 */
           FROM USER_INFO                        /* 유저정보 테이블 */
          WHERE USER_ID = #{userId}              /* 사용자 ID */
          ORDER BY USER_ID DESC
@@ -14,7 +15,8 @@
 
     <!-- 유저 정보 조회 -->
     <select id="findByUserId" resultType="com.koo.bonscore.biz.auth.dto.UserDto" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
-        SELECT USER_ID                          /* 사용자 ID */
+        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.findByUserId */
+               USER_ID                          /* 사용자 ID */
              , USER_NAME                        /* 사용자 이름 */
              , EMAIL                            /* 사용자 이메일 */
              , PHONE_NUMBER                     /* 사용자 전화번호 */
@@ -27,9 +29,63 @@
 
     <!-- 아이디 중복 체크 -->
     <select id="existsById" resultType="Integer" parameterType="com.koo.bonscore.biz.auth.dto.req.SignUpDto">
-        SELECT COUNT(1)   AS USER_ID_CNT        /* 사용중인 ID 개수 */
+        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.existsById */
+               COUNT(1)   AS USER_ID_CNT        /* 사용중인 ID 개수 */
           FROM USER_INFO                        /* 유저정보 테이블 */
          WHERE USER_ID = #{userId}              /* 사용자 ID */
     </select>
+
+    <!-- email 중복 체크 -> email은 UNIQUE key 임 -->
+    <select id="existsByEmail" resultType="Integer" parameterType="com.koo.bonscore.biz.auth.dto.req.SignUpDto">
+       SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.existsByEmail */
+              COUNT(1)   AS EMAIL_ID_CNT       /* 사용중인 email 개수 */
+         FROM USER_INFO                        /* 유저정보 테이블 */
+        WHERE EMAIL = #{email}                 /* email */
+    </select>
+
+    <!-- 회원가입 -->
+    <insert id="signUpUser" parameterType="com.koo.bonscore.biz.auth.dto.req.SignUpDto">
+       INSERT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.signUpUser */
+         INTO USER_INFO                        /* 유저정보 테이블 */
+            (
+              USER_ID                          /* 사용자 ID */
+            , USER_NAME                        /* 사용자 이름 */
+            , EMAIL                            /* 사용자 이메일 */
+            , PHONE_NUMBER                     /* 사용자 전화번호 */
+            , BIRTH_DATE                       /* 사용자 생년월일 */
+            , GENDER_CODE                      /* 성별 코드 */
+            , PASSWORD_HASH                    /* 비밀번호 해쉬 */
+            , PASSWORD_HINT                    /* 비밀번호 힌트 */
+            , PASSWORD_UPDATED                 /* 비밀번호 변경일자 */
+            , ACCOUNT_LOCKED                   /* 휴먼계정여부 */
+            , WITHDRAWN                        /* 탈퇴여부 */
+            , TERMS_AGREE_1                    /* 약관 동의 여부1 */
+            , TERMS_AGREE_2                    /* 약관 동의 여부2 */
+            , TERMS_AGREE_3                    /* 약관 동의 여부3 */
+            , TERMS_AGREE_4                    /* 약관 동의 여부4 */
+            , CREATED_AT                       /* 생성일시 */
+            , UPDATED_AT                       /* 수정일시 */
+            )
+       VALUES
+            (
+              #{userId}
+            , #{userName}
+            , #{email}
+            , #{phoneNumber}
+            , #{birthDate}
+            , #{genderCode}
+            , #{password}
+            , NULL
+            , #{passwordUpdated}
+            , 'N'
+            , 'N'
+            , #{termsAgree1}
+            , #{termsAgree2}
+            , #{termsAgree3}
+            , #{termsAgree4}
+            , #{createdAt}
+            , #{updatedAt}
+            )
+    </insert>
 
 </mapper>

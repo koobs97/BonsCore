@@ -7,6 +7,9 @@ spring:
 jwt:
   secret: ${JASYPT_KEY}
 
+security:
+  encryption-key: ${ENCRYPTION_KEY}
+
 logging:
   level:
     root: INFO

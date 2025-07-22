@@ -1,6 +1,6 @@
 package com.koo.bonscore.biz.auth.dto;
 
-import lombok.Data;
+import lombok.*;
 
 import java.sql.Timestamp;
 
@@ -20,7 +20,11 @@ import java.sql.Timestamp;
  * - genderCode   : 성별 코드 (M, F)
  */
 
-@Data
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserDto {
     private String userId;
     private String userName;

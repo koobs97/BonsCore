@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref, watch, computed, h } from "vue";
-import { InfoFilled, Check, Close } from "@element-plus/icons-vue";
-import { ElMessageBox, ElCheckbox, ElTag, ElAlert, ElMessage } from 'element-plus';
-import { defineComponent } from "@vue/runtime-dom";
+import {computed, h, onMounted, onUnmounted, reactive, ref, watch} from "vue";
+import {Check, Close, InfoFilled} from "@element-plus/icons-vue";
+import {ElAlert, ElCheckbox, ElMessage, ElMessageBox, ElTag} from 'element-plus';
+import {defineComponent} from "@vue/runtime-dom";
 import TheFooter from "@/components/layout/TheFooter.vue";
-import { useRouter } from "vue-router";
-import { Api } from "@/api/axiosInstance";
-import { ApiUrls } from "@/api/apiUrls";
+import {useRouter} from "vue-router";
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
+import JSEncrypt from "jsencrypt";
 
 // router
 const router = useRouter();
@@ -76,6 +78,7 @@ const state = reactive({
   agreeAll: false,
   showAgreementError: false,
   userIdCheckStatus: '' as '' | 'success' | 'error',
+  userEmailCheckStatus: '' as '' | 'success' | 'error',
 });
 
 onMounted(() => {
@@ -85,6 +88,17 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('mousemove', mousemoveHandler)
 })
+
+/**
+ * 패스워드 공개키 받아오기
+ * @param password
+ */
+const encryptPassword = async (password: string): Promise<string> => {
+  const { data: publicKey } = await Api.get(ApiUrls.GET_PUBLIC_KEY); // 서버에서 공개 키 받아오기
+  const encryptor = new JSEncrypt();
+  encryptor.setPublicKey(publicKey);
+  return await encryptor.encrypt(password) || ''; // RSA 암호화
+};
 
 const updatePasswordComplexity = (password: any) => {
   if (!password) {
@@ -159,13 +173,34 @@ const handleFieldFocus = (fieldName: any) => {
     state.rules.userId.message = `${fieldLabels.userId}${getPostposition(fieldLabels.userId, '을', '를')} 입력해주세요.`;
     state.userIdCheckStatus = '';
   }
+  if(fieldName === 'email') {
+    state.userEmailCheckStatus = '';
+  }
 }
 
 const handleFieldValidation = (fieldName: any) => {
-  formRef.value.validateField(fieldName, (isValid: any) => {
+  formRef.value.validateField(fieldName, async (isValid: any) => {
     state.visible[fieldName] = !isValid;
     if (fieldName === 'userId' && !isValid) {
       state.userIdCheckStatus = 'error';
+    }
+    if(fieldName === 'email' && isValid) {
+      const param = {
+        email: state.data.email
+      }
+      const response = await Api.post(ApiUrls.CHECK_EMAIL, param);
+      if (response.data) {
+        ElMessage({
+          message: '사용할 수 없는 이메일입니다.',
+          grouping: true,
+          type: 'error',
+        })
+        state.userEmailCheckStatus = 'error';
+      } else {
+        ElMessage.success('사용 가능한 이메일입니다.');
+        state.userEmailCheckStatus = 'success';
+      }
+
     }
   })
 }
@@ -249,7 +284,7 @@ const showEtcPopup = () => {
         h('div', { class: 'etc-section' }, [h('div', { class: 'etc-section-header' }, [iconVNode(InfoFilled), h('h5', { class: 'etc-section-title' }, '첫 번째 주요 정책')]), h('p', { class: 'etc-section-content' }, '이곳에 첫 번째 주요 정책 또는 기타 안내 사항에 대한 내용을 상세하게 기술합니다. 필요에 따라 여러 문단으로 구성할 수 있습니다. 사용자가 꼭 알아야 할 중요한 정보를 명확하고 간결하게 전달하는 것이 좋습니다.')]),
         h('div', { class: 'etc-section' }, [h('div', { class: 'etc-section-header' }, [iconVNode(InfoFilled), h('h5', { class: 'etc-section-title' }, '두 번째 고려 사항')]), h('p', { class: 'etc-section-content' }, '이곳에는 두 번째 안내 사항을 작성합니다. 예를 들어, 서비스 이용 규칙, 콘텐츠 저작권 정책, 혹은 분쟁 해결 절차 등에 대한 내용을 포함할 수 있습니다.'), h('ul', { class: 'etc-list' }, [h('li', null, '항목 1: 관련된 세부 규칙이나 가이드라인을 명시합니다.'), h('li', null, '항목 2: 사용자가 준수해야 할 또 다른 중요한 사항입니다.')])]),
       ]),
-      h('div', { class: 'privacy-agreement-footer' }, [h(ElCheckbox as any, { modelValue: popupState.isAgreed, 'onUpdate:modelValue': (v: boolean) => { popupState.isAgreed = v; }, size: 'large' }, () => [h('span', null, '(선택) 위 기타 사항을 모두 확인하였으며, 내용에 동의합니다.')])])
+      h('div', { class: 'privacy-agreement-footer' }, [h(ElCheckbox as any, { modelValue: popupState.isAgreed, 'onUpdate:modelValue': (v: boolean) => { popupState.isAgreed = v; }, size: 'large' }, () => [h('span', null, '(필수) 위 기타 사항을 모두 확인하였으며, 내용에 동의합니다.')])])
     ]),
   });
   ElMessageBox.alert(messageVNode, '기타 사항 안내 및 동의', { confirmButtonText: '확인', customClass: 'privacy-policy-message-box-modern', dangerouslyUseHTMLString: false })
@@ -323,9 +358,108 @@ const onClickSignUp = async () => {
   // 최종 제출 조건 확인
   if (isFormValid && allRequiredAgreed) {
     console.log('submit!');
-    ElMessage.success('회원가입이 완료되었습니다.');
-    // 회원가입 성공 후 로직 (예: 로그인 페이지로 이동)
-    // router.push("/login");
+
+    // 아이디 유효성 재검사
+    const params = {
+      userId : state.data.userId,
+    }
+    const response = await Api.post(ApiUrls.CHECK_ID, params, true);
+    if (response.data) {
+      ElMessage({
+        message: '이미 사용 중인 아이디입니다.',
+        grouping: true,
+        type: 'error',
+      })
+      state.userIdCheckStatus = 'error';
+      return;
+    }
+    else {
+      state.userIdCheckStatus = 'success';
+    }
+
+    const param2 = {
+      email: state.data.email
+    }
+    const response2 = await Api.post(ApiUrls.CHECK_EMAIL, param2);
+    if (response2.data) {
+      ElMessage({
+        message: '사용할 수 없는 이메일입니다.',
+        grouping: true,
+        type: 'error',
+      })
+      state.userEmailCheckStatus = 'error';
+      return;
+    }
+    else {
+      state.userEmailCheckStatus = 'success';
+    }
+
+    // 아이디 및 이메일이 유효할 때
+    if(state.userEmailCheckStatus === 'success' && state.userIdCheckStatus === 'success') {
+      try {
+        await ElMessageBox.confirm(
+            // 1. message 옵션에 h() 함수를 사용하여 커스텀 컴포넌트를 렌더링합니다.
+            h(SignUpConfirm, {
+              // CustomConfirm 컴포넌트에 props 전달
+              title: '회원가입 확인',
+              message: '입력하신 정보로 회원가입을 완료하시겠습니까?',
+            }),
+            // 2. 기본 title은 사용하지 않으므로 빈 문자열로 둡니다.
+            '',
+            {
+              confirmButtonText: '가입하기',
+              cancelButtonText: '취소',
+              // 3. 커스텀 클래스를 추가하여 세부 스타일을 조정할 수 있습니다.
+              customClass: 'custom-message-box',
+              // 4. CustomConfirm 컴포넌트가 자체 아이콘과 UI를 가지므로,
+              //    MessageBox의 기본 UI 요소들은 비활성화합니다.
+              showClose: false, // 오른쪽 위 'X' 닫기 버튼 숨김
+              type: '', // 기본 'warning' 아이콘 숨김
+            }
+        );
+
+        // '확인'을 눌렀을 때 실행되는 로직
+        console.log('--- 회원가입 데이터 ---');
+        console.log('기본 정보:', state.data);
+        console.log('개인정보 동의:', state.agreePersonalInfo);
+        console.log('마케팅 동의:', state.agreeMarketing);
+
+        // 여기에 실제 회원가입 API 호출 로직을 넣습니다.
+        // const response = await api.register(state);
+
+        // 서버에서 공개키 get
+        const encryptedPassword = await encryptPassword(state.data.password);
+        console.log(encryptedPassword)
+
+        const params = {
+          userId : state.data.userId,
+          password : encryptedPassword,
+          userName : state.data.userName,
+          email : state.data.email,
+          phoneNumber : state.data.phoneNumber,
+          birthDate : state.data.birthDate,
+          genderCode : state.data.genderCode,
+          termsAgree1: state.agreePersonalInfo ? 'Y' : 'N',
+          termsAgree2: state.agreeThirdParty ? 'Y' : 'N',
+          termsAgree3: state.agreeEtc ? 'Y' : 'N',
+          termsAgree4: state.agreeMarketing ? 'Y' : 'N',
+        }
+
+        const resultSignUp = await Api.post(ApiUrls.SIGN_UP, params)
+        console.log(resultSignUp)
+
+        ElMessage.success('회원가입이 완료되었습니다.');
+        // router.push("/login");
+
+      } catch (action) {
+        // '취소' 또는 '닫기'를 눌렀을 때 실행되는 로직
+        // ElMessageBox는 Promise를 반환하며, 취소 시 'cancel'을 reject합니다.
+        if (action === 'cancel') {
+          ElMessage.info('회원가입을 취소했습니다.');
+        }
+      }
+    }
+
   } else {
     console.log('Form is invalid or agreements not met.');
     ElMessage({
@@ -372,11 +506,12 @@ const onClickToOpenLogin = () => {
                     clearable
                     class="input-with-button"
                     v-model="state.data.userId"
+                    v-byte-limit="50"
                     @focus="() => handleFieldFocus('userId')"
                     @blur="() => handleFieldValidation('userId')"
                 >
                   <template #append>
-                    <el-button type="primary" @click.prevent="onClickCheckId">중복 체크</el-button>
+                    <el-button type="primary" @click.prevent="onClickCheckId" class="non-outline">중복 체크</el-button>
                   </template>
                 </el-input>
 
@@ -411,6 +546,7 @@ const onClickToOpenLogin = () => {
             <el-form-item label="비밀번호" prop="password" required>
               <el-input
                   v-model="state.data.password" type="password" show-password
+                  v-byte-limit="50"
                   placeholder="8자 이상 입력해 주세요" clearable
                   @focus="() => handleFieldFocus('password')"
                   @blur="() => handleFieldValidation('password')"
@@ -456,14 +592,19 @@ const onClickToOpenLogin = () => {
 
         <!-- 이름 -->
         <el-popover
-            popper-class="custom-error-popover" :popper-style="popoverStyle"
-            :content="state.rules.userName.message" placement="right-start"
-            width="250" :visible="state.visible.userName"
+            popper-class="custom-error-popover"
+            :popper-style="popoverStyle"
+            :content="state.rules.userName.message"
+            placement="right-start"
+            width="250"
+            :visible="state.visible.userName"
         >
           <template #reference>
             <el-form-item label="이름" prop="userName" required>
               <el-input
-                  v-model="state.data.userName" placeholder="실명을 입력해 주세요"
+                  v-model="state.data.userName"
+                  v-byte-limit="100"
+                  placeholder="실명을 입력해 주세요"
                   clearable @focus="() => handleFieldFocus('userName')"
                   @blur="() => handleFieldValidation('userName')"
               />
@@ -473,14 +614,19 @@ const onClickToOpenLogin = () => {
 
         <!-- 이메일 -->
         <el-popover
-            popper-class="custom-error-popover" :popper-style="popoverStyle"
-            :content="state.rules.email.message" placement="right-start"
-            width="250" :visible="state.visible.email"
+            popper-class="custom-error-popover"
+            :popper-style="popoverStyle"
+            :content="state.rules.email.message"
+            placement="right-start"
+            width="250"
+            :visible="state.visible.email"
         >
           <template #reference>
             <el-form-item label="이메일" prop="email" required>
               <el-input
-                  v-model="state.data.email" placeholder="example@email.com"
+                  v-model="state.data.email"
+                  v-byte-limit="250"
+                  placeholder="example@email.com"
                   clearable @focus="() => handleFieldFocus('email')"
                   @blur="() => handleFieldValidation('email')"
               />
@@ -490,14 +636,19 @@ const onClickToOpenLogin = () => {
 
         <!-- 전화번호 -->
         <el-popover
-            popper-class="custom-error-popover" :popper-style="popoverStyle"
-            :content="state.rules.phoneNumber.message" placement="right-start"
-            width="250" :visible="state.visible.phoneNumber"
+            popper-class="custom-error-popover"
+            :popper-style="popoverStyle"
+            :content="state.rules.phoneNumber.message"
+            placement="right-start"
+            width="250"
+            :visible="state.visible.phoneNumber"
         >
           <template #reference>
             <el-form-item label="전화번호" prop="phoneNumber" required>
               <el-input
-                  v-model="state.data.phoneNumber" placeholder="010-1234-5678"
+                  v-model="state.data.phoneNumber"
+                  v-byte-limit="20"
+                  placeholder="010-1234-5678"
                   clearable @focus="() => handleFieldFocus('phoneNumber')"
                   @blur="() => handleFieldValidation('phoneNumber')"
               />
@@ -507,14 +658,19 @@ const onClickToOpenLogin = () => {
 
         <!-- 생년월일 -->
         <el-popover
-            popper-class="custom-error-popover" :popper-style="popoverStyle"
-            :content="state.rules.birthDate.message" placement="right-start"
-            width="250" :visible="state.visible.birthDate"
+            popper-class="custom-error-popover"
+            :popper-style="popoverStyle"
+            :content="state.rules.birthDate.message"
+            placement="right-start"
+            width="250"
+            :visible="state.visible.birthDate"
         >
           <template #reference>
             <el-form-item label="생년월일" prop="birthDate" required>
               <el-input
-                  v-model="state.data.birthDate" placeholder="YYYY-MM-DD"
+                  v-model="state.data.birthDate"
+                  v-byte-limit="10"
+                  placeholder="YYYY-MM-DD"
                   clearable @focus="() => handleFieldFocus('birthDate')"
                   @blur="() => handleFieldValidation('birthDate')"
               />
@@ -524,9 +680,12 @@ const onClickToOpenLogin = () => {
 
         <!-- 성별 -->
         <el-popover
-            popper-class="custom-error-popover" :popper-style="popoverStyle"
-            :content="state.rules.genderCode.message" placement="right-start"
-            width="250" :visible="state.visible.genderCode"
+            popper-class="custom-error-popover"
+            :popper-style="popoverStyle"
+            :content="state.rules.genderCode.message"
+            placement="right-start"
+            width="250"
+            :visible="state.visible.genderCode"
         >
           <template #reference>
             <el-form-item label="성별" prop="genderCode" required>
@@ -534,8 +693,8 @@ const onClickToOpenLogin = () => {
                   v-model="state.data.genderCode"
                   @change="() => handleFieldValidation('genderCode')"
               >
-                <el-radio-button label="male">남자</el-radio-button>
-                <el-radio-button label="female">여자</el-radio-button>
+                <el-radio-button label="M">남자</el-radio-button>
+                <el-radio-button label="F">여자</el-radio-button>
               </el-radio-group>
             </el-form-item>
           </template>
@@ -554,15 +713,17 @@ const onClickToOpenLogin = () => {
           </template>
           <el-descriptions-item>
             <template #label><div class="cell-item"><el-checkbox v-model="state.agreePersonalInfo" label="(필수) 개인정보수집이용동의" /></div></template>
-            <el-button link type="info" @click="showPrivacyPolicyPopup">보기</el-button>
+            <el-button link type="info" @click="showPrivacyPolicyPopup" class="non-outline">보기</el-button>
           </el-descriptions-item>
           <el-descriptions-item>
             <template #label><div class="cell-item"><el-checkbox v-model="state.agreeThirdParty" label="(필수) 제3자정보제공동의" /></div></template>
-            <el-button link type="info" @click="showThirdPartyPopup">보기</el-button>
+            <el-button link type="info" @click="showThirdPartyPopup" class="non-outline">보기</el-button>
           </el-descriptions-item>
           <el-descriptions-item>
             <template #label><div class="cell-item"><el-checkbox v-model="state.agreeEtc" label="(필수) 기타사항" /></div></template>
-            <div style="text-align: right;"><el-button link type="info" @click="showEtcPopup">보기</el-button></div>
+            <div style="text-align: right;">
+              <el-button link type="info" @click="showEtcPopup" class="non-outline">보기</el-button>
+            </div>
           </el-descriptions-item>
         </el-descriptions>
         <div style="height: 50px;">
@@ -758,6 +919,9 @@ const onClickToOpenLogin = () => {
   padding: 4px 4px;
   box-sizing: border-box;
   height: 50px;
+}
+.non-outline {
+  outline: 0;
 }
 .signup-prompt-card :deep(.el-card__body) {
   padding: 8px 8px;

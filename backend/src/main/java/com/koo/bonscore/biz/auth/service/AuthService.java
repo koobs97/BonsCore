@@ -6,6 +6,7 @@ import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
+import com.koo.bonscore.core.config.enc.EncryptionService;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
@@ -16,6 +17,20 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+/**
+ * <pre>
+ * AuthService.java
+ * 설명 : 권한(로그인, 로그아웃 등) 서비스
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-01-13
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -25,6 +40,7 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder; // SecurityConfig에서 bean 생성
     private final AuthMapper authMapper;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EncryptionService encryptionService;
 
     /**
      * 로그인 서비스
@@ -61,11 +77,19 @@ public class AuthService {
 
         // 유저정보 세팅
         UserDto user = authMapper.findByUserId(request);
+        UserDto decryptedUser = UserDto.builder()
+                .userId(user.getUserId())
+                .userName(encryptionService.decrypt(user.getUserName()))
+                .email(encryptionService.decrypt(user.getEmail()))
+                .phoneNumber(encryptionService.decrypt(user.getPhoneNumber()))
+                .birthDate(encryptionService.decrypt(user.getBirthDate()))
+                .genderCode(user.getGenderCode())
+                .build();
 
         // Access Token: 15분
-        String accessToken = jwtTokenProvider.createToken(user.getUserId(), JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
+        String accessToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
         // Refresh Token: 7일
-        String refreshToken = jwtTokenProvider.createToken(user.getUserId(), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
+        String refreshToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
 
         response.setSuccess(true);
         response.setMessage("로그인 성공");
@@ -82,5 +106,42 @@ public class AuthService {
      */
     public boolean isDuplicateId(SignUpDto request) {
         return authMapper.existsById(request) > 0;
+    }
+
+    /**
+     * 이메일 중복 체크
+     * @param request
+     * @return
+     */
+    public boolean isDuplicateEmail(SignUpDto request) {
+        request.setEmail(encryptionService.encrypt(request.getEmail()));
+        return authMapper.existsByEmail(request) > 0;
+    }
+
+    /**
+     * 회원가입
+     * @param request
+     * @throws Exception
+     */
+    public void signup(SignUpDto request) throws Exception {
+
+        SignUpDto item = SignUpDto.builder()
+                .userId(request.getUserId())
+                .userName(encryptionService.encrypt(request.getUserName()))
+                .password(passwordEncoder.encode(rsaController.decrypt(request.getPassword())))
+                .email(encryptionService.encrypt(request.getEmail()))
+                .phoneNumber(encryptionService.encrypt(request.getPhoneNumber()))
+                .birthDate(encryptionService.encrypt(request.getBirthDate()))
+                .genderCode(request.getGenderCode())
+                .passwordUpdated(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")))
+                .termsAgree1(request.getTermsAgree1())
+                .termsAgree2(request.getTermsAgree2())
+                .termsAgree3(request.getTermsAgree3())
+                .termsAgree4(request.getTermsAgree4())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        authMapper.signUpUser(item);
     }
 }
