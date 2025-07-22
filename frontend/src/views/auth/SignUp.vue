@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, h, onMounted, onUnmounted, reactive, ref, watch} from "vue";
 import {Check, Close, InfoFilled} from "@element-plus/icons-vue";
-import {ElAlert, ElCheckbox, ElMessage, ElMessageBox, ElTag} from 'element-plus';
+import {ElAlert, ElCheckbox, ElLoading, ElMessage, ElMessageBox, ElTag} from 'element-plus';
 import {defineComponent} from "@vue/runtime-dom";
 import TheFooter from "@/components/layout/TheFooter.vue";
 import {useRouter} from "vue-router";
@@ -9,6 +9,7 @@ import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 import JSEncrypt from "jsencrypt";
+import {userStore} from "@/store/userStore";
 
 // router
 const router = useRouter();
@@ -247,7 +248,7 @@ const showPrivacyPolicyPopup = () => {
       h('div', { class: 'privacy-agreement-footer' }, [
         h('div', { class: 'privacy-agreement-items' }, [
           h(ElCheckbox as any, { modelValue: popupState.isAgreedRequired, 'onUpdate:modelValue': (v: boolean) => { popupState.isAgreedRequired = v; }, size: 'large' }, () => [h('span', null, '(필수) 개인정보 수집 및 이용에 동의합니다.')]),
-          h(ElCheckbox as any, { modelValue: popupState.isAgreedMarketing, 'onUpdate:modelValue': (v: boolean) => { popupState.isAgreedMarketing = v; }, size: 'large', style: { marginTop: '8px' } }, () => [h('span', null, '(선택) 마케팅 정보 수신(이메일, SMS)에 동의합니다.')])
+          h(ElCheckbox as any, { modelValue: popupState.isAgreedMarketing, 'onUpdate:modelValue': (v: boolean) => { popupState.isAgreedMarketing = v; }, size: 'large' }, () => [h('span', null, '(선택) 마케팅 정보 수신(이메일, SMS)에 동의합니다.')])
         ])
       ])
     ]),
@@ -429,15 +430,14 @@ const onClickSignUp = async () => {
 
         // 서버에서 공개키 get
         const encryptedPassword = await encryptPassword(state.data.password);
-        console.log(encryptedPassword)
 
         const params = {
           userId : state.data.userId,
           password : encryptedPassword,
           userName : state.data.userName,
           email : state.data.email,
-          phoneNumber : state.data.phoneNumber,
-          birthDate : state.data.birthDate,
+          phoneNumber : state.data.phoneNumber.replaceAll("-", ""),
+          birthDate : state.data.birthDate.replaceAll("-", ""),
           genderCode : state.data.genderCode,
           termsAgree1: state.agreePersonalInfo ? 'Y' : 'N',
           termsAgree2: state.agreeThirdParty ? 'Y' : 'N',
@@ -445,11 +445,21 @@ const onClickSignUp = async () => {
           termsAgree4: state.agreeMarketing ? 'Y' : 'N',
         }
 
-        const resultSignUp = await Api.post(ApiUrls.SIGN_UP, params)
-        console.log(resultSignUp)
+        await Api.post(ApiUrls.SIGN_UP, params);
 
+        ElLoading.service({
+          lock: true,
+          text: 'Loading',
+          background: 'rgba(0, 0, 0, 0.7)',
+        })
         ElMessage.success('회원가입이 완료되었습니다.');
-        // router.push("/login");
+
+        setTimeout(()=>{
+          userStore().delUserInfo();
+          sessionStorage.clear();
+          router.push("/login");
+          window.location.reload();
+        }, 1000);
 
       } catch (action) {
         // '취소' 또는 '닫기'를 눌렀을 때 실행되는 로직
@@ -476,6 +486,23 @@ const onClickSignUp = async () => {
 const onClickToOpenLogin = () => {
   router.push("/login");
 }
+
+// 생년월일 형식 자동 변환 함수
+const formatBirthDate = (value: string) => {
+  // 숫자 이외의 문자 제거
+  let cleaned = value.replace(/\D/g, '');
+
+  // yyyy-mm-dd 형식으로 하이픈 추가
+  if (cleaned.length > 4) {
+    cleaned = cleaned.slice(0, 4) + '-' + cleaned.slice(4);
+  }
+  if (cleaned.length > 7) {
+    cleaned = cleaned.slice(0, 7) + '-' + cleaned.slice(7, 9);
+  }
+
+  // v-model과 연결된 데이터 업데이트 (최대 10자)
+  state.data.birthDate = cleaned.slice(0, 10);
+};
 </script>
 
 <template>
@@ -671,7 +698,9 @@ const onClickToOpenLogin = () => {
                   v-model="state.data.birthDate"
                   v-byte-limit="10"
                   placeholder="YYYY-MM-DD"
-                  clearable @focus="() => handleFieldFocus('birthDate')"
+                  clearable
+                  @input="formatBirthDate"
+                  @focus="() => handleFieldFocus('birthDate')"
                   @blur="() => handleFieldValidation('birthDate')"
               />
             </el-form-item>

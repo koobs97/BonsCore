@@ -1,7 +1,6 @@
 <script setup lang="ts">
-
 import { Hide, View } from "@element-plus/icons-vue";
-import {computed, reactive, ref, onMounted, h} from 'vue';
+import { computed, reactive, ref, onMounted, h } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import JSEncrypt from 'jsencrypt';
@@ -33,6 +32,9 @@ const state = reactive({
   isProcessing: false, // 화면 제어
 })
 
+// ==================== [수정] CapsLock 상태 변수 추가 ====================
+const isCapsLockOn = ref(false);
+
 // 패스워드 아이콘 변경
 const passwdIcon = computed(() => (state.isVisible ? View : Hide));
 const passwdType = computed(() => (state.isVisible ? "text" : "password"));
@@ -56,6 +58,23 @@ onMounted(() => {
     userIdInput.value?.focus();
   }
 })
+
+// ==================== [수정] Caps Lock 감지 함수 추가 ====================
+/**
+ * 비밀번호 입력 시 Caps Lock 상태를 확인하는 함수
+ * @param {KeyboardEvent} event
+ */
+const checkCapsLock = (event: KeyboardEvent) => {
+  isCapsLockOn.value = event.getModifierState("CapsLock");
+};
+
+/**
+ * Caps Lock 경고 메시지를 숨깁니다.
+ * 이 함수는 입력 필드나 윈도우가 포커스를 잃었을 때 호출됩니다.
+ */
+const hideCapsLockWarning = () => {
+  isCapsLockOn.value = false;
+};
 
 /**
  * 패스워드 공개키 받아오기
@@ -232,6 +251,8 @@ const onClickToGoPage = (param: string) => {
             placeholder="비밀번호"
             :type="passwdType"
             v-byte-limit="50"
+            @keydown="checkCapsLock"
+            @blur="hideCapsLockWarning"
         >
           <template #append>
             <el-button @click="togglePassword">
@@ -239,6 +260,13 @@ const onClickToGoPage = (param: string) => {
             </el-button>
           </template>
         </el-input>
+
+        <div class="caps-lock-placeholder">
+          <!-- 2. isCapsLockOn 상태에 따라 'visible' 클래스를 동적으로 제어합니다. -->
+          <span :class="['caps-lock-warning', { 'visible': isCapsLockOn }]">
+            Caps Lock이 켜져 있습니다.
+          </span>
+        </div>
 
         <el-button
             type="primary"
@@ -318,7 +346,7 @@ const onClickToGoPage = (param: string) => {
   height: 48px;
   font-weight: bold;
   font-size: 16px;
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
 .find-links {
@@ -341,5 +369,27 @@ const onClickToGoPage = (param: string) => {
 .signup-link {
   font-weight: bold;
   margin-left: 8px;
+}
+
+.caps-lock-placeholder {
+  height: 8px; /* 경고 메시지를 담을 충분한 높이를 항상 차지 */
+  display: flex;
+  align-items: center; /* 내부 텍스트를 수직 중앙에 정렬 */
+  text-align: left;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.caps-lock-warning {
+  color: #f56c6c;
+  font-size: 12px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+}
+
+.caps-lock-warning.visible {
+  opacity: 1;
+  visibility: visible;
 }
 </style>
