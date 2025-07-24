@@ -88,14 +88,13 @@ public class AuthController {
 
             return responseDto;
 
-        } catch (BsCoreException e) {
+        } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw e;
-        }  catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw new RuntimeException(e);
+            if (e instanceof BsCoreException)
+                throw (BsCoreException) e;
+            else
+                throw new RuntimeException(e);
         }
     }
 
