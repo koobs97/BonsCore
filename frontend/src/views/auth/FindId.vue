@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import {reactive, ref, computed} from 'vue';
-// DocumentCopy 아이콘과 ElMessage 컴포넌트 추가
-import {QuestionFilled, DocumentCopy, MoreFilled, Promotion, Key, Timer} from '@element-plus/icons-vue';
-import {ElAlert, ElMessage} from 'element-plus';
-import { useRouter } from "vue-router";
+import { computed, reactive, ref } from 'vue';
+import { DocumentCopy, Key, MoreFilled, Promotion, QuestionFilled, Timer } from '@element-plus/icons-vue';
+import { ElAlert, ElMessage } from 'element-plus';
+import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import TheFooter from "@/components/layout/TheFooter.vue";
+import { ApiUrls } from "@/api/apiUrls";
+import  {Api } from "@/api/axiosInstance";
 
 // router
 const router = useRouter();
@@ -30,12 +31,34 @@ const authCode = ref('');
 const maskedFoundUserId = ref('example***'); // 화면에 표시될 마스킹된 아이디
 const fullFoundUserId = ref('example_full_id'); // 실제 API 응답으로 받을 전체 아이디
 
+/* 뒤로가기/앞으로가기 시 실행할 작업 */
+onBeforeRouteLeave(async(to, from, next) => {
+
+  /* 인증 전에 페이지 이탈 시 초기화 */
+  if(state.timerId) {
+    clearInterval(state.timerId);
+
+    // db에서 인증번호 초기화
+    // await Api.post("/api/search/chkAuthCode", state.ivo)
+  }
+
+  next(); // 다음 단계로 진행
+})
+
 /**
  * (가상) 인증번호 전송 함수
  * 실제로는 여기서 API를 호출합니다.
  */
-const sendAuthCode = () => {
+const sendAuthCode = async () => {
   isCodeSent.value = true;
+
+  const param = {
+    userName: userName.value,
+    email: userEmail.value
+  };
+
+  const result = await Api.post(ApiUrls.SEND_MAIL, param);
+  console.log(result)
 
   startTimer();
 };

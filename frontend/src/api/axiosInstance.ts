@@ -20,11 +20,15 @@ const axiosInstance = axios.create();
 // 요청 인터셉터 설정
 axiosInstance.interceptors.request.use(
     (config) => {
-        const noAuthUrls = ['/api/auth/login', '/api/auth/refresh'];
-        if (config.url && noAuthUrls.includes(config.url)) {
-            // 로그인 요청은 토큰을 추가하지 않도록 설정
+        // 인증이 필요 없는 URL 경로
+        const noAuthPath = '/api/auth/';
+
+        // config.url이 존재하고, noAuthPath로 시작하는 경우
+        if (config.url && config.url.startsWith(noAuthPath)) {
+            // 해당 요청은 토큰을 추가하지 않음
             delete config.headers.Authorization;
         } else {
+            // 그 외 모든 요청에는 accessToken이 있다면 헤더에 추가
             const accessToken = sessionStorage.getItem('accessToken');
             if (accessToken) {
                 config.headers.Authorization = `Bearer ${accessToken}`;

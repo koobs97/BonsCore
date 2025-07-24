@@ -2,6 +2,7 @@ package com.koo.bonscore.biz.auth.controller;
 
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
+import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.service.AuthService;
@@ -227,7 +228,30 @@ public class AuthController {
             httpRequest.setAttribute("errorMessage", e.getMessage());
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.failure(ErrorCode.INVALID_REFRESH_TOKEN.getCode(), "회원가입 처리 중 오류가 발생했습니다.", null));
+                    .body(ApiResponse.failure(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "회원가입 처리 중 오류가 발생했습니다.", null));
+        }
+    }
+
+    /**
+     * 이메일 발송 서비스
+     * @param request
+     * @param httpRequest
+     * @param httpResponse
+     * @return
+     * @throws Exception
+     */
+    @UserActivityLog(activityType = "SEND_MAIL", userIdField = "#request.email")
+    @PostMapping("/sendmail")
+    public ResponseEntity<ApiResponse<Object>> sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            authService.searchIdBySendMail(request);
+            return ResponseEntity.ok(ApiResponse.success("이메일 발송 성공", true));
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.failure(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "이메일 발송 처리 중 오류가 발생했습니다.", null));
         }
     }
 

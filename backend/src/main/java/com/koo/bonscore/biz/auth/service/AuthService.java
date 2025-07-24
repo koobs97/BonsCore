@@ -4,8 +4,10 @@ import com.koo.bonscore.biz.auth.controller.RSAController;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
+import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
+import com.koo.bonscore.common.mail.service.MailService;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
@@ -41,6 +43,7 @@ public class AuthService {
     private final AuthMapper authMapper;
     private final JwtTokenProvider jwtTokenProvider;
     private final EncryptionService encryptionService;
+    private final MailService mailService;
 
     /**
      * 로그인 서비스
@@ -126,7 +129,8 @@ public class AuthService {
      * @throws Exception
      */
     public void signup(SignUpDto request) throws Exception {
-
+        // 회원가입 컬럼 조립
+        // 암호화 대상 : 유저명, 패스워드, 이메일, 전화번호, 생년월일
         SignUpDto item = SignUpDto.builder()
                 .userId(request.getUserId())
                 .userName(encryptionService.encrypt(request.getUserName()))
@@ -147,4 +151,21 @@ public class AuthService {
 
         authMapper.signUpUser(item);
     }
+
+    /**
+     * 아이디 찾기 서비스
+     * @param request
+     * @throws Exception
+     */
+    public void searchIdBySendMail(UserInfoSearchDto request) throws Exception {
+
+        // 사용자명/이메일 검증
+
+        // 아이디 찾기, 비밀번호 찾기 구분
+
+        // 메일 전송
+        String authCode = mailService.sendVerificationEmail(request.getEmail(), request.getUserName());
+        System.err.println(authCode);
+    }
+
 }
