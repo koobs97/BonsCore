@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { DocumentCopy, Key, MoreFilled, Promotion, QuestionFilled, Timer } from '@element-plus/icons-vue';
-import { ElAlert, ElMessage } from 'element-plus';
+import { ElAlert, ElMessage} from 'element-plus';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import TheFooter from "@/components/layout/TheFooter.vue";
 import { ApiUrls } from "@/api/apiUrls";
-import  {Api } from "@/api/axiosInstance";
+import { Api } from "@/api/axiosInstance";
+import { Common } from "@/common/common";
 
 // router
 const router = useRouter();
@@ -27,19 +28,30 @@ const userName = ref('');
 const userEmail = ref('');
 const authCode = ref('');
 
+// focus
+const userNameRef = ref();
+const emailRef = ref();
+
+// 버튼 loading
+const emailLoading = ref(false);
+
 // 찾은 아이디 정보 (화면 표시용과 실제 데이터 분리)
 const maskedFoundUserId = ref('example***'); // 화면에 표시될 마스킹된 아이디
 const fullFoundUserId = ref('example_full_id'); // 실제 API 응답으로 받을 전체 아이디
 
-/* 뒤로가기/앞으로가기 시 실행할 작업 */
+// 화면진입 시
+onMounted(() => {
+  userNameRef.value.focus();
+})
+
+/**
+ * 뒤로가기/앞으로가기 시 실행할 작업
+ */
 onBeforeRouteLeave(async(to, from, next) => {
 
   /* 인증 전에 페이지 이탈 시 초기화 */
   if(state.timerId) {
     clearInterval(state.timerId);
-
-    // db에서 인증번호 초기화
-    // await Api.post("/api/search/chkAuthCode", state.ivo)
   }
 
   next(); // 다음 단계로 진행
@@ -50,20 +62,46 @@ onBeforeRouteLeave(async(to, from, next) => {
  * 실제로는 여기서 API를 호출합니다.
  */
 const sendAuthCode = async () => {
+
+  // 필수입력 체크
+  if(Common.isEmpty(userName.value)) {
+    ElMessage({
+      message: '이름을 입력하세요.',
+      grouping: true,
+      type: 'error',
+    })
+    userNameRef.value.focus();
+    return;
+  }
+  if(Common.isEmpty(userEmail.value)) {
+    ElMessage({
+      message: '이메일을 입력하세요.',
+      grouping: true,
+      type: 'error',
+    })
+    emailRef.value.focus();
+    return;
+  }
+
+  // 인증번호 전송
+  try {
+    emailLoading.value = true;
+    await Api.post(ApiUrls.SEND_MAIL, { userName: userName.value, email: userEmail.value });
+    ElMessage({
+      message: '이메일이 전송되었습니다.',
+      grouping: true,
+      type: 'success',
+    });
+  } finally {
+    emailLoading.value = false;
+  }
+
+  // 인증번호 입력란 비활성화 해제
   isCodeSent.value = true;
-
-  const param = {
-    userName: userName.value,
-    email: userEmail.value
-  };
-
-  const result = await Api.post(ApiUrls.SEND_MAIL, param);
-  console.log(result)
-
   startTimer();
 };
 
-// 2. 남은 시간을 'MM:SS' 형식으로 변환하는 computed 속성
+// 1. 남은 시간을 'MM:SS' 형식으로 변환하는 computed 속성
 const formattedTime = computed(() => {
   if (state.totalSeconds <= 0) {
     return '00:00';
@@ -73,7 +111,7 @@ const formattedTime = computed(() => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 });
 
-// 3. 타이머를 시작하는 함수
+// 2. 타이머를 시작하는 함수
 const startTimer = () => {
   // 이미 실행 중인 타이머가 있다면 초기화
   if (state.timerId) {
@@ -103,15 +141,12 @@ const startTimer = () => {
  * 실제로는 여기서 API를 호출합니다.
  */
 const findId = async () => {
-  const param = {
-    email: userEmail.value,
-    code: authCode.value
-  }
-  const result = await Api.post(ApiUrls.CHECK_CODE, param);
-  console.log(result)
+
+  const result = await Api.post(ApiUrls.CHECK_CODE, { email: userEmail.value, code: authCode.value });
+  maskedFoundUserId.value = result.data.userId;
 
   isIdFound.value = true;
-
+  clearInterval(state.timerId);
 }
 
 /**
@@ -120,7 +155,8 @@ const findId = async () => {
  */
 const copyToClipboard = async (text: string) => {
   try {
-    await navigator.clipboard.writeText(text);
+    const response = await Api.post(ApiUrls.COPY_ID, { email: userEmail.value })
+    await navigator.clipboard.writeText(response);
     ElMessage({
       message: '아이디가 복사되었습니다.',
       type: 'success',
@@ -135,13 +171,14 @@ const copyToClipboard = async (text: string) => {
 };
 
 /**
- * 로그인 화면으로 이동
+ * 화면이동
+ * @param param
  */
-const onClickToOpenLogin = () => {
-  router.push("/login");
+const onClickToGoPage = (param: string) => {
+  router.push("/" + param);
 }
 
-// 아이디찾기
+// 메일 안내 창 관련
 const alertDescription = ref('메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.');
 const checklist = ref([
   {
@@ -171,25 +208,39 @@ const checklist = ref([
 <template>
   <div class="find-id-container">
     <el-card class="find-id-card" shadow="never">
+
       <!-- 1단계: 아이디 찾기 정보 입력 -->
       <div v-if="!isIdFound">
         <h2 class="title">아이디 찾기</h2>
         <p class="description">가입 시 등록한 정보로 아이디를 찾을 수 있습니다.</p>
 
         <el-tabs v-model="activeTab" class="find-tabs" stretch>
+
           <el-tab-pane label="이메일로 찾기" name="email">
             <el-form class="find-form" label-position="top">
               <el-form-item label="이름">
                 <el-input
                     v-model="userName"
+                    ref="userNameRef"
                     placeholder="가입 시 등록한 이름을 입력하세요."
                     size="large"
                 />
               </el-form-item>
               <el-form-item label="이메일">
-                <el-input v-model="userEmail" placeholder="가입 시 등록한 이메일을 입력하세요." size="large" class="input-with-button">
+                <el-input
+                    v-model="userEmail"
+                    ref="emailRef"
+                    placeholder="가입 시 등록한 이메일을 입력하세요."
+                    size="large"
+                    class="input-with-button"
+                >
                   <template #append>
-                    <el-button type="primary" @click="sendAuthCode">
+                    <el-button
+                        class="non-outline"
+                        type="primary"
+                        @click="sendAuthCode"
+                        :loading="emailLoading"
+                    >
                       {{ isCodeSent ? '재전송' : '인증번호 전송' }}
                     </el-button>
                   </template>
@@ -249,6 +300,92 @@ const checklist = ref([
 
             </el-form>
           </el-tab-pane>
+
+          <el-tab-pane label="전화번호로 찾기" name="phone">
+            <el-form class="find-form" label-position="top">
+              <el-form-item label="이름">
+                <el-input
+                    v-model="userName"
+                    ref="userNamePhoneRef"
+                    placeholder="가입 시 등록한 이름을 입력하세요."
+                    size="large"
+                />
+              </el-form-item>
+              <el-form-item label="전화번호">
+                <el-input
+                    v-model="userPhoneNumber"
+                    ref="phoneRef"
+                    placeholder="'-' 없이 숫자만 입력하세요."
+                    size="large"
+                    class="input-with-button"
+                >
+                  <template #append>
+                    <el-button
+                        class="non-outline"
+                        type="primary"
+                        @click="sendAuthCodeByPhone"
+                        :loading="phoneLoading"
+                    >
+                      {{ isCodeSent ? '재전송' : '인증번호 전송' }}
+                    </el-button>
+                  </template>
+                </el-input>
+              </el-form-item>
+
+              <!-- 인증번호 입력 필드 -->
+              <el-form-item label="인증번호" style="margin-bottom: 4px;">
+                <el-input
+                    v-model="authCode"
+                    :disabled="!isCodeSent"
+                    placeholder="수신된 인증번호를 입력하세요."
+                    size="large"
+                    :prefix-icon="Key"
+                />
+              </el-form-item>
+
+              <div class="timer-area">
+
+                <!-- 왼쪽 (타이머) -->
+                <el-text class="timer-text">
+                  <el-icon class="timer-icon"><Timer /></el-icon>
+                  {{ formattedTime }}
+                </el-text>
+
+                <!-- 오른쪽 ("인증번호가 오지 않나요?" 관련 부분) -->
+                <div style="display: flex; align-items: center;">
+                  <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+                  <el-popover placement="right" :width="600" trigger="click">
+                    <template #reference>
+                      <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
+                    </template>
+                    <div class="email-help-container">
+                      <el-alert
+                          title="이메일이 도착하지 않았나요?"
+                          :description="alertDescription"
+                          type="info"
+                          :closable="false"
+                          show-icon
+                          class="custom-alert"
+                      />
+                      <el-timeline style="margin-top: 20px;">
+                        <el-timeline-item
+                            v-for="(item, index) in checklist"
+                            :key="index"
+                            :type="item.type"
+                            :icon="item.icon"
+                            size="large"
+                        >
+                          <div v-html="item.text"></div>
+                        </el-timeline-item>
+                      </el-timeline>
+                    </div>
+                  </el-popover>
+                </div>
+              </div>
+
+            </el-form>
+          </el-tab-pane>
+
         </el-tabs>
 
         <el-button type="primary" class="action-button" :disabled="!isCodeSent" @click="findId">
@@ -271,16 +408,16 @@ const checklist = ref([
           />
         </div>
         <div>
-          <el-button type="default">비밀번호 재설정</el-button>
-          <el-button type="primary">로그인 하기</el-button>
+          <el-button @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
+          <el-button type="primary" @click="onClickToGoPage('login')">로그인 하기</el-button>
         </div>
       </div>
 
-      <!-- 하단 공통 링크 -->
-      <div class="navigation-links">
-        <el-button type="info" link @click="onClickToOpenLogin">로그인</el-button>
+      <!-- 인증 전 떠있는 링크 버튼 -->
+      <div v-if="!isIdFound" class="find-links">
+        <el-button type="info" link @click="onClickToGoPage('login')">로그인 하기</el-button>
         <el-divider direction="vertical" />
-        <el-button type="info" link>비밀번호 찾기</el-button>
+        <el-button type="info" link @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
       </div>
     </el-card>
 
@@ -378,8 +515,12 @@ const checklist = ref([
 }
 .copy-button {
   font-size: 20px;
+  outline: 0;
 }
-
+.find-links {
+  margin-top: 20px;
+  text-align: center;
+}
 .result-actions .el-button {
   flex-grow: 1;
   height: 48px;
@@ -424,5 +565,8 @@ b {
 .timer-icon {
   margin-right: 1px;
   vertical-align: middle;
+}
+.non-outline {
+  outline: 0;
 }
 </style>

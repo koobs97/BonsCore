@@ -218,16 +218,16 @@ public class AuthController {
     @UserActivityLog(activityType = "SIGNUP", userIdField = "#request.userId")
     @PreventDoubleClick
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<Object>> signup(@RequestBody SignUpDto request,HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public void signup(@RequestBody SignUpDto request,HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             authService.signup(request);
-            return ResponseEntity.ok(ApiResponse.success("회원가입 성공", true));
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.failure(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "회원가입 처리 중 오류가 발생했습니다.", null));
+            if (e instanceof BsCoreException)
+                throw (BsCoreException) e;
+            else
+                throw new RuntimeException(e);
         }
     }
 
@@ -241,16 +241,16 @@ public class AuthController {
      */
     @UserActivityLog(activityType = "SEND_MAIL", userIdField = "#request.email")
     @PostMapping("/sendmail")
-    public ResponseEntity<ApiResponse<Object>> sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public void sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             authService.searchIdBySendMail(request);
-            return ResponseEntity.ok(ApiResponse.success("이메일 발송 성공", true));
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.failure(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "이메일 발송 처리 중 오류가 발생했습니다.", null));
+            if (e instanceof BsCoreException)
+                throw (BsCoreException) e;
+            else
+                throw new RuntimeException(e);
         }
     }
 
@@ -264,20 +264,31 @@ public class AuthController {
      */
     @UserActivityLog(activityType = "CHECK_CODE", userIdField = "#request.email")
     @PostMapping("/verify-email")
-    public ResponseEntity<ApiResponse<Object>> verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
-            authService.verifyCode(request.getEmail(), request.getCode());
-            return ResponseEntity.ok(ApiResponse.success("이메일 인증에 성공했습니다.", true));
+            return authService.verifyCode(request.getEmail(), request.getCode());
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-
             if (e instanceof BsCoreException)
                 throw (BsCoreException) e;
             else
-                return ResponseEntity
-                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(ApiResponse.failure(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "인증 코드가 유효하지 않거나 만료되었습니다.", null));
+                throw new RuntimeException(e);
+        }
+    }
+
+    @UserActivityLog(activityType = "COPY_ID", userIdField = "#request.email")
+    @PostMapping("/copy-id")
+    public String searchIdByMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            return authService.searchIdByMail(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            if (e instanceof BsCoreException)
+                throw (BsCoreException) e;
+            else
+                throw new RuntimeException(e);
         }
     }
 

@@ -13,6 +13,17 @@ package com.koo.bonscore.common.masking.util;
 public class MaskingUtil {
 
     /**
+     * ID 마스킹
+     *
+     * @param name ID 파라미터
+     * @return 마스킹결과
+     */
+    public static String maskId(String name) {
+        if (name == null || name.length() <= 1) return "*";
+        return name.charAt(0) + "*".repeat(name.length() - 1);
+    }
+
+    /**
      * 이름 마스킹
      *
      * @param name 이름 파라미터

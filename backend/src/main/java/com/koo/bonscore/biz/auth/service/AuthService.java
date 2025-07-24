@@ -212,19 +212,44 @@ public class AuthService {
      * @param code
      * @return
      */
-    public void verifyCode(String email, String code) throws Exception {
+    public UserInfoSearchDto verifyCode(String email, String code) throws Exception {
         String key = VERIFICATION_PREFIX + email;
         String storedCode = redisTemplate.opsForValue().get(key);
 
         if (storedCode != null && storedCode.equals(code)) {
             // 인증 성공 시, 즉시 코드를 삭제하여 재사용을 방지.
             redisTemplate.delete(key);
-        }
 
-        throw new BsCoreException(
-                HttpStatusCode.INTERNAL_SERVER_ERROR
-                , ErrorCode.INTERNAL_SERVER_ERROR
-                , "인증 코드가 유효하지 않거나 만료되었습니다.");
+            // 2. 유저 조회
+            UserInfoSearchDto input = UserInfoSearchDto.builder()
+                    .email(encryptionService.hashWithSalt(email))
+                    .build();
+
+            // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
+            String userId = authMapper.findByUserIdByMail(input);
+
+            return UserInfoSearchDto.builder()
+                    .userId(userId)
+                    .build();
+        } else {
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INTERNAL_SERVER_ERROR
+                    , "인증 코드가 유효하지 않거나 만료되었습니다.");
+        }
+    }
+
+    /**
+     * 유저 id 복사 시 호출
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    public String searchIdByMail(UserInfoSearchDto request) throws Exception {
+        UserInfoSearchDto input = UserInfoSearchDto.builder()
+                .email(encryptionService.hashWithSalt(request.getEmail()))
+                .build();
+        return authMapper.findByUserIdByMail(input);
     }
 
 }

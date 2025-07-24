@@ -60,4 +60,11 @@ public interface AuthMapper {
      * @return
      */
     String findByUserNameAndEmail(UserInfoSearchDto userInfoSearchDto);
+
+    /**
+     * 사용자 ID 조회
+     * @param userInfoSearchDto
+     * @return
+     */
+    String findByUserIdByMail(UserInfoSearchDto userInfoSearchDto);
 }
