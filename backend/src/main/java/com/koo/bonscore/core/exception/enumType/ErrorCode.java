@@ -28,7 +28,9 @@ public enum ErrorCode {
     // 리프레시 토큰 갱신 관련 에러
     REFRESH_TOKEN_EXPIRED("ER_007", "리프레시 토큰이 만료되었습니다."),
     REFRESH_TOKEN_NOT_FOUND("ER_008", "리프레시 토큰을 찾을 수 없습니다."),
-    PREVENT_DOUBLE_REQUEST("ER_009", "이미 처리 중인 요청입니다. 잠시 후 다시 시도해주세요.")
+    PREVENT_DOUBLE_REQUEST("ER_009", "이미 처리 중인 요청입니다. 잠시 후 다시 시도해주세요."),
+
+    INVALID_INPUT("ER_009", "값이 유효하지 않습니다.")
     ;
 
     private final String code;

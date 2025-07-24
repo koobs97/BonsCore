@@ -102,8 +102,16 @@ const startTimer = () => {
  * (가상) 아이디 찾기 확인 함수
  * 실제로는 여기서 API를 호출합니다.
  */
-const findId = () => {
+const findId = async () => {
+  const param = {
+    email: userEmail.value,
+    code: authCode.value
+  }
+  const result = await Api.post(ApiUrls.CHECK_CODE, param);
+  console.log(result)
+
   isIdFound.value = true;
+
 }
 
 /**

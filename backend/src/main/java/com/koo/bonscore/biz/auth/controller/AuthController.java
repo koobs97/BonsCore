@@ -255,4 +255,31 @@ public class AuthController {
         }
     }
 
+    /**
+     * 이메일 인증번호 인증
+     * @param request
+     * @param httpRequest
+     * @param httpResponse
+     * @return
+     * @throws Exception
+     */
+    @UserActivityLog(activityType = "CHECK_CODE", userIdField = "#request.email")
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Object>> verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            authService.verifyCode(request.getEmail(), request.getCode());
+            return ResponseEntity.ok(ApiResponse.success("이메일 인증에 성공했습니다.", true));
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+
+            if (e instanceof BsCoreException)
+                throw (BsCoreException) e;
+            else
+                return ResponseEntity
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(ApiResponse.failure(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "인증 코드가 유효하지 않거나 만료되었습니다.", null));
+        }
+    }
+
 }

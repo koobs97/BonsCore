@@ -8,6 +8,7 @@ import lombok.*;
 @ToString
 public class UserInfoSearchDto {
     private String userName;
-    private String userId;
     private String email;
+    private String userId;
+    private String code;
 }

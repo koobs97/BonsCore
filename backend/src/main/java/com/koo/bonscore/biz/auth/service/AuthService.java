@@ -1,5 +1,6 @@
 package com.koo.bonscore.biz.auth.service;
 
+import com.koo.bonscore.BonsCoreApplication;
 import com.koo.bonscore.biz.auth.controller.RSAController;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
@@ -15,10 +16,13 @@ import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import oracle.core.lmx.CoreException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,12 +42,22 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 public class AuthService {
 
+    // 인증 mapper
+    private final AuthMapper authMapper;
+
+    // 암호화 관련
     private final RSAController rsaController;
     private final BCryptPasswordEncoder passwordEncoder; // SecurityConfig에서 bean 생성
-    private final AuthMapper authMapper;
-    private final JwtTokenProvider jwtTokenProvider;
     private final EncryptionService encryptionService;
+
+    // 인증 컴포넌트
+    private final JwtTokenProvider jwtTokenProvider;
+
+    /* 메일 인증 관련 서비스 */
     private final MailService mailService;
+    private final StringRedisTemplate redisTemplate;
+    private static final String VERIFICATION_PREFIX = "verification:";
+    private static final long EXPIRATION_MINUTES = 3;
 
     /**
      * 로그인 서비스
@@ -108,9 +122,7 @@ public class AuthService {
      * @return
      */
     public boolean isDuplicateId(SignUpDto request) {
-
         return authMapper.existsById(request) > 0;
-
     }
 
     /**
@@ -149,6 +161,7 @@ public class AuthService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
+        // 로그저장
         authMapper.signUpUser(item);
     }
 
@@ -159,13 +172,59 @@ public class AuthService {
      */
     public void searchIdBySendMail(UserInfoSearchDto request) throws Exception {
 
-        // 사용자명/이메일 검증
+        // 1. 형식(Format)검증
+        if(request.getUserName().isEmpty())
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INVALID_INPUT
+                    , "유저명을 입력해주세요.");
+        if(request.getEmail().isEmpty())
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INVALID_INPUT
+                    , "이메일을 입력해주세요.");
 
-        // 아이디 찾기, 비밀번호 찾기 구분
+        // 2. 존재(Existence) 검증
+        UserInfoSearchDto input = UserInfoSearchDto.builder()
+                .email(encryptionService.hashWithSalt(request.getEmail()))
+                .build();
+
+        // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
+        String userName = authMapper.findByUserNameAndEmail(input);
+        if(userName == null || !encryptionService.decrypt(userName).equals(request.getUserName()))
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INVALID_INPUT
+                    , "입력하신 정보와 일치하는 사용자가 없습니다.");
 
         // 메일 전송
         String authCode = mailService.sendVerificationEmail(request.getEmail(), request.getUserName());
-        System.err.println(authCode);
+
+        // redis에 저장
+        String key = VERIFICATION_PREFIX + request.getEmail();
+        redisTemplate.opsForValue().set(key, authCode, Duration.ofMinutes(EXPIRATION_MINUTES));
+
+    }
+
+    /**
+     * 인증코드 인증
+     * @param email
+     * @param code
+     * @return
+     */
+    public void verifyCode(String email, String code) throws Exception {
+        String key = VERIFICATION_PREFIX + email;
+        String storedCode = redisTemplate.opsForValue().get(key);
+
+        if (storedCode != null && storedCode.equals(code)) {
+            // 인증 성공 시, 즉시 코드를 삭제하여 재사용을 방지.
+            redisTemplate.delete(key);
+        }
+
+        throw new BsCoreException(
+                HttpStatusCode.INTERNAL_SERVER_ERROR
+                , ErrorCode.INTERNAL_SERVER_ERROR
+                , "인증 코드가 유효하지 않거나 만료되었습니다.");
     }
 
 }

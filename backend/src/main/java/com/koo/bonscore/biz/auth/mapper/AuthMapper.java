@@ -3,6 +3,7 @@ package com.koo.bonscore.biz.auth.mapper;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
+import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -52,4 +53,11 @@ public interface AuthMapper {
      * @param signUpDto
      */
     void signUpUser(SignUpDto signUpDto);
+
+    /**
+     * 유저명, 이메일로 유효한 사용자인지 조회
+     * @param userInfoSearchDto
+     * @return
+     */
+    String findByUserNameAndEmail(UserInfoSearchDto userInfoSearchDto);
 }

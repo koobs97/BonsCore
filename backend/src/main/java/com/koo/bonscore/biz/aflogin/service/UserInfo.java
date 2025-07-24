@@ -33,12 +33,10 @@ public class UserInfo {
      */
     public UserInfoDto getUserInfo(UserReqIdDto request) {
         UserInfoDto dto = userInfoMapper.getUserInfo(request.getUserId());
-
         dto.setUserName(encryptionService.decrypt(dto.getUserName()));
         dto.setEmail(encryptionService.decrypt(dto.getEmail()));
         dto.setBirthDate(encryptionService.decrypt(dto.getBirthDate()));
         dto.setPhoneNumber(encryptionService.decrypt(dto.getPhoneNumber()));
-
         dto.setLoginTime(String.valueOf(LocalDateTime.now()));
         return dto;
     }
