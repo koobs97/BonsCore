@@ -138,78 +138,76 @@ const onClickLogin = async (isForced: boolean) => {
     console.log(params)
 
     state.isProcessing = true;
-    const res = await Api.post(ApiUrls.LOGIN, params, true);
-    console.log(res)
+    try {
+      const res = await Api.post(ApiUrls.LOGIN, params, true);
+      console.log(res)
 
-    if(res.data.accessToken) {
-      console.log('login success ->', res);
+      if(res.data.accessToken) {
+        console.log('login success ->', res);
 
-      // 실제로 유저 정보 불러와서 확인 (서버 호출)
-      sessionStorage.setItem('accessToken', res.data.accessToken);
+        // 실제로 유저 정보 불러와서 확인 (서버 호출)
+        sessionStorage.setItem('accessToken', res.data.accessToken);
 
-      // 유저정보 세팅
-      const params = {
-        userId : userId.value,
-      }
-      const user = await Api.post(ApiUrls.GET_USER, params, true);
-      const userInfo = user.data as userState
+        // 유저정보 세팅
+        const params = {
+          userId : userId.value,
+        }
+        const user = await Api.post(ApiUrls.GET_USER, params, true);
+        const userInfo = user.data as userState
 
-      localStorage.setItem('userInfo', JSON.stringify(userInfo));
-      userStore().setUserInfo(userInfo);
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        userStore().setUserInfo(userInfo);
 
-      // 아이디 기억하기
-      if(rememberId.value) {
-        localStorage.setItem('userId', userId.value);
+        // 아이디 기억하기
+        if(rememberId.value) {
+          localStorage.setItem('userId', userId.value);
+        } else {
+          localStorage.removeItem('userId');
+        }
+
+        // main 화면 진입
+        await router.push("/");
+
       } else {
-        localStorage.removeItem('userId');
-      }
+        console.log('login failed -> {}', res);
 
-      state.isProcessing = false;
+        // 중복 로그인 시
+        if(res.data.reason === 'DUPLICATE_LOGIN') {
 
-      // main 화면 진입
-      await router.push("/");
+          await ElMessageBox.confirm(
+              // message 옵션에 h(컴포넌트, props) 전달
+              h(CustomConfirm, {
+                title: '중복 로그인 감지',
+                message: res.data.message, // 서버에서 받은 메시지 ("...<br>...")
+              }),
+              // title 옵션은 빈 문자열로 두거나, h()를 사용하면 무시됨
+              '',
+              {
+                // 버튼 텍스트는 그대로 유지
+                confirmButtonText: '로그인',
+                cancelButtonText: '취소',
 
-    } else {
-      state.isProcessing = false;
-      console.log('login failed -> {}', res);
+                // 추가적인 스타일링을 위한 클래스
+                customClass: 'custom-message-box',
 
-      // 중복 로그인 시
-      if(res.data.reason === 'DUPLICATE_LOGIN') {
-
-        await ElMessageBox.confirm(
-            // message 옵션에 h(컴포넌트, props) 전달
-            h(CustomConfirm, {
-              title: '중복 로그인 감지',
-              message: res.data.message, // 서버에서 받은 메시지 ("...<br>...")
-            }),
-            // title 옵션은 빈 문자열로 두거나, h()를 사용하면 무시됨
-            '',
-            {
-              // 버튼 텍스트는 그대로 유지
-              confirmButtonText: '로그인',
-              cancelButtonText: '취소',
-
-              // 추가적인 스타일링을 위한 클래스
-              customClass: 'custom-message-box',
-
-              // 아이콘을 컴포넌트 안에서 직접 그리므로, 기본 아이콘은 숨김
-              showClose: false,
-              distinguishCancelAndClose: true, // ESC나 닫기 버튼을 취소와 구분
-              type: '' // 기본 'warning' 타입 아이콘을 숨기기 위해 빈 값으로 설정
+                // 아이콘을 컴포넌트 안에서 직접 그리므로, 기본 아이콘은 숨김
+                showClose: false,
+                distinguishCancelAndClose: true, // ESC나 닫기 버튼을 취소와 구분
+                type: '' // 기본 'warning' 타입 아이콘을 숨기기 위해 빈 값으로 설정
+              }
+          ).then(() => {
+            // '로그인' 버튼 클릭 시
+            onClickLogin(true);
+          }).catch((action) => {
+            // '취소' 버튼 클릭 또는 ESC, 닫기 버튼 클릭
+            if (action === 'cancel') {
+              ElMessage.info('로그인을 취소했습니다.');
             }
-        ).then(() => {
-          // '로그인' 버튼 클릭 시
-          onClickLogin(true);
-        }).catch((action) => {
-          // '취소' 버튼 클릭 또는 ESC, 닫기 버튼 클릭
-          if (action === 'cancel') {
-            ElMessage.info('로그인을 취소했습니다.');
-          }
-        });
-
-
+          });
+        }
       }
-
+    } finally {
+      state.isProcessing = false;
     }
 
   }

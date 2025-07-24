@@ -24,6 +24,7 @@ public class SignUpDto {
     private String password;
     private String userName;
     private String email;
+    private String emailHash;
     private String phoneNumber;
     private String birthDate;
     private String genderCode;

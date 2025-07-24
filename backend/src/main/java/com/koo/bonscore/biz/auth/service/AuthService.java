@@ -105,7 +105,9 @@ public class AuthService {
      * @return
      */
     public boolean isDuplicateId(SignUpDto request) {
+
         return authMapper.existsById(request) > 0;
+
     }
 
     /**
@@ -114,7 +116,7 @@ public class AuthService {
      * @return
      */
     public boolean isDuplicateEmail(SignUpDto request) {
-        request.setEmail(encryptionService.encrypt(request.getEmail()));
+        request.setEmailHash(encryptionService.hashWithSalt(request.getEmail()));
         return authMapper.existsByEmail(request) > 0;
     }
 
@@ -130,6 +132,7 @@ public class AuthService {
                 .userName(encryptionService.encrypt(request.getUserName()))
                 .password(passwordEncoder.encode(rsaController.decrypt(request.getPassword())))
                 .email(encryptionService.encrypt(request.getEmail()))
+                .emailHash(encryptionService.hashWithSalt(request.getEmail()))
                 .phoneNumber(encryptionService.encrypt(request.getPhoneNumber()))
                 .birthDate(encryptionService.encrypt(request.getBirthDate()))
                 .genderCode(request.getGenderCode())

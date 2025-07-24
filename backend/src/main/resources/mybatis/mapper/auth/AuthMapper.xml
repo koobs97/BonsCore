@@ -40,7 +40,7 @@
        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.existsByEmail */
               COUNT(1)   AS EMAIL_ID_CNT       /* 사용중인 email 개수 */
          FROM USER_INFO                        /* 유저정보 테이블 */
-        WHERE EMAIL = #{email}                 /* email */
+        WHERE EMAIL_HASH = #{emailHash}        /* email */
     </select>
 
     <!-- 회원가입 -->
@@ -51,6 +51,7 @@
               USER_ID                          /* 사용자 ID */
             , USER_NAME                        /* 사용자 이름 */
             , EMAIL                            /* 사용자 이메일 */
+            , EMAIL_HASH                       /* 사용자 이메일 해쉬 */
             , PHONE_NUMBER                     /* 사용자 전화번호 */
             , BIRTH_DATE                       /* 사용자 생년월일 */
             , GENDER_CODE                      /* 성별 코드 */
@@ -71,6 +72,7 @@
               #{userId}
             , #{userName}
             , #{email}
+            , #{emailHash}
             , #{phoneNumber}
             , #{birthDate}
             , #{genderCode}

@@ -9,8 +9,10 @@ import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
+import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
+import com.koo.bonscore.log.annotaion.UserActivityLog;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,9 +41,10 @@ public class AuthController {
      * @return
      * @throws Exception
      */
+    @UserActivityLog(activityType = "LOGIN", userIdField = "#request.userId")
     @PreventDoubleClick
     @PostMapping("/login")
-    public LoginResponseDto login(@RequestBody LoginDto request, HttpServletResponse httpResponse) throws Exception {
+    public LoginResponseDto login(@RequestBody LoginDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
 
         // 1. 사용자 ID로 중복 로그인 확인
         // 강제 로그인이 아니고, 이미 로그인된 세션이 있다면
@@ -53,34 +56,46 @@ public class AuthController {
             return responseDto;
         }
 
-        // 실제 로그인 처리
-        LoginResponseDto responseDto = authService.login(request);
+        try {
 
-        // 로그인 성공 시 세션 처리
-        if (responseDto.getSuccess()) {
-            String userId = request.getUserId();
-            String accessToken = responseDto.getAccessToken();
-            
+            // 실제 로그인 처리
+            LoginResponseDto responseDto = authService.login(request);
 
-            // 새로운 세션 등록 (이 과정에서 기존 세션은 블랙리스트 처리됨
-            loginSessionManager.registerSession(userId, accessToken);
+            // 로그인 성공 시 세션 처리
+            if (responseDto.getSuccess()) {
+                String userId = request.getUserId();
+                String accessToken = responseDto.getAccessToken();
 
-            // Refresh Token 쿠키로 전달
-            ResponseCookie cookie = ResponseCookie.from("refresh_token", responseDto.getRefreshToken())
-                    .httpOnly(true)
-                    .secure(true)
-                    .sameSite("Strict")
-                    .path("/")
-                    .maxAge(JwtTokenProvider.REFRESH_TOKEN_VALIDITY / 1000)
-                    .build();
 
-            httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+                // 새로운 세션 등록 (이 과정에서 기존 세션은 블랙리스트 처리됨
+                loginSessionManager.registerSession(userId, accessToken);
 
-            // 보안상 응답 body에는 refreshToken 제거
-            responseDto.setRefreshToken(null);
+                // Refresh Token 쿠키로 전달
+                ResponseCookie cookie = ResponseCookie.from("refresh_token", responseDto.getRefreshToken())
+                        .httpOnly(true)
+                        .secure(true)
+                        .sameSite("Strict")
+                        .path("/")
+                        .maxAge(JwtTokenProvider.REFRESH_TOKEN_VALIDITY / 1000)
+                        .build();
+
+                httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+                // 보안상 응답 body에는 refreshToken 제거
+                responseDto.setRefreshToken(null);
+            }
+
+            return responseDto;
+
+        } catch (BsCoreException e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw e;
+        }  catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw new RuntimeException(e);
         }
-
-        return responseDto;
     }
 
     /**
@@ -124,6 +139,7 @@ public class AuthController {
      * @param response
      * @return
      */
+    @UserActivityLog(activityType = "LOGOUT", userIdField = "#request.userId")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Object>> logout(HttpServletRequest request, HttpServletResponse response) {
 
@@ -199,13 +215,16 @@ public class AuthController {
      * @return
      * @throws Exception
      */
+    @UserActivityLog(activityType = "SIGNUP", userIdField = "#request.userId")
     @PreventDoubleClick
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<Object>> signup(@RequestBody SignUpDto request, HttpServletResponse httpResponse) throws Exception {
+    public ResponseEntity<ApiResponse<Object>> signup(@RequestBody SignUpDto request,HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             authService.signup(request);
             return ResponseEntity.ok(ApiResponse.success("회원가입 성공", true));
         } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.failure(ErrorCode.INVALID_REFRESH_TOKEN.getCode(), "회원가입 처리 중 오류가 발생했습니다.", null));

@@ -458,7 +458,6 @@ const onClickSignUp = async () => {
           userStore().delUserInfo();
           sessionStorage.clear();
           router.push("/login");
-          window.location.reload();
         }, 1000);
 
       } catch (action) {

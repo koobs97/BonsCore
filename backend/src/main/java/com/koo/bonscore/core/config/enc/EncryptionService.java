@@ -7,7 +7,9 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 
 @Service
@@ -88,5 +90,24 @@ public class EncryptionService {
                     + Character.digit(s.charAt(i+1), 16));
         }
         return data;
+    }
+
+    public String hashWithSalt(String data) {
+        if (data == null) return null;
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            // 데이터와 솔트를 결합하여 보안 강화
+            String dataWithSalt = data + Arrays.toString(aesKey);
+            byte[] hashedBytes = md.digest(dataWithSalt.getBytes(StandardCharsets.UTF_8));
+
+            // 바이트 배열을 16진수 문자열로 변환
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashedBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("데이터 해싱 중 오류 발생", e);
+        }
     }
 }
