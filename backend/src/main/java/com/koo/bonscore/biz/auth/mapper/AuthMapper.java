@@ -4,6 +4,7 @@ import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
+import org.apache.catalina.User;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -67,4 +68,17 @@ public interface AuthMapper {
      * @return
      */
     String findByUserIdByMail(UserInfoSearchDto userInfoSearchDto);
+
+    /**
+     * 사용자 아이디로 유저명, 이메일 조회
+     * @param userInfoSearchDto
+     * @return
+     */
+    UserInfoSearchDto findUserById(UserInfoSearchDto userInfoSearchDto);
+
+    /**
+     * 비밀번호 업데이트
+     * @param userInfoSearchDto
+     */
+    void updatePassword(UserInfoSearchDto userInfoSearchDto);
 }

@@ -1,9 +1,18 @@
 <script setup lang="ts">
+/**
+ * ========================================
+ * 파일명   : Login.vue
+ * ----------------------------------------
+ * 설명     : 로그인
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-01-30
+ * ========================================
+ */
 import { Hide, View } from "@element-plus/icons-vue";
 import { computed, reactive, ref, onMounted, h } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import JSEncrypt from 'jsencrypt';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Common } from '@/common/common';
 import { useRouter } from 'vue-router';
@@ -11,6 +20,7 @@ import { userStore, userState } from '@/store/userStore';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
 import TheFooter from "@/components/layout/TheFooter.vue";
 
+// router
 const router = useRouter();
 
 /*
@@ -32,23 +42,31 @@ const state = reactive({
   isProcessing: false, // 화면 제어
 })
 
-// ==================== [수정] CapsLock 상태 변수 추가 ====================
+// caps lock 상태변수
 const isCapsLockOn = ref(false);
 
-// 패스워드 아이콘 변경
+// 비밀번호 아이콘 변경
 const passwdIcon = computed(() => (state.isVisible ? View : Hide));
 const passwdType = computed(() => (state.isVisible ? "text" : "password"));
 
-// 패스워드 입력 모드 전환
+// 비밀번호 입력 모드 전환
 const togglePassword = () => {
   state.isVisible = !state.isVisible;
 }
 
 // 화면진입 시
-onMounted(() => {
+onMounted(async () => {
 
-  localStorage.removeItem('userInfo');
-  userStore().delUserInfo();
+  await Api.post(ApiUrls.LOGOUT, {}, true);
+
+  setTimeout(()=>{
+    userStore().delUserInfo();
+    sessionStorage.clear();
+    localStorage.removeItem('userInfo');
+  }, 1000);
+
+  state.isVisible = false;
+  state.isProcessing = false;
 
   if(rememberId.value && !Common.isEmpty(localStorage.getItem('userId'))) {
     userId.value = localStorage.getItem('userId');
@@ -59,7 +77,6 @@ onMounted(() => {
   }
 })
 
-// ==================== [수정] Caps Lock 감지 함수 추가 ====================
 /**
  * 비밀번호 입력 시 Caps Lock 상태를 확인하는 함수
  * @param {KeyboardEvent} event
@@ -69,22 +86,11 @@ const checkCapsLock = (event: KeyboardEvent) => {
 };
 
 /**
- * Caps Lock 경고 메시지를 숨깁니다.
- * 이 함수는 입력 필드나 윈도우가 포커스를 잃었을 때 호출됩니다.
+ * Caps Lock 경고 메시지를 숨긴다.
+ * 이 함수는 입력 필드나 윈도우가 포커스를 잃었을 때 호출된다.
  */
 const hideCapsLockWarning = () => {
   isCapsLockOn.value = false;
-};
-
-/**
- * 패스워드 공개키 받아오기
- * @param password
- */
-const encryptPassword = async (password: string): Promise<string> => {
-  const { data: publicKey } = await Api.get(ApiUrls.GET_PUBLIC_KEY); // 서버에서 공개 키 받아오기
-  const encryptor = new JSEncrypt();
-  encryptor.setPublicKey(publicKey);
-  return await encryptor.encrypt(password) || ''; // RSA 암호화
 };
 
 /**
@@ -92,24 +98,15 @@ const encryptPassword = async (password: string): Promise<string> => {
  */
 const validateInput = async () => {
   if(Common.isEmpty(userId.value)) {
-    ElMessage({
-      message: '사용자ID를 입력하세요.',
-      grouping: true,
-      type: 'error',
-    })
-    userIdInput.value?.focus();
+    ElMessage({ message: '사용자ID를 입력하세요.', grouping: true, type: 'error' })
+    userIdInput.value.focus();
     return;
   }
   if(Common.isEmpty(password.value)) {
-    ElMessage({
-      message: '비밀번호를 입력하세요.',
-      grouping: true,
-      type: 'error',
-    });
-    passwordInput.value?.focus();
+    ElMessage({ message: '비밀번호를 입력하세요.', grouping: true, type: 'error' });
+    passwordInput.value.focus();
     return;
   }
-
   return true;
 }
 
@@ -127,32 +124,18 @@ const onClickLogin = async (isForced: boolean) => {
     }
 
     // 서버에서 공개키 get
-    const encryptedPassword = await encryptPassword(password.value);
-
-    const params = {
-      userId : userId.value,
-      password : encryptedPassword,
-      force: isForced,
-    }
-
-    console.log(params)
+    const encryptedPassword = await Common.encryptPassword(password.value);
 
     state.isProcessing = true;
     try {
-      const res = await Api.post(ApiUrls.LOGIN, params, true);
-      console.log(res)
-
+      const res = await Api.post(ApiUrls.LOGIN, { userId : userId.value, password : encryptedPassword, force: isForced });
       if(res.data.accessToken) {
-        console.log('login success ->', res);
 
         // 실제로 유저 정보 불러와서 확인 (서버 호출)
         sessionStorage.setItem('accessToken', res.data.accessToken);
 
         // 유저정보 세팅
-        const params = {
-          userId : userId.value,
-        }
-        const user = await Api.post(ApiUrls.GET_USER, params, true);
+        const user = await Api.post(ApiUrls.GET_USER, { userId : userId.value }, true);
         const userInfo = user.data as userState
 
         localStorage.setItem('userInfo', JSON.stringify(userInfo));
@@ -197,13 +180,17 @@ const onClickLogin = async (isForced: boolean) => {
               }
           ).then(() => {
             // '로그인' 버튼 클릭 시
+            state.isProcessing = false;
             onClickLogin(true);
           }).catch((action) => {
             // '취소' 버튼 클릭 또는 ESC, 닫기 버튼 클릭
             if (action === 'cancel') {
               ElMessage.info('로그인을 취소했습니다.');
             }
-          });
+          }).finally(() => {
+            state.isProcessing = false;
+          })
+          ;
         }
       }
     } finally {
@@ -260,7 +247,7 @@ const onClickToGoPage = (param: string) => {
         </el-input>
 
         <div class="caps-lock-placeholder">
-          <!-- 2. isCapsLockOn 상태에 따라 'visible' 클래스를 동적으로 제어합니다. -->
+          <!-- isCapsLockOn 상태에 따라 'visible' 클래스를 동적으로 제어. -->
           <span :class="['caps-lock-warning', { 'visible': isCapsLockOn }]">
             Caps Lock이 켜져 있습니다.
           </span>
@@ -288,9 +275,7 @@ const onClickToGoPage = (param: string) => {
       </el-button>
     </el-card>
 
-    <!-- Footer -->
     <TheFooter />
-    <!-- Footer -->
   </div>
 </template>
 
@@ -303,42 +288,35 @@ const onClickToGoPage = (param: string) => {
   align-items: center;
   min-height: calc(100vh - 100px);
 }
-
 /* 로그인 카드 */
 .login-card {
   width: 380px;
   padding: 4px;
   box-sizing: border-box; /* 패딩이 너비에 영향을 주지 않도록 설정 */
 }
-
 .login-title {
   font-size: 28px;
   color: #0D1B2A;
   text-align: center;
   margin-bottom: 30px;
 }
-
 /* 로그인 폼 */
 .login-form {
   margin-top: 20px;
 }
-
 .form-options {
   text-align: left;
   margin-bottom: 15px;
 }
-
 .login-input {
   height: 45px;
   font-size: 15px;
   margin-bottom: 12px;
 }
-
 /* Element Plus의 내부 스타일을 덮어쓰기 위해 더 구체적인 선택자 사용 */
 .login-input :deep(.el-input__inner) {
   height: 45px;
 }
-
 .login-button {
   width: 100%;
   height: 48px;
@@ -346,12 +324,10 @@ const onClickToGoPage = (param: string) => {
   font-size: 16px;
   margin-top: 16px;
 }
-
 .find-links {
   margin-top: 20px;
   text-align: center;
 }
-
 /* 회원가입 카드 */
 .signup-prompt-card {
   width: 380px;
@@ -363,12 +339,10 @@ const onClickToGoPage = (param: string) => {
   padding: 8px 8px;
   box-sizing: border-box;
 }
-
 .signup-link {
   font-weight: bold;
   margin-left: 8px;
 }
-
 .caps-lock-placeholder {
   height: 8px; /* 경고 메시지를 담을 충분한 높이를 항상 차지 */
   display: flex;
@@ -377,7 +351,6 @@ const onClickToGoPage = (param: string) => {
   margin-bottom: 8px;
   font-weight: bold;
 }
-
 .caps-lock-warning {
   color: #f56c6c;
   font-size: 12px;
@@ -385,7 +358,6 @@ const onClickToGoPage = (param: string) => {
   visibility: hidden;
   transition: opacity 0.3s ease;
 }
-
 .caps-lock-warning.visible {
   opacity: 1;
   visibility: visible;

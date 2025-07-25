@@ -1,7 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
-import { useRouter } from "vue-router";
-import { ElAlert, ElMessage } from 'element-plus';
+/**
+ * ========================================
+ * 파일명   : FindPassword.vue
+ * ----------------------------------------
+ * 설명     : 비밀번호 찾기
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-07-23
+ * ========================================
+ */
+import { ref, reactive, computed, onMounted, nextTick, h } from 'vue';
+import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import { ElAlert, ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 import {
   User,
   Lock,
@@ -13,19 +23,35 @@ import {
   Promotion
 } from '@element-plus/icons-vue';
 import TheFooter from "@/components/layout/TheFooter.vue";
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
+import { Common } from '@/common/common';
 
 // Vue 라우터 인스턴스
 const router = useRouter();
 
+// 타이머 상태
 const state = reactive({
   totalSeconds: 180, // 전체 남은 시간을 초 단위로 관리
   timerId: null as any | null, // setInterval의 ID를 저장하기 위한 변수
+  isVerified: false,
 })
 
 // UI 흐름 제어를 위한 상태 변수
 // 1: 본인 인증 단계, 2: 비밀번호 재설정 단계, 3: 완료 단계
 const currentStep = ref(1);
 const isCodeSent = ref(false); // 인증번호 전송 여부
+
+// 버튼 loading
+const emailLoading = ref(false);
+
+// focus
+const userId = ref();
+const newPassword = ref();
+
+// token
+const token = ref();
 
 // 폼 데이터 모델
 const formData = reactive({
@@ -37,34 +63,74 @@ const formData = reactive({
   confirmPassword: '',
 });
 
+// 화면진입 시
+onMounted(() => {
+  userId.value.focus();
+})
+
 /**
- * (가상) 인증번호 전송 함수
+ * 뒤로가기/앞으로가기 시 실행할 작업
+ */
+onBeforeRouteLeave(async(to, from, next) => {
+
+  /* 인증 전에 페이지 이탈 시 초기화 */
+  if(state.timerId) {
+    clearInterval(state.timerId);
+    state.isVerified = true;
+  }
+
+  next(); // 다음 단계로 진행
+})
+
+/**
+ * 인증번호 전송 함수
  * 실제로는 API를 호출하여 인증번호를 발송합니다.
  */
-const sendAuthCode = () => {
+const sendAuthCode = async () => {
+
   // 간단한 유효성 검사
   if (!formData.userId || !formData.userName || !formData.email) {
     ElMessage.error('아이디, 이름, 이메일을 모두 입력해주세요.');
     return;
   }
-  isCodeSent.value = true;
-  ElMessage.success('인증번호가 이메일로 발송되었습니다.');
 
+  try {
+    emailLoading.value = true;
+    await Api.post(ApiUrls.SEND_MAIL, { nonMaskedId: formData.userId, userName: formData.userName, email: formData.email, type: 'PW' });
+    ElMessage({
+      message: '이메일이 전송되었습니다.',
+      grouping: true,
+      type: 'success',
+    });
+  } finally {
+    emailLoading.value = false;
+  }
+
+  // 인증번호 입력란 비활성화 해제
+  isCodeSent.value = true;
+  state.isVerified = false;
   startTimer();
 };
 
 /**
- * (가상) 인증번호 확인 및 다음 단계로 이동 함수
+ * 인증번호 확인 및 다음 단계로 이동 함수며
  * 실제로는 API를 호출하여 인증번호의 유효성을 검증합니다.
  */
-const verifyAndProceed = () => {
+const verifyAndProceed = async () => {
   if (!formData.authCode) {
     ElMessage.error('인증번호를 입력해주세요.');
     return;
   }
-  // 인증번호 검증 로직 (여기서는 성공으로 간주)
-  console.log('인증번호 확인 완료');
+  const result = await Api.post(ApiUrls.CHECK_CODE, { email: formData.email, code: formData.authCode });
+  token.value = result.data.token;
+
+  // 인증번호 검증 완료
   currentStep.value = 2; // 비밀번호 재설정 단계로 이동
+  clearInterval(state.timerId);
+  state.isVerified = true;
+  nextTick(() => {
+    newPassword.value.focus();
+  })
 };
 
 // 2. 남은 시간을 'MM:SS' 형식으로 변환하는 computed 속성
@@ -82,6 +148,7 @@ const startTimer = () => {
   // 이미 실행 중인 타이머가 있다면 초기화
   if (state.timerId) {
     clearInterval(state.timerId);
+    state.isVerified = true;
   }
 
   // 타이머 초기 시간 설정
@@ -93,6 +160,7 @@ const startTimer = () => {
     // 시간이 다 되면 타이머를 멈추고 메시지 표시
     if (state.totalSeconds <= 0) {
       clearInterval(state.timerId as number);
+      state.isVerified = true;
       state.timerId = null;
       ElMessage({
         type: 'error',
@@ -103,10 +171,10 @@ const startTimer = () => {
 };
 
 /**
- * (가상) 비밀번호 재설정 함수
- * 실제로는 API를 호출하여 비밀번호를 변경합니다.
+ * 비밀번호 재설정 함수
+ * API를 호출하여 비밀번호를 변경한다.
  */
-const resetPassword = () => {
+const resetPassword = async () => {
   // 비밀번호 유효성 검사
   if (!formData.newPassword || !formData.confirmPassword) {
     ElMessage.error('새 비밀번호와 확인 비밀번호를 모두 입력해주세요.');
@@ -116,9 +184,51 @@ const resetPassword = () => {
     ElMessage.error('비밀번호가 일치하지 않습니다.');
     return;
   }
-  // 비밀번호 변경 로직 (여기서는 성공으로 간주)
-  console.log('비밀번호 변경 완료');
-  currentStep.value = 3; // 완료 단계로 이동
+
+  try {
+    await ElMessageBox.confirm(
+        // 1. message 옵션에 h() 함수를 사용하여 커스텀 컴포넌트를 렌더링합니다.
+        h(SignUpConfirm, {
+          // CustomConfirm 컴포넌트에 props 전달
+          title: '비밀번호 변경',
+          message: '비밀번호를 변경하시겠습니까?',
+        }),
+        // 2. 기본 title은 사용하지 않으므로 빈 문자열로 둡니다.
+        '',
+        {
+          confirmButtonText: '확인',
+          cancelButtonText: '취소',
+          // 3. 커스텀 클래스를 추가하여 세부 스타일을 조정할 수 있습니다.
+          customClass: 'custom-message-box',
+          // 4. CustomConfirm 컴포넌트가 자체 아이콘과 UI를 가지므로,
+          //    MessageBox의 기본 UI 요소들은 비활성화합니다.
+          showClose: false, // 오른쪽 위 'X' 닫기 버튼 숨김
+          type: '', // 기본 'warning' 아이콘 숨김
+        }
+    );
+
+    // 비밀번호 암호화
+    const encryptedPassword = await Common.encryptPassword(formData.newPassword);
+
+    // 비밀번호 변경 로직
+    await Api.post(ApiUrls.UPDATE_PASSWORD, { token: token.value, password: encryptedPassword, userId: formData.userId });
+
+    const loading = ElLoading.service({
+      lock: true,
+      text: 'Loading',
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+    setTimeout(()=>{
+      loading.close();
+      ElMessage.success('비밀번호가 변경되었습니다.');
+      currentStep.value = 3; // 완료 단계로 이동
+    }, 1000);
+
+  } catch (action) {
+    // '취소' 또는 '닫기'를 눌렀을 때 실행되는 로직
+    // ElMessageBox는 Promise를 반환하며, 취소 시 'cancel'을 reject합니다.
+    if (action === 'cancel') {}
+  }
 };
 
 /**
@@ -177,6 +287,7 @@ const checklist = ref([
           <el-form-item label="아이디">
             <el-input
                 v-model="formData.userId"
+                ref="userId"
                 placeholder="아이디를 입력하세요."
                 size="large"
                 :prefix-icon="User"
@@ -190,9 +301,20 @@ const checklist = ref([
             />
           </el-form-item>
           <el-form-item label="이메일">
-            <el-input v-model="formData.email" placeholder="가입 시 등록한 이메일을 입력하세요." size="large" class="input-with-button">
+            <el-input
+                v-model="formData.email"
+                placeholder="가입 시 등록한 이메일을 입력하세요."
+                size="large"
+                class="input-with-button"
+            >
               <template #append>
-                <el-button type="primary" @click="sendAuthCode" :disabled="isCodeSent">
+                <el-button
+                    type="primary"
+                    class="non-outline"
+                    @click="sendAuthCode"
+                    :disabled="isCodeSent"
+                    :loading="emailLoading"
+                >
                   {{ isCodeSent ? '재전송' : '인증번호 전송' }}
                 </el-button>
               </template>
@@ -208,17 +330,18 @@ const checklist = ref([
             />
           </el-form-item>
 
+          <!-- 타이머, 안내문구 -->
           <div class="timer-area">
-
-            <!-- 왼쪽 (타이머) -->
             <el-text class="timer-text">
               <el-icon class="timer-icon"><Timer /></el-icon>
               {{ formattedTime }}
             </el-text>
-            <!-- 오른쪽 ("인증번호가 오지 않나요?" 관련 부분) -->
             <div style="display: flex; align-items: center;">
               <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
-              <el-popover placement="right" :width="600" trigger="click">
+              <el-popover
+                  placement="right"
+                  :width="600"
+                  trigger="click">
                 <template #reference>
                   <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
                 </template>
@@ -246,6 +369,7 @@ const checklist = ref([
               </el-popover>
             </div>
           </div>
+          <!-- 타이머, 안내문구 -->
         </el-form>
 
         <el-button type="primary" class="action-button" :disabled="!isCodeSent" @click="verifyAndProceed">
@@ -262,6 +386,7 @@ const checklist = ref([
           <el-form-item label="새 비밀번호">
             <el-input
                 v-model="formData.newPassword"
+                ref="newPassword"
                 type="password"
                 placeholder="8자 이상, 영문/숫자/특수기호 조합"
                 size="large"
@@ -291,8 +416,10 @@ const checklist = ref([
         <el-result
             icon="success"
             title="비밀번호 변경 완료"
-            sub-title="성공적으로 비밀번호가 변경되었습니다. 다시 로그인해주세요."
         >
+          <template #sub-title>
+            <p v-html="'성공적으로 비밀번호가 변경되었습니다. <br>다시 로그인해주세요.'"></p>
+          </template>
           <template #icon>
             <el-icon :size="64" color="var(--el-color-success)">
               <CircleCheckFilled />
@@ -313,7 +440,6 @@ const checklist = ref([
         <el-button type="info" link @click="goToFindId">아이디 찾기</el-button>
       </div>
     </el-card>
-
     <TheFooter />
   </div>
 </template>
@@ -361,6 +487,9 @@ const checklist = ref([
 .input-with-button :deep(.el-input-group__append .el-button) {
   border-radius: 0 var(--el-input-border-radius) var(--el-input-border-radius) 0;
   margin: -1px;
+}
+.non-outline {
+  outline: 0;
 }
 .action-button {
   width: 100%;

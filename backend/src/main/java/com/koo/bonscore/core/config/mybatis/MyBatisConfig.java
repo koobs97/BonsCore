@@ -3,6 +3,7 @@ package com.koo.bonscore.core.config.mybatis;
 import com.koo.bonscore.common.paging.interceptor.PagingInterceptor;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.type.JdbcType;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.mybatis.spring.boot.autoconfigure.ConfigurationCustomizer;
@@ -49,6 +50,7 @@ public class MyBatisConfig {
         org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.setLogImpl(org.apache.ibatis.logging.stdout.StdOutImpl.class);
+        configuration.setJdbcTypeForNull(JdbcType.NULL);
 
         factoryBean.setConfiguration(configuration);
 

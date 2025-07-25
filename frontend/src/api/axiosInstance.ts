@@ -1,6 +1,17 @@
+/**
+ * ========================================
+ * 파일명   : axiosInstance.ts
+ * ----------------------------------------
+ * 설명     : axios 관련 공통 처리 모듈
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-01-10
+ * ========================================
+ */
+
 import axios from 'axios';
 import { ApiUrls } from './apiUrls';
-import {ElLoading, ElMessageBox} from 'element-plus';
+import { ElLoading, ElMessageBox } from 'element-plus';
 import router from '../../router';
 import { ElMessage } from 'element-plus'
 import { userStore } from '@/store/userStore';
@@ -17,18 +28,21 @@ export function setupAxiosInterceptors(router: Router) {
 
 const axiosInstance = axios.create();
 
+// 인증이 절대로 필요 없는 URL 목록
+const NO_AUTH_URLS = [
+    '/api/auth/login',
+    '/api/auth/get-public-key', // 공개키 요청
+    '/api/auth/refresh-token'   // 리프레시 토큰 요청 등
+];
 // 요청 인터셉터 설정
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 인증이 필요 없는 URL 경로
-        const noAuthPath = '/api/auth/';
-
-        // config.url이 존재하고, noAuthPath로 시작하는 경우
-        if (config.url && config.url.startsWith(noAuthPath)) {
-            // 해당 요청은 토큰을 추가하지 않음
+        // 현재 요청 URL이 NO_AUTH_URLS 목록에 포함되어 있는지 확인
+        if (config.url && NO_AUTH_URLS.includes(config.url)) {
+            // 목록에 있다면, 토큰을 강제로 제거 (혹시 남아있을 경우를 대비)
             delete config.headers.Authorization;
         } else {
-            // 그 외 모든 요청에는 accessToken이 있다면 헤더에 추가
+            // 목록에 없다면(logout 포함), sessionStorage에 있는 accessToken을 추가
             const accessToken = sessionStorage.getItem('accessToken');
             if (accessToken) {
                 config.headers.Authorization = `Bearer ${accessToken}`;

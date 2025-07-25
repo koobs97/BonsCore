@@ -106,4 +106,22 @@
         WHERE EMAIL_HASH = #{email}            /* email */
     </select>
 
+    <!-- 사용자 아이디로 유저명, 이메일 조회 -->
+    <select id="findUserById" resultType="com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto" parameterType="com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto">
+        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.findUserById */
+               USER_NAME                        /* 사용자 이름 */
+             , EMAIL                            /* 이메일 */
+          FROM USER_INFO                        /* 유저정보 테이블 */
+         WHERE USER_ID = #{nonMaskedId}
+    </select>
+
+    <!-- 비밀번호 변경 -->
+    <update id="updatePassword" parameterType="com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto">
+        UPDATE /* com.koo.bonscore.biz.auth.mapper.AuthMapper.updatePassword */
+               USER_INFO                        /* 유저정보 테이블 */
+           SET PASSWORD_HASH = #{password}      /* 비밀번호 */
+             , UPDATED_AT    = #{updatedAt}     /* 수정일시 */
+         WHERE USER_ID       = #{userId}        /* 아이디 */
+    </update>
+
 </mapper>

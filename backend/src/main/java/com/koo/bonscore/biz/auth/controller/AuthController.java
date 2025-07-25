@@ -139,12 +139,13 @@ public class AuthController {
      * @param response
      * @return
      */
-    @UserActivityLog(activityType = "LOGOUT", userIdField = "#request.userId")
+    @UserActivityLog(activityType = "LOGOUT", userIdField = "")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Object>> logout(HttpServletRequest request, HttpServletResponse response) {
 
         // 1. Request Header에서 Access Token 추출
         String accessToken = jwtTokenProvider.resolveToken(request);
+        System.err.println("accessToken : " + accessToken);
         if (accessToken == null) {
             // 토큰이 없는 요청은 처리할 필요 없음
             return ResponseEntity.ok(ApiResponse.success("No active session to log out.", null));
@@ -152,6 +153,7 @@ public class AuthController {
 
         // 2. Access Token에서 사용자 ID 추출
         String userId = jwtTokenProvider.getUserId(accessToken);
+        System.err.println("userId : " + userId);
 
         // 3. 쿠키에서 Refresh Token 값 찾기 (HttpOnly 쿠키이므로 서버에서 직접 읽기)
         String refreshToken = null;
@@ -164,6 +166,8 @@ public class AuthController {
                 }
             }
         }
+
+        System.err.println("refreshToken: " + refreshToken);
 
         // 4. LoginSessionManager를 통해 서버 측 세션 정보 및 토큰 무효화
         loginSessionManager.logoutSession(userId, accessToken, refreshToken);
@@ -277,11 +281,41 @@ public class AuthController {
         }
     }
 
+    /**
+     * 아이디 찾기 완료 후 아이디 필드 복사 시 호출
+     * @param request
+     * @param httpRequest
+     * @param httpResponse
+     * @return
+     * @throws Exception
+     */
     @UserActivityLog(activityType = "COPY_ID", userIdField = "#request.email")
     @PostMapping("/copy-id")
     public String searchIdByMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             return authService.searchIdByMail(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            if (e instanceof BsCoreException)
+                throw (BsCoreException) e;
+            else
+                throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 비밀번호 찾기 후 비밀번호 업데이트
+     * @param request
+     * @param httpRequest
+     * @param httpResponse
+     * @throws Exception
+     */
+    @UserActivityLog(activityType = "UPDATE_PWD", userIdField = "#request.userId")
+    @PostMapping("/update-password")
+    public void updatePassowrd(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            authService.resetPasswordWithToken(request.getToken(), request.getPassword());
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());

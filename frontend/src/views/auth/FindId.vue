@@ -1,6 +1,16 @@
 <script setup lang="ts">
+/**
+ * ========================================
+ * 파일명   : FindId.vue
+ * ----------------------------------------
+ * 설명     : 아이디 찾기
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-07-20
+ * ========================================
+ */
 import { computed, onMounted, reactive, ref } from 'vue';
-import { DocumentCopy, Key, MoreFilled, Promotion, QuestionFilled, Timer } from '@element-plus/icons-vue';
+import { DocumentCopy, Key, MoreFilled, Promotion, QuestionFilled, Timer, InfoFilled } from '@element-plus/icons-vue';
 import { ElAlert, ElMessage} from 'element-plus';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import TheFooter from "@/components/layout/TheFooter.vue";
@@ -14,9 +24,11 @@ const router = useRouter();
 // 탭 상태 관리를 위한 ref (UI 표시용)
 const activeTab = ref('email');
 
+// 타이머 상태관리
 const state = reactive({
   totalSeconds: 180, // 전체 남은 시간을 초 단위로 관리
   timerId: null as any | null, // setInterval의 ID를 저장하기 위한 변수
+  isVerified: false,
 })
 
 // UI 흐름 제어를 위한 상태
@@ -52,33 +64,25 @@ onBeforeRouteLeave(async(to, from, next) => {
   /* 인증 전에 페이지 이탈 시 초기화 */
   if(state.timerId) {
     clearInterval(state.timerId);
+    state.isVerified = true;
   }
 
   next(); // 다음 단계로 진행
 })
 
 /**
- * (가상) 인증번호 전송 함수
- * 실제로는 여기서 API를 호출합니다.
+ * 인증번호 전송 함수
  */
 const sendAuthCode = async () => {
 
   // 필수입력 체크
   if(Common.isEmpty(userName.value)) {
-    ElMessage({
-      message: '이름을 입력하세요.',
-      grouping: true,
-      type: 'error',
-    })
+    ElMessage({ message: '이름을 입력하세요.', grouping: true, type: 'error' });
     userNameRef.value.focus();
     return;
   }
   if(Common.isEmpty(userEmail.value)) {
-    ElMessage({
-      message: '이메일을 입력하세요.',
-      grouping: true,
-      type: 'error',
-    })
+    ElMessage({ message: '이메일을 입력하세요.', grouping: true, type: 'error' });
     emailRef.value.focus();
     return;
   }
@@ -86,19 +90,49 @@ const sendAuthCode = async () => {
   // 인증번호 전송
   try {
     emailLoading.value = true;
-    await Api.post(ApiUrls.SEND_MAIL, { userName: userName.value, email: userEmail.value });
-    ElMessage({
-      message: '이메일이 전송되었습니다.',
-      grouping: true,
-      type: 'success',
-    });
+    await Api.post(ApiUrls.SEND_MAIL, { userName: userName.value, email: userEmail.value, type: 'ID' });
+    ElMessage({ message: '이메일이 전송되었습니다.', grouping: true, type: 'success' });
   } finally {
     emailLoading.value = false;
   }
 
   // 인증번호 입력란 비활성화 해제
   isCodeSent.value = true;
+
+  // 타이머 시작
+  state.isVerified = false;
   startTimer();
+};
+
+/**
+ * 아이디 찾기 확인 함수
+ */
+const findId = async () => {
+
+  const result = await Api.post(ApiUrls.CHECK_CODE, { email: userEmail.value, code: authCode.value });
+  maskedFoundUserId.value = result.data.userId;
+
+  // 아이디 보여주기 영역 open
+  isIdFound.value = true;
+
+  // 타이머 초기화
+  clearInterval(state.timerId);
+  state.isVerified = true;
+}
+
+/**
+ * 클립보드 복사 기능
+ * @param {string} text - 복사할 텍스트
+ */
+const copyToClipboard = async (text: string) => {
+  try {
+    const response = await Api.post(ApiUrls.COPY_ID, { email: userEmail.value })
+    await navigator.clipboard.writeText(response);
+    ElMessage({ message: '아이디가 복사되었습니다.', grouping: true, type: 'success' });
+  } catch (err) {
+    ElMessage({ message: '복사에 실패했습니다. 다시 시도해주세요.', grouping: true, type: 'error' });
+    console.error('Failed to copy ID: ', err);
+  }
 };
 
 // 1. 남은 시간을 'MM:SS' 형식으로 변환하는 computed 속성
@@ -116,6 +150,7 @@ const startTimer = () => {
   // 이미 실행 중인 타이머가 있다면 초기화
   if (state.timerId) {
     clearInterval(state.timerId);
+    state.isVerified = true;
   }
 
   // 타이머 초기 시간 설정
@@ -128,46 +163,10 @@ const startTimer = () => {
     if (state.totalSeconds <= 0) {
       clearInterval(state.timerId as number);
       state.timerId = null;
-      ElMessage({
-        type: 'error',
-        message: '인증시간이 초과되었습니다.',
-      });
+      state.isVerified = true;
+      ElMessage({ message: '인증시간이 초과되었습니다.', type: 'error' });
     }
   }, 1000);
-};
-
-/**
- * (가상) 아이디 찾기 확인 함수
- * 실제로는 여기서 API를 호출합니다.
- */
-const findId = async () => {
-
-  const result = await Api.post(ApiUrls.CHECK_CODE, { email: userEmail.value, code: authCode.value });
-  maskedFoundUserId.value = result.data.userId;
-
-  isIdFound.value = true;
-  clearInterval(state.timerId);
-}
-
-/**
- * 클립보드 복사 기능
- * @param {string} text - 복사할 텍스트
- */
-const copyToClipboard = async (text: string) => {
-  try {
-    const response = await Api.post(ApiUrls.COPY_ID, { email: userEmail.value })
-    await navigator.clipboard.writeText(response);
-    ElMessage({
-      message: '아이디가 복사되었습니다.',
-      type: 'success',
-    });
-  } catch (err) {
-    ElMessage({
-      message: '복사에 실패했습니다. 다시 시도해주세요.',
-      type: 'error',
-    });
-    console.error('Failed to copy ID: ', err);
-  }
 };
 
 /**
@@ -202,7 +201,6 @@ const checklist = ref([
     text: `발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다.`
   }
 ]);
-
 </script>
 
 <template>
@@ -215,9 +213,12 @@ const checklist = ref([
         <p class="description">가입 시 등록한 정보로 아이디를 찾을 수 있습니다.</p>
 
         <el-tabs v-model="activeTab" class="find-tabs" stretch>
-
+          <!-- 이메일 인증 -->
           <el-tab-pane label="이메일로 찾기" name="email">
-            <el-form class="find-form" label-position="top">
+            <el-form
+                class="find-form"
+                label-position="top"
+            >
               <el-form-item label="이름">
                 <el-input
                     v-model="userName"
@@ -258,9 +259,8 @@ const checklist = ref([
                 />
               </el-form-item>
 
+              <!-- 타이머, 안내문구 -->
               <div class="timer-area">
-
-                <!-- 왼쪽 (타이머) -->
                 <el-text class="timer-text">
                   <el-icon class="timer-icon"><Timer /></el-icon>
                   {{ formattedTime }}
@@ -297,95 +297,69 @@ const checklist = ref([
                   </el-popover>
                 </div>
               </div>
+              <!-- 타이머, 안내문구 -->
 
             </el-form>
           </el-tab-pane>
+          <!-- 이메일 인증 -->
 
+          <!-- 전화번호 인증 - 미개발로 음영처리 -->
           <el-tab-pane label="전화번호로 찾기" name="phone">
-            <el-form class="find-form" label-position="top">
-              <el-form-item label="이름">
-                <el-input
-                    v-model="userName"
-                    ref="userNamePhoneRef"
-                    placeholder="가입 시 등록한 이름을 입력하세요."
-                    size="large"
-                />
-              </el-form-item>
-              <el-form-item label="전화번호">
-                <el-input
-                    v-model="userPhoneNumber"
-                    ref="phoneRef"
-                    placeholder="'-' 없이 숫자만 입력하세요."
-                    size="large"
-                    class="input-with-button"
-                >
-                  <template #append>
-                    <el-button
-                        class="non-outline"
-                        type="primary"
-                        @click="sendAuthCodeByPhone"
-                        :loading="phoneLoading"
-                    >
-                      {{ isCodeSent ? '재전송' : '인증번호 전송' }}
-                    </el-button>
-                  </template>
-                </el-input>
-              </el-form-item>
-
-              <!-- 인증번호 입력 필드 -->
-              <el-form-item label="인증번호" style="margin-bottom: 4px;">
-                <el-input
-                    v-model="authCode"
-                    :disabled="!isCodeSent"
-                    placeholder="수신된 인증번호를 입력하세요."
-                    size="large"
-                    :prefix-icon="Key"
-                />
-              </el-form-item>
-
-              <div class="timer-area">
-
-                <!-- 왼쪽 (타이머) -->
-                <el-text class="timer-text">
-                  <el-icon class="timer-icon"><Timer /></el-icon>
-                  {{ formattedTime }}
-                </el-text>
-
-                <!-- 오른쪽 ("인증번호가 오지 않나요?" 관련 부분) -->
-                <div style="display: flex; align-items: center;">
-                  <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
-                  <el-popover placement="right" :width="600" trigger="click">
-                    <template #reference>
-                      <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
-                    </template>
-                    <div class="email-help-container">
-                      <el-alert
-                          title="이메일이 도착하지 않았나요?"
-                          :description="alertDescription"
-                          type="info"
-                          :closable="false"
-                          show-icon
-                          class="custom-alert"
-                      />
-                      <el-timeline style="margin-top: 20px;">
-                        <el-timeline-item
-                            v-for="(item, index) in checklist"
-                            :key="index"
-                            :type="item.type"
-                            :icon="item.icon"
-                            size="large"
-                        >
-                          <div v-html="item.text"></div>
-                        </el-timeline-item>
-                      </el-timeline>
-                    </div>
-                  </el-popover>
+            <div class="form-container-with-overlay">
+              <!-- 오버레이 레이어 -->
+              <div class="form-overlay">
+                <div class="overlay-content">
+                  <el-icon
+                      :size="40"
+                      style="color: var(--el-color-primary-dark-2);"
+                  >
+                    <InfoFilled />
+                  </el-icon>
+                  <p class="overlay-title">서비스 준비 중입니다</p>
+                  <p class="overlay-description">현재 전화번호 찾기 기능은 이용할 수 없습니다.</p>
                 </div>
               </div>
 
-            </el-form>
+              <el-form class="find-form" label-position="top">
+                <!-- ... 기존 폼 아이템들 ... -->
+                <el-form-item label="이름">
+                  <el-input
+                      disabled
+                      placeholder="가입 시 등록한 이름을 입력하세요."
+                      size="large"
+                  />
+                </el-form-item>
+                <el-form-item label="전화번호">
+                  <el-input
+                      disabled
+                      placeholder="'-' 없이 숫자만 입력하세요."
+                      size="large"
+                  >
+                    <template #append>
+                      <el-button disabled>인증번호 전송</el-button>
+                    </template>
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="인증번호" style="margin-bottom: 4px;">
+                  <el-input
+                      disabled
+                      placeholder="수신된 인증번호를 입력하세요."
+                      size="large"
+                  />
+                </el-form-item>
+              </el-form>
+              <div class="timer-area">
+                <el-text class="timer-text">
+                  <el-icon class="timer-icon"><Timer /></el-icon>
+                </el-text>
+                <div style="display: flex; align-items: center;">
+                  <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+                  <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
+                </div>
+              </div>
+            </div>
           </el-tab-pane>
-
+          <!-- 전화번호 인증 - 미개발로 음영처리 -->
         </el-tabs>
 
         <el-button type="primary" class="action-button" :disabled="!isCodeSent" @click="findId">
@@ -568,5 +542,34 @@ b {
 }
 .non-outline {
   outline: 0;
+}
+.form-container-with-overlay {
+  position: relative; /* 오버레이의 기준점이 됨 */
+  border-radius: 8px;
+  overflow: hidden; /* 컨테이너를 벗어나는 오버레이 부분을 숨김 */
+}
+.form-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.7); /* 반투명 흰색 배경 */
+  backdrop-filter: blur(4px); /* 뒷 배경을 블러 처리 (모던한 느낌) */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10; /* 폼보다 위에 위치하도록 설정 */
+  text-align: center;
+  color: #303133;
+}
+.overlay-content .overlay-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 10px 0 5px 0;
+}
+.overlay-content .overlay-description {
+  font-size: 0.9rem;
+  color: #606266;
 }
 </style>

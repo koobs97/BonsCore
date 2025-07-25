@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import {computed, h, onMounted, onUnmounted, reactive, ref, watch} from "vue";
-import {Check, Close, InfoFilled} from "@element-plus/icons-vue";
-import {ElAlert, ElCheckbox, ElLoading, ElMessage, ElMessageBox, ElTag} from 'element-plus';
-import {defineComponent} from "@vue/runtime-dom";
+/**
+ * ========================================
+ * 파일명   : SignUp.vue
+ * ----------------------------------------
+ * 설명     : 회원가입
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-07-10
+ * ========================================
+ */
+import { computed, h, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { Check, Close, InfoFilled } from "@element-plus/icons-vue";
+import { ElAlert, ElCheckbox, ElLoading, ElMessage, ElMessageBox, ElTag } from 'element-plus';
+import { defineComponent } from "@vue/runtime-dom";
 import TheFooter from "@/components/layout/TheFooter.vue";
-import {useRouter} from "vue-router";
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
+import {useRouter } from "vue-router";
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
-import JSEncrypt from "jsencrypt";
-import {userStore} from "@/store/userStore";
+import { userStore } from "@/store/userStore";
+import { Common } from '@/common/common';
 
 // router
 const router = useRouter();
@@ -82,47 +92,45 @@ const state = reactive({
   userEmailCheckStatus: '' as '' | 'success' | 'error',
 });
 
+// 화면진입 시
 onMounted(() => {
   document.addEventListener('mousemove', mousemoveHandler)
 })
 
+// 화면이탈 시
 onUnmounted(() => {
   document.removeEventListener('mousemove', mousemoveHandler)
 })
 
 /**
- * 패스워드 공개키 받아오기
+ * 비밀번호 복잡도 계산
  * @param password
  */
-const encryptPassword = async (password: string): Promise<string> => {
-  const { data: publicKey } = await Api.get(ApiUrls.GET_PUBLIC_KEY); // 서버에서 공개 키 받아오기
-  const encryptor = new JSEncrypt();
-  encryptor.setPublicKey(publicKey);
-  return await encryptor.encrypt(password) || ''; // RSA 암호화
-};
-
-const updatePasswordComplexity = (password: any) => {
+const updatePasswordComplexity = (password: string) => {
   if (!password) {
     state.complexity.percentage = 0;
     state.complexity.status = '';
     return;
   }
-  let score = 0;
-  const totalChecks = 4;
-  if (password.length >= 8)
-    score++;
 
+  let score = 0;
+  const totalChecks = 6; // 총 검사 항목 6개
+
+  // --- 필수 항목 (4개) ---
+  // 1. 8자리 이상
+  if (password.length >= 8) score++;
+
+  // 2. 영문/특수기호/숫자 전부 포함
   const hasEnglish = /[a-zA-Z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
   const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
-  if (hasEnglish && hasNumber && hasSpecialChar)
-    score++;
+  if (hasEnglish && hasNumber && hasSpecialChar) score++;
 
-  if (state.data.userId && password !== state.data.userId)
-    score++;
-  else if (!state.data.userId)
-    score++;
+  // 3. ID와 동일하게 사용 불가
+  if (state.data.userId && password !== state.data.userId) score++;
+  else if (!state.data.userId) score++; // ID가 없으면 통과
 
+  // 4. 생년월일/전화번호 포함 불가
   let containsPersonalInfo = false;
   if (state.data.phoneNumber) {
     const phoneDigits = state.data.phoneNumber.replace(/\D/g, '');
@@ -130,43 +138,78 @@ const updatePasswordComplexity = (password: any) => {
   }
   if (state.data.birthDate) {
     const birthDigits = state.data.birthDate.replace(/\D/g, '');
-    if (birthDigits && (password.includes(birthDigits) || password.includes(birthDigits.substring(2))))
+    if (birthDigits && (password.includes(birthDigits) || (birthDigits.length > 6 && password.includes(birthDigits.substring(2))))) {
       containsPersonalInfo = true;
+    }
   }
+  if (!containsPersonalInfo) score++;
 
-  if (!containsPersonalInfo)
-    score++;
+  // --- 권장 항목 (2개) ---
+  // 5. 3자리 순차적인 숫자/문자 사용 금지
+  let hasSequential = false;
+  for (let i = 0; i < password.length - 2; i++) {
+    const c1 = password.charCodeAt(i);
+    const c2 = password.charCodeAt(i + 1);
+    const c3 = password.charCodeAt(i + 2);
+    // 오름차순 (e.g., 123, abc)
+    if (c2 === c1 + 1 && c3 === c2 + 1) hasSequential = true;
+    // 내림차순 (e.g., 321, cba)
+    if (c2 === c1 - 1 && c3 === c2 - 1) hasSequential = true;
+  }
+  if (!hasSequential) score++;
+
+  // 6. 대/소문자 모두 포함
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasUpperCase = /[A-Z]/.test(password);
+  if (hasLowerCase && hasUpperCase) score++;
 
   const percentage = Math.floor((score / totalChecks) * 100);
   state.complexity.percentage = percentage;
 
-  if (percentage <= 25)
+  // 필수 조건(앞 4개) 충족 여부 확인
+  const isRequiredMet = password.length >= 8 &&
+      (hasEnglish && hasNumber && hasSpecialChar) &&
+      (state.data.userId ? password !== state.data.userId : true) &&
+      !containsPersonalInfo;
+
+  if (!isRequiredMet || percentage < 67) { // 필수 조건 미충족 또는 점수 4/6 미만
     state.complexity.status = 'exception';
-  else if (percentage <= 75)
+  } else if (percentage < 100) { // 4/6 또는 5/6 충족
     state.complexity.status = 'warning';
-  else
+  } else { // 모든 조건(6/6) 충족
     state.complexity.status = 'success';
+  }
 };
 
 watch(() => state.data.password, (newPassword) => {
   updatePasswordComplexity(newPassword);
 });
 
+// 다른 정보 변경 시에도 비밀번호 복잡도 재계산
+watch(() => [state.data.userId, state.data.birthDate, state.data.phoneNumber], () => {
+  updatePasswordComplexity(state.data.password);
+});
+
+/**
+ * 비밀번호 규칙 팝오버 띄우기
+ */
 const handleClickInfo = () => {
   visible.value = !visible.value;
 }
-
 const visible = ref(false)
 const position = ref({ top: 0, left: 0, bottom: 0, right: 0, })
-
 const triggerRef = ref({
   getBoundingClientRect: () => position.value,
 })
-
 const mousemoveHandler = ({ clientX, clientY }: any) => {
   position.value = DOMRect.fromRect({ x: clientX, y: clientY, })
 }
+/****** 팝오버 trigger 관련 함수들 */
 
+/**
+ * 입력란에 마우스 포커스 시 이벤트
+ * @param fieldName
+ */
 const handleFieldFocus = (fieldName: any) => {
   state.visible[fieldName] = false;
   if (fieldName === 'userId') {
@@ -177,11 +220,28 @@ const handleFieldFocus = (fieldName: any) => {
   if(fieldName === 'email') {
     state.userEmailCheckStatus = '';
   }
+  // 비밀번호 필드에 포커스 시, 기존 유효성 검사 메시지 초기화
+  if (fieldName === 'password') {
+    state.rules.password.message = '비밀번호를 입력해주세요.';
+  }
 }
 
+/**
+ * validation 체크
+ * @param fieldName
+ */
 const handleFieldValidation = (fieldName: any) => {
-  formRef.value.validateField(fieldName, async (isValid: any) => {
-    state.visible[fieldName] = !isValid;
+  formRef.value.validateField(fieldName, async (isValid: any, invalidFields: any) => {
+    if (!isValid) {
+      state.visible[fieldName] = true;
+      if (fieldName === 'password') {
+        // 커스텀 validator에서 생성된 에러 메시지를 rules 객체에 반영
+        state.rules.password.message = invalidFields[fieldName][0].message;
+      }
+    } else {
+      state.visible[fieldName] = false;
+    }
+
     if (fieldName === 'userId' && !isValid) {
       state.userIdCheckStatus = 'error';
     }
@@ -206,12 +266,20 @@ const handleFieldValidation = (fieldName: any) => {
   })
 }
 
+/**
+ * 약관 동의 여부 계산
+ * 회원가입 누를 시 약관 동의 여부 체크
+ */
 const requiredAgreements = computed(() => [
   state.agreePersonalInfo,
   state.agreeThirdParty,
   state.agreeEtc,
 ]);
 
+/**
+ * 전체동의
+ * @param isChecked
+ */
 const handleAgreeAllChange = (isChecked: any) => {
   state.agreePersonalInfo = isChecked;
   state.agreeThirdParty = isChecked;
@@ -219,17 +287,28 @@ const handleAgreeAllChange = (isChecked: any) => {
   state.agreeMarketing = isChecked;
 };
 
+// 동의 관련 watch 함수
 watch(
-    [() => state.agreePersonalInfo, () => state.agreeThirdParty, () => state.agreeEtc, () => state.agreeMarketing],
+    [
+      () => state.agreePersonalInfo,
+      () => state.agreeThirdParty,
+      () => state.agreeEtc,
+      () => state.agreeMarketing
+    ],
     (currentValues) => {
       state.agreeAll = !currentValues.includes(false);
-    });
+    }
+);
 
+// 약관 보기 항목에 사용되는 함수
 const ReactiveVNode = defineComponent({
   props: { renderFn: { type: Function, required: true } },
   setup(props) { return () => props.renderFn(); },
 });
 
+/**
+ * 개인정보수집이용동의 [보기]
+ */
 const showPrivacyPolicyPopup = () => {
   const popupState = reactive({ isAgreedRequired: state.agreePersonalInfo, isAgreedMarketing: state.agreeMarketing });
   const messageVNode = h(ReactiveVNode, {
@@ -257,6 +336,9 @@ const showPrivacyPolicyPopup = () => {
       .then(() => { state.agreePersonalInfo = popupState.isAgreedRequired; state.agreeMarketing = popupState.isAgreedMarketing; }).catch(() => {});
 };
 
+/**
+ * 제3자정보제공동의 [보기]
+ */
 const showThirdPartyPopup = () => {
   const popupState = reactive({ isAgreed: state.agreeThirdParty });
   const messageVNode = h(ReactiveVNode, {
@@ -276,6 +358,9 @@ const showThirdPartyPopup = () => {
       .then(() => { state.agreeThirdParty = popupState.isAgreed; }).catch(() => {});
 };
 
+/**
+ * 기타사항 [보기]
+ */
 const showEtcPopup = () => {
   const popupState = reactive({ isAgreed: state.agreeEtc });
   const iconVNode = (component: any) => h('div', { class: 'etc-icon-wrapper' }, h(component, { class: 'etc-icon' }));
@@ -292,27 +377,18 @@ const showEtcPopup = () => {
       .then(() => { state.agreeEtc = popupState.isAgreed; }).catch(() => {});
 };
 
-// =======================================================
-// 1. 중복 체크: 아이디 필드만 검사
-// =======================================================
+/**
+ * 중복 체크: 아이디 필드만 검사
+ */
 const onClickCheckId = () => {
   formRef.value.validateField('userId', async (isValid: boolean) => {
     if (isValid) {
-
-      const params = {
-        userId : state.data.userId,
-      }
-
-      const response = await Api.post(ApiUrls.CHECK_ID, params, true);
+      const response = await Api.post(ApiUrls.CHECK_ID, { userId : state.data.userId }, true);
       if (response.data) {
-        ElMessage({
-          message: '이미 사용 중인 아이디입니다.',
-          grouping: true,
-          type: 'error',
-        })
+        ElMessage({ message: '이미 사용 중인 아이디입니다.', grouping: true, type: 'error' })
         state.userIdCheckStatus = 'error';
       } else {
-        ElMessage.success('사용 가능한 아이디입니다.');
+        ElMessage({ message: '사용 가능한 아이디입니다.', grouping: true, type: 'success' });
         state.visible.userId = false;
         state.userIdCheckStatus = 'success';
       }
@@ -323,9 +399,9 @@ const onClickCheckId = () => {
   });
 }
 
-// =======================================================
-// 2. 가입하기: 전체 필드 검사 및 모든 오류 메시지 표시 (수정된 로직)
-// =======================================================
+/**
+ * 가입하기: 전체 필드 검사 및 모든 오류 메시지 표시
+ */
 const onClickSignUp = async () => {
   // 모든 팝오버를 우선 숨겨서 깨끗한 상태에서 검사 시작
   for (const key in state.visible) {
@@ -344,6 +420,10 @@ const onClickSignUp = async () => {
       if (Object.prototype.hasOwnProperty.call(state.visible, fieldName)) {
         // 실패한 필드에 해당하는 visible 상태를 true로 변경하여 팝오버 표시
         state.visible[fieldName] = true;
+        // 실패한 비밀번호 필드의 에러 메시지를 rules에 업데이트
+        if (fieldName === 'password' && invalidFields.password) {
+          state.rules.password.message = invalidFields.password[0].message;
+        }
         // 아이디 필드가 유효하지 않으면 상태 아이콘도 업데이트
         if (fieldName === 'userId') {
           state.userIdCheckStatus = 'error';
@@ -361,16 +441,9 @@ const onClickSignUp = async () => {
     console.log('submit!');
 
     // 아이디 유효성 재검사
-    const params = {
-      userId : state.data.userId,
-    }
-    const response = await Api.post(ApiUrls.CHECK_ID, params, true);
+    const response = await Api.post(ApiUrls.CHECK_ID, { userId : state.data.userId }, true);
     if (response.data) {
-      ElMessage({
-        message: '이미 사용 중인 아이디입니다.',
-        grouping: true,
-        type: 'error',
-      })
+      ElMessage({ message: '이미 사용 중인 아이디입니다.', grouping: true, type: 'error' })
       state.userIdCheckStatus = 'error';
       return;
     }
@@ -378,16 +451,9 @@ const onClickSignUp = async () => {
       state.userIdCheckStatus = 'success';
     }
 
-    const param2 = {
-      email: state.data.email
-    }
-    const response2 = await Api.post(ApiUrls.CHECK_EMAIL, param2);
+    const response2 = await Api.post(ApiUrls.CHECK_EMAIL, { email: state.data.email });
     if (response2.data) {
-      ElMessage({
-        message: '사용할 수 없는 이메일입니다.',
-        grouping: true,
-        type: 'error',
-      })
+      ElMessage({ message: '사용할 수 없는 이메일입니다.', grouping: true, type: 'error' })
       state.userEmailCheckStatus = 'error';
       return;
     }
@@ -419,17 +485,8 @@ const onClickSignUp = async () => {
             }
         );
 
-        // '확인'을 눌렀을 때 실행되는 로직
-        console.log('--- 회원가입 데이터 ---');
-        console.log('기본 정보:', state.data);
-        console.log('개인정보 동의:', state.agreePersonalInfo);
-        console.log('마케팅 동의:', state.agreeMarketing);
-
-        // 여기에 실제 회원가입 API 호출 로직을 넣습니다.
-        // const response = await api.register(state);
-
         // 서버에서 공개키 get
-        const encryptedPassword = await encryptPassword(state.data.password);
+        const encryptedPassword = await Common.encryptPassword(state.data.password);
 
         const params = {
           userId : state.data.userId,
@@ -461,8 +518,6 @@ const onClickSignUp = async () => {
         }, 1000);
 
       } catch (action) {
-        // '취소' 또는 '닫기'를 눌렀을 때 실행되는 로직
-        // ElMessageBox는 Promise를 반환하며, 취소 시 'cancel'을 reject합니다.
         if (action === 'cancel') {
           ElMessage.info('회원가입을 취소했습니다.');
         }
@@ -470,12 +525,7 @@ const onClickSignUp = async () => {
     }
 
   } else {
-    console.log('Form is invalid or agreements not met.');
-    ElMessage({
-      message: '입력 정보를 확인하고 필수 약관에 동의해주세요.',
-      grouping: true,
-      type: 'error',
-    })
+    ElMessage({ message: '입력 정보를 확인하고 필수 약관에 동의해주세요.', grouping: true, type: 'error' })
   }
 };
 
@@ -512,17 +562,27 @@ const formatBirthDate = (value: string) => {
       </template>
 
       <el-form
-          ref="formRef" :model="state.data" :rules="state.rules"
-          :show-message="false" label-position="left" class="signup-form"
-          label-width="120px" @submit.prevent
+          ref="formRef"
+          :model="state.data"
+          :rules="state.rules"
+          :show-message="false"
+          label-position="left"
+          class="signup-form"
+          label-width="120px"
+          @submit.prevent
       >
-        <div class="text-title1"><el-text tag="b">개인정보입력</el-text></div>
+        <div class="text-title1">
+          <el-text tag="b">개인정보입력</el-text>
+        </div>
 
         <!-- 아이디 -->
         <el-popover
-            popper-class="custom-error-popover" :popper-style="popoverStyle"
-            :content="state.rules.userId.message" placement="right-start"
-            width="250" :visible="state.visible.userId"
+            popper-class="custom-error-popover"
+            :popper-style="popoverStyle"
+            :content="state.rules.userId.message"
+            placement="right-start"
+            width="250"
+            :visible="state.visible.userId"
         >
           <template #reference>
             <el-form-item label="아이디" prop="userId" required>
@@ -537,7 +597,10 @@ const formatBirthDate = (value: string) => {
                     @blur="() => handleFieldValidation('userId')"
                 >
                   <template #append>
-                    <el-button type="primary" @click.prevent="onClickCheckId" class="non-outline">중복 체크</el-button>
+                    <el-button
+                        type="primary"
+                        @click.prevent="onClickCheckId"
+                        class="non-outline">중복 체크</el-button>
                   </template>
                 </el-input>
 
@@ -564,16 +627,22 @@ const formatBirthDate = (value: string) => {
 
         <!-- 비밀번호 -->
         <el-popover
-            popper-class="custom-error-popover" :popper-style="popoverStyle"
-            :content="state.rules.password.message" placement="right-start"
-            width="250" :visible="state.visible.password"
+            popper-class="custom-error-popover"
+            :popper-style="popoverStyle"
+            :content="state.rules.password.message"
+            placement="right-start"
+            width="250"
+            :visible="state.visible.password"
         >
           <template #reference>
             <el-form-item label="비밀번호" prop="password" required>
               <el-input
-                  v-model="state.data.password" type="password" show-password
+                  v-model="state.data.password"
+                  type="password"
+                  show-password
                   v-byte-limit="50"
-                  placeholder="8자 이상 입력해 주세요" clearable
+                  placeholder="8자 이상 입력해 주세요"
+                  clearable
                   @focus="() => handleFieldFocus('password')"
                   @blur="() => handleFieldValidation('password')"
               />
@@ -581,36 +650,60 @@ const formatBirthDate = (value: string) => {
           </template>
         </el-popover>
 
-        <!-- 패스워드 복잡도 -->
+        <!-- 비밀번호 복잡도 -->
         <el-form-item>
-          <div style="display: flex; align-items: center; width: 100%; max-width: 500px; margin-bottom: 20px; gap: 8px">
+          <div class="password-comple-area">
             <el-tag plain class="password-comple-tag">
-              <el-icon @click="handleClickInfo" class="password-comple-tag-icon"><InfoFilled /></el-icon>
+              <el-icon
+                  @click="handleClickInfo"
+                  class="password-comple-tag-icon">
+                <InfoFilled />
+              </el-icon>
               <el-text class="password-comple-text">비밀번호 복잡도</el-text>
             </el-tag>
             <el-progress
-                style="width: 100%;" :text-inside="true" :stroke-width="18"
-                :percentage="state.complexity.percentage" :status="state.complexity.status"
+                style="width: 100%;"
+                :text-inside="true"
+                :stroke-width="18"
+                :percentage="state.complexity.percentage"
+                :status="state.complexity.status"
             />
           </div>
         </el-form-item>
 
         <!-- 비밀번호 안내 tooltip -->
         <el-tooltip
-            v-model:visible="visible" placement="bottom-end" effect="light"
-            trigger="click" virtual-triggering :virtual-ref="triggerRef"
+            v-model:visible="visible"
+            placement="bottom-end"
+            effect="light"
+            trigger="click"
+            virtual-triggering
+            :virtual-ref="triggerRef"
         >
           <template #content>
             <div class="password-info">
               <el-text class="password-info-title">비밀번호 생성규칙</el-text>
-              <el-divider class="password-info-divider"></el-divider>
-              <el-alert title="비밀번호 생성 관련 안내" type="info" show-icon :closable="false" />
-              <el-divider class="password-info-divider"></el-divider>
-              <el-tag class="password-info-content">1. 8자리 이상</el-tag>
-              <el-tag class="password-info-content">2. 영문/특수기호/숫자 전부 포함</el-tag>
-              <el-tag class="password-info-content">3. ID와 동일하게 사용불가</el-tag>
-              <el-tag class="password-info-content">4. 생년월일/전화번호 포함 불가</el-tag>
-              <el-divider class="password-info-divider"></el-divider>
+              <el-divider class="password-info-divider" />
+              <el-alert
+                  title="비밀번호 생성 관련 안내"
+                  type="info"
+                  show-icon
+                  :closable="false"
+              />
+              <el-divider class="password-info-divider" />
+              <el-descriptions
+                  :column="1"
+                  size="small"
+                  border
+              >
+                <el-descriptions-item label-class-name="my-label" label="필수">8자리 이상</el-descriptions-item>
+                <el-descriptions-item label-class-name="my-label" label="필수">영문/특수기호/숫자 전부 포함</el-descriptions-item>
+                <el-descriptions-item label-class-name="my-label" label="필수">ID와 동일하게 사용불가</el-descriptions-item>
+                <el-descriptions-item label-class-name="my-label" label="필수">생년월일/전화번호 포함 불가</el-descriptions-item>
+                <el-descriptions-item label="권장">3자리의 순차적인 숫자 사용 금지</el-descriptions-item>
+                <el-descriptions-item label="권장">대문자(영문) 소문자(영문)이 한개 이상 포함</el-descriptions-item>
+              </el-descriptions>
+              <el-divider class="password-info-divider" />
               <el-tag class="password-info-footer">생성규칙에 맞춰 비밀번호를 생성해주세요</el-tag>
             </div>
           </template>
@@ -774,7 +867,6 @@ const formatBirthDate = (value: string) => {
 </template>
 
 <style>
-/* CSS는 변경 사항이 없으므로 그대로 유지합니다. */
 .privacy-section-title { font-size: 16px; font-weight: 600; color: #303133; margin: 0 0 16px 0; }
 .privacy-table .retention-period { font-size: 13px; color: #606266; line-height: 1.5; }
 .privacy-table td .el-tag { display: flex; justify-content: center; align-items: center; margin: 0 auto; }
@@ -815,7 +907,6 @@ const formatBirthDate = (value: string) => {
 .id-input-wrapper .el-input {
   flex-grow: 1;
 }
-
 .id-check-indicator {
   display: flex;
   align-items: center;
@@ -851,7 +942,6 @@ const formatBirthDate = (value: string) => {
 .id-check-indicator.is-error .el-icon {
   color: var(--el-color-error);
 }
-
 .signup-container {
   display: flex;
   flex-direction: column;
@@ -894,6 +984,14 @@ const formatBirthDate = (value: string) => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+.password-comple-area {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 20px;
+  gap: 8px;
 }
 .password-comple-tag {
   color: #4527A0;

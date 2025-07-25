@@ -1,6 +1,5 @@
 package com.koo.bonscore.biz.auth.service;
 
-import com.koo.bonscore.BonsCoreApplication;
 import com.koo.bonscore.biz.auth.controller.RSAController;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
@@ -16,7 +15,7 @@ import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import oracle.core.lmx.CoreException;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -65,7 +64,7 @@ public class AuthService {
      * @return LoginResponseDto
      * @throws Exception
      */
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     public LoginResponseDto login(LoginDto request) throws Exception {
 
         LoginResponseDto response = new LoginResponseDto();
@@ -140,6 +139,7 @@ public class AuthService {
      * @param request
      * @throws Exception
      */
+    @Transactional
     public void signup(SignUpDto request) throws Exception {
         // 회원가입 컬럼 조립
         // 암호화 대상 : 유저명, 패스워드, 이메일, 전화번호, 생년월일
@@ -166,36 +166,67 @@ public class AuthService {
     }
 
     /**
-     * 아이디 찾기 서비스
+     * 아이디/비밀번호 찾기 서비스
      * @param request
      * @throws Exception
      */
     public void searchIdBySendMail(UserInfoSearchDto request) throws Exception {
 
-        // 1. 형식(Format)검증
-        if(request.getUserName().isEmpty())
+        String type = request.getType();
+
+        // 형식(Format)검증 - 아이디/비밀번호 찾기 공통 입력값
+        if(StringUtils.isEmpty(request.getUserName()))
             throw new BsCoreException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR
                     , ErrorCode.INVALID_INPUT
                     , "유저명을 입력해주세요.");
-        if(request.getEmail().isEmpty())
+        if(StringUtils.isEmpty(request.getEmail()))
             throw new BsCoreException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR
                     , ErrorCode.INVALID_INPUT
                     , "이메일을 입력해주세요.");
 
-        // 2. 존재(Existence) 검증
-        UserInfoSearchDto input = UserInfoSearchDto.builder()
-                .email(encryptionService.hashWithSalt(request.getEmail()))
-                .build();
+        /* 아이디 찾기 일 때 */
+        if("ID".equals(type)) {
 
-        // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
-        String userName = authMapper.findByUserNameAndEmail(input);
-        if(userName == null || !encryptionService.decrypt(userName).equals(request.getUserName()))
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INVALID_INPUT
-                    , "입력하신 정보와 일치하는 사용자가 없습니다.");
+            // 존재(Existence) 검증
+            UserInfoSearchDto input = UserInfoSearchDto.builder()
+                    .email(encryptionService.hashWithSalt(request.getEmail()))
+                    .build();
+
+            // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
+            String userName = authMapper.findByUserNameAndEmail(input);
+            if(userName == null || !encryptionService.decrypt(userName).equals(request.getUserName()))
+                throw new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR
+                        , ErrorCode.INVALID_INPUT
+                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
+
+        } // ID
+        
+        /* 비밀번호 찾기 일 때 */
+        if("PW".equals(type)) {
+
+            // 형식(Format)검증
+            if(StringUtils.isEmpty(request.getNonMaskedId()))
+                throw new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR
+                        , ErrorCode.INVALID_INPUT
+                        , "아이디를 입력해주세요.");
+
+            UserInfoSearchDto result = authMapper.findUserById(request);
+            if(result != null) {
+                result.setUserName(encryptionService.decrypt(result.getUserName()));
+                result.setEmail(encryptionService.decrypt(result.getEmail()));
+                if(!result.getUserName().equals(request.getUserName()) || !result.getEmail().equals(request.getEmail())) {
+                    throw new BsCoreException(
+                            HttpStatusCode.INTERNAL_SERVER_ERROR
+                            , ErrorCode.INVALID_INPUT
+                            , "입력하신 정보와 일치하는 사용자가 없습니다.");
+                }
+            }
+
+        } // PW
 
         // 메일 전송
         String authCode = mailService.sendVerificationEmail(request.getEmail(), request.getUserName());
@@ -213,6 +244,7 @@ public class AuthService {
      * @return
      */
     public UserInfoSearchDto verifyCode(String email, String code) throws Exception {
+
         String key = VERIFICATION_PREFIX + email;
         String storedCode = redisTemplate.opsForValue().get(key);
 
@@ -230,6 +262,8 @@ public class AuthService {
 
             return UserInfoSearchDto.builder()
                     .userId(userId)
+                    // 만료시간 15분 -> 비밀번호 찾기 -> 비밀번호 변경에서 사용할 토큰
+                    .token(jwtTokenProvider.createToken(userId, JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
                     .build();
         } else {
             throw new BsCoreException(
@@ -240,7 +274,7 @@ public class AuthService {
     }
 
     /**
-     * 유저 id 복사 시 호출
+     * 유저 ID 복사 시 호출
      * @param request
      * @return
      * @throws Exception
@@ -250,6 +284,50 @@ public class AuthService {
                 .email(encryptionService.hashWithSalt(request.getEmail()))
                 .build();
         return authMapper.findByUserIdByMail(input);
+    }
+
+    /**
+     * 비밀번호 업데이트
+     * @param token
+     * @param newPassword
+     * @throws Exception
+     */
+    @Transactional
+    public void resetPasswordWithToken(String token, String newPassword) throws Exception {
+
+        // 1. 토큰 유효성 검증 (만료 여부, 위변조 여부 등)
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INTERNAL_SERVER_ERROR
+                    , "토큰이 유효하지 않거나 만료되었습니다.");
+        }
+
+        // 2. 토큰에서 사용자 ID 추출
+        String userId = jwtTokenProvider.getUserId(token);
+        UserInfoSearchDto user = UserInfoSearchDto.builder()
+                .nonMaskedId(userId)
+                .build();
+
+        // 3. 사용자 유효성 검증
+        UserInfoSearchDto result = authMapper.findUserById(user);
+        if(result == null) {
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INVALID_INPUT
+                    , "입력하신 정보와 일치하는 사용자가 없습니다.");
+        }
+
+        // 4. 입력값 세팅
+        UserInfoSearchDto updateInput = UserInfoSearchDto.builder()
+                .userId(userId)
+                .password(passwordEncoder.encode(rsaController.decrypt(newPassword)))
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        // 5. 비밀번호 업데이트
+        authMapper.updatePassword(updateInput);
+
     }
 
 }
