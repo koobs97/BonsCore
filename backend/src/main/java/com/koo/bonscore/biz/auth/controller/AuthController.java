@@ -139,7 +139,7 @@ public class AuthController {
      * @param response
      * @return
      */
-    @UserActivityLog(activityType = "LOGOUT", userIdField = "")
+    @UserActivityLog(activityType = "LOGOUT")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Object>> logout(HttpServletRequest request, HttpServletResponse response) {
 

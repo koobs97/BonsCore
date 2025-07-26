@@ -28,6 +28,10 @@ export function setupAxiosInterceptors(router: Router) {
 
 const axiosInstance = axios.create();
 
+// 로그인 관련 화면에서는 에러 alert 안띄우게
+// 예시 : 뒤로가기 버튼 -> 로그인 화면 진입 -> 세션이 만료되었습니다. 안뜨게
+const publicPaths = ['/login', '/SignUp', '/FindId', '/FindPassword'];
+
 // 인증이 절대로 필요 없는 URL 목록
 const NO_AUTH_URLS = [
     '/api/auth/login',
@@ -63,6 +67,12 @@ axiosInstance.interceptors.response.use(
         if (error.response && error.response.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
 
+            // 현재 경로가 publicPaths에 포함되면 토큰 갱신 시도 자체를 건너뜀 =====
+            // (public 페이지에서 굳이 유효하지 않은 토큰을 갱신할 필요가 없음)
+            if (publicPaths.includes(router.currentRoute.value.path)) {
+                return Promise.reject(error);
+            }
+
             try {
                 // Refresh Token으로 새 Access Token 요청
                 const refreshResponse = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
@@ -87,7 +97,7 @@ axiosInstance.interceptors.response.use(
 
         }
         // 401 - UNAUTHORIZED
-        if(error.response && error.response.status === 401) {
+        if(error.response && error.response.status === 401 && !publicPaths.includes(router.currentRoute.value.path)) {
 
             // 로그인 페이지로 이동하는 로직
             const redirectToLogin = async () => {

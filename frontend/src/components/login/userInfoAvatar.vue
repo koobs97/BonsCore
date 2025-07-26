@@ -94,7 +94,6 @@ const onClickLogOut = async () => {
       userStore().delUserInfo();
       sessionStorage.clear();
       router.push("/login");
-      window.location.reload();
     }, 1000);
 
   } catch (error) {
@@ -122,7 +121,7 @@ const copyEmail = (email: string) => {
 </script>
 
 <template>
-  <el-card class="custom-el-card" shadow="never" style="height: 90px; width: 230px; margin: 0 0 5px 4px; position: relative;">
+  <el-card class="custom-el-card" shadow="never" style="height: calc(100% - 9px); width: 230px; margin: 0 0 5px 4px; position: relative;">
     <template #header>
       <div style="height: 60px; display: flex; align-items: center;">
         <div style="display: flex; justify-content: flex-start; padding: 0 0 0 8px;">
@@ -287,7 +286,7 @@ const copyEmail = (email: string) => {
         </div>
       </div>
     </template>
-    <div style="text-align: left;">
+    <div style="text-align: left; margin-top: 1px; height: 30px;">
       <el-tag type="info" effect="Light" style="margin-left: 8px;">로그인일시</el-tag>
       <el-tag type="info" effect="Light" style="margin-left: 4px;">{{ state.User.loginTime }}</el-tag>
     </div>
