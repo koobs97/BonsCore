@@ -286,7 +286,7 @@ const copyEmail = (email: string) => {
         </div>
       </div>
     </template>
-    <div style="text-align: left; margin-top: 1px; height: 30px;">
+    <div style="text-align: left; margin-top: 4px; height: 30px;">
       <el-tag type="info" effect="Light" style="margin-left: 8px;">로그인일시</el-tag>
       <el-tag type="info" effect="Light" style="margin-left: 4px;">{{ state.User.loginTime }}</el-tag>
     </div>

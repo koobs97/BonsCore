@@ -194,6 +194,7 @@ const menuItems = shallowRef([
   padding: 16px 4% 0; /* 상하, 좌우 패딩 */
   flex-shrink: 0;
   margin-bottom: 0;
+  height: 104px;
 }
 .concept-banner {
   width: 70%;
@@ -204,7 +205,7 @@ const menuItems = shallowRef([
   background-color: #ffffff;
   border-radius: 4px;
   border: 1px solid var(--el-border-color-light);
-  height: 59px;
+  height: 65px;
 }
 
 .concept-banner .el-icon {
