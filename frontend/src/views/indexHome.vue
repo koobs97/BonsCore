@@ -1,11 +1,17 @@
 <script setup>
-import { ref, shallowRef } from 'vue';
-import { Search, Compass, Clock, ChatDotRound, Odometer, UserFilled } from '@element-plus/icons-vue';
+import { ref, shallowRef, onMounted } from 'vue';
+import { Search, Clock, ChatDotRound, Odometer, Star, Moon, Sunny } from '@element-plus/icons-vue';
 import TheFooter from "@/components/layout/TheFooter.vue";
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
+import { userStore } from '@/store/userStore';
+import { useRouter } from 'vue-router';
 
 // 로그인한 사용자 이름 (임시 데이터)
-const userName = ref('개발자');
+const userName = ref('');
+
+// router, user
+const router = useRouter();
+const userStoreObj = userStore();
 
 // 검색어 데이터
 const searchQuery = ref('');
@@ -18,6 +24,17 @@ const menuItems = shallowRef([
   { id: 1, name: 'prediction', label: '시간대별 예측', icon: Clock, description: '축적된 데이터를 기반으로 시간대별 대기 시간을 예측합니다.' },
   { id: 2, name: 'community', label: '저장소', icon: ChatDotRound, description: '나만의 데이터 저장' },
 ]);
+
+onMounted(async () => {
+  const isLoggedIn = userStore().isLoggedIn;
+  if (!isLoggedIn) {
+    await router.push("login");
+  }
+  else {
+    const user = userStoreObj.getUserInfo;
+    userName.value = user.userName;
+  }
+})
 </script>
 
 <template>
@@ -28,10 +45,16 @@ const menuItems = shallowRef([
         <el-icon :size="24" color="#001233" class="logo-icon"><Odometer /></el-icon>
         <span class="logo-text">웨이팅 레이더</span>
       </div>
-      <div class="user-info">
-        <el-avatar :icon="UserFilled" size="small" />
-        <span class="welcome-text">{{ userName }}님, 환영합니다.</span>
-        <el-button text bg>로그아웃</el-button>
+      <div class="header-actions">
+        <el-tooltip content="최근 검색 기록" placement="bottom">
+          <el-button :icon="Clock" circle />
+        </el-tooltip>
+        <el-tooltip content="즐겨찾기" placement="bottom">
+          <el-button :icon="Star" circle />
+        </el-tooltip>
+        <el-tooltip content="테마 변경" placement="bottom">
+          <el-button :icon="isDarkMode ? Moon : Sunny" circle @click="toggleTheme" />
+        </el-tooltip>
       </div>
     </el-header>
 
@@ -40,20 +63,16 @@ const menuItems = shallowRef([
       <div class="concept-banner">
         <el-icon :size="20"><CollectionTag /></el-icon>
         <div class="banner-text">
-          <span>온라인 정보를 바탕으로 대기 시간을 예측하고, 나만의 웨이팅 데이터를 관리하는 서비스입니다.</span>
+          <span>온라인 정보를 바탕으로 대기 시간을 예측. 나만의 웨이팅 데이터를 관리.</span>
         </div>
       </div>
       <!-- 우측 (30%): 유저 정보 카드 플레이스홀더 -->
-      <div class="user-card-placeholder">
-        <UserInfoAvatar />
-      </div>
+      <UserInfoAvatar />
     </div>
 
     <!-- 메인 컨텐츠 영역 -->
     <el-main class="main-content">
       <el-card class="content-card" shadow="never">
-        <!-- 상단 타이틀 (프로토타입 스타일) -->
-        <h1 class="main-title">맛집을 검색하여 웨이팅 데이터를 예측해보세요.</h1>
 
         <!-- 검색창 -->
         <el-input
@@ -96,16 +115,22 @@ const menuItems = shallowRef([
   max-height: 780px;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .main-header {
+  width: 800px; /* 헤더는 전체 너비를 사용 */
+  height: 50px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 4%;
+  background-color: #ffffff;
+  /* 복잡한 ::after 선택자 대신 명확한 border-bottom으로 변경 */
+  border-bottom: 1px solid #e4e7ed;
+  /* 헤더 내용이 좌우 끝에 붙지 않도록 내부 여백(padding)을 추가 */
+  padding: 0 12px;
+  box-sizing: border-box; /* padding이 너비/높이에 포함되도록 설정 */
   flex-shrink: 0;
-  position: relative; /* 기준점 설정을 위해 추가 */
-  /* border-bottom 속성은 제거됨 */
 }
 
 /* 이 코드를 새로 추가하세요 */
@@ -118,38 +143,46 @@ const menuItems = shallowRef([
   height: 1px; /* 선의 두께 */
   background-color: var(--el-border-color-light, #e4e7ed);
 }
-
+.info-wrapper {
+  display: flex;
+  gap: 12px;
+  width: 800px;
+  height: 93px;
+  flex-shrink: 0;
+  margin-top: 12px; /* 헤더와의 간격 */
+  margin-bottom: 12px; /* 메인 콘텐츠와의 간격 */
+}
 .logo { display: flex; align-items: center; gap: 8px; }
-.logo-text { font-size: 1.2rem; font-weight: 600; color: var(--el-text-color-primary, #303133); }
-.user-info { display: flex; align-items: center; gap: 12px; }
-.welcome-text { font-size: 0.9rem; color: var(--el-text-color-regular); }
-.user-info .el-button--text { color: var(--el-text-color-secondary); }
-.user-info .el-button--text:hover { color: var(--el-color-primary); }
+/* rem 단위를 px로 변환 (1.2rem -> 19px) */
+.logo-text { font-size: 19px; font-weight: 600; color: #303133; }
 
 .main-content {
   display: flex;
   justify-content: center;
-  align-items: center;
+  width: 820px;
+  align-items: flex-start; /* 콘텐츠를 위에서부터 정렬하도록 변경 */
   flex-grow: 1;
-  padding: 0 1rem 1rem;
   overflow: hidden;
 }
 
-.content-card {
-  width: 100%;
-  max-width: 800px; /* <<<--- 최대 너비 살짝 줄임 */
-  height: 500px;
-  max-height: 500px;
-  padding: 2rem; /* <<<--- 카드 내부 상하 패딩 감소 */
-  border-radius: 4px;
-  text-align: center;
+main.el-main.main-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-grow: 1;
+  overflow: hidden;
+  width: 800px;
+  padding: 0;
 }
 
-.main-title {
-  font-size: 1.7rem; /* <<<--- 폰트 크기 살짝 줄임 */
-  font-weight: 600;
-  color: var(--el-text-color-primary, #303133);
-  margin-bottom: 1.5rem; /* <<<--- 제목 하단 마진 감소 */
+.content-card {
+  width: 820px;
+  height: 570px;
+  max-height: 570px;
+  border-radius: 4px;
+  text-align: center;
+  padding: 24px; /* 카드 내부에 여백을 주어 답답함을 해소 */
+  box-sizing: border-box;
 }
 
 .search-input {
@@ -169,12 +202,12 @@ const menuItems = shallowRef([
 .content-tabs :deep(.el-tabs__header) { margin-bottom: 20px; } /* <<<--- 탭 헤더 하단 마진 감소 */
 .content-tabs :deep(.el-tabs__nav-wrap) { justify-content: center; }
 .content-tabs :deep(.el-tabs__nav-wrap::after) { display: none; }
-.content-tabs :deep(.el-tabs__item) { color: var(--el-text-color-secondary); font-size: 1rem; padding: 0 24px; height: 48px; }
+.content-tabs :deep(.el-tabs__item) { color: var(--el-text-color-secondary); font-size: 1rem; height: 48px; }
 .content-tabs :deep(.el-tabs__item.is-active) { color: var(--el-color-primary); font-weight: 600; }
 .content-tabs :deep(.el-tabs__active-bar) { background-color: var(--el-color-primary); }
 
 .tab-content-placeholder {
-  min-height: 260px;
+  height: 350px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -184,48 +217,42 @@ const menuItems = shallowRef([
   background-color: var(--el-fill-color-light);
   border-radius: 4px;
 }
-
 .placeholder-icon {
   color: var(--el-text-color-placeholder);
 }
-.info-wrapper {
-  display: flex;
-  gap: 20px; /* 좌우 컴포넌트 사이 간격 */
-  padding: 16px 4% 0; /* 상하, 좌우 패딩 */
-  flex-shrink: 0;
-  margin-bottom: 0;
-  height: 104px;
-}
 .concept-banner {
   width: 70%;
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
   background-color: #ffffff;
   border-radius: 4px;
-  border: 1px solid var(--el-border-color-light);
-  height: 65px;
+  border: 1px solid #e4e7ed;
+  padding: 8px; /* 요청에 따라 기존 padding 값 유지 */
+  box-sizing: border-box;
 }
 
 .concept-banner .el-icon {
   color: var(--el-color-primary);
   flex-shrink: 0; /* 아이콘이 찌그러지지 않도록 */
+  padding-left: 8px;
 }
 
 .concept-banner .banner-text {
-  font-size: 0.9rem;
-  color: var(--el-text-color-regular);
+  font-size: 14px; /* rem 단위를 px로 변환 */
+  color: #606266;
   line-height: 1.6;
 }
 
 .user-card-placeholder {
   width: 30%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 0.9rem;
-  color: var(--el-text-color-placeholder);
+  font-size: 14px; /* rem 단위를 px로 변환 */
+  color: #c0c4cc;
 }
 /* UserInfo 에서 사용중인 스타일 */
 .custom-el-card {

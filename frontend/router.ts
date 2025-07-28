@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-import indexHome from './src/views/indexHome.vue';
+import indexHome from '@/views/indexHome.vue';
 import { userStore } from '@/store/userStore';
 
 // 페이지 경로를 저장할 배열

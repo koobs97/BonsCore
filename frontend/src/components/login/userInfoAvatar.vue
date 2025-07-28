@@ -121,7 +121,7 @@ const copyEmail = (email: string) => {
 </script>
 
 <template>
-  <el-card class="custom-el-card" shadow="never" style="height: calc(100% - 9px); width: 230px; margin: 0 0 5px 4px; position: relative;">
+  <el-card class="custom-el-card" shadow="never" style="width: 230px;">
     <template #header>
       <div style="height: 60px; display: flex; align-items: center;">
         <div style="display: flex; justify-content: flex-start; padding: 0 0 0 8px;">
@@ -286,9 +286,9 @@ const copyEmail = (email: string) => {
         </div>
       </div>
     </template>
-    <div style="text-align: left; margin-top: 4px; height: 30px;">
-      <el-tag type="info" effect="Light" style="margin-left: 8px;">로그인일시</el-tag>
-      <el-tag type="info" effect="Light" style="margin-left: 4px;">{{ state.User.loginTime }}</el-tag>
+    <div style="text-align: left; margin-top: 2px; height: 30px;">
+      <el-tag type="info" effect="Light" style="margin-left: 4px; width: 82px;">로그인일시</el-tag>
+      <el-tag type="info" effect="Light" style="margin-left: 4px; width: 136px;">{{ state.User.loginTime }}</el-tag>
     </div>
   </el-card>
 </template>
