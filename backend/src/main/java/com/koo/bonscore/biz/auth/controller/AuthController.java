@@ -46,17 +46,6 @@ public class AuthController {
     @PreventDoubleClick
     @PostMapping("/login")
     public LoginResponseDto login(@RequestBody LoginDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
-
-        // 1. 사용자 ID로 중복 로그인 확인
-        // 강제 로그인이 아니고, 이미 로그인된 세션이 있다면
-        if (!request.isForce() && loginSessionManager.isDuplicateLogin(request.getUserId())) {
-            LoginResponseDto responseDto = new LoginResponseDto();
-            responseDto.setSuccess(false);
-            responseDto.setReason("DUPLICATE_LOGIN");
-            responseDto.setMessage("다른 기기에서 로그인 중입니다.<br>접속을 강제로 끊고 로그인하시겠습니까?");
-            return responseDto;
-        }
-
         try {
 
             // 실제 로그인 처리
@@ -64,6 +53,16 @@ public class AuthController {
 
             // 로그인 성공 시 세션 처리
             if (responseDto.getSuccess()) {
+
+                // 사용자 ID로 중복 로그인 확인
+                // 강제 로그인이 아니고, 이미 로그인된 세션이 있다면
+                if (!request.isForce() && loginSessionManager.isDuplicateLogin(request.getUserId())) {
+                    responseDto.setSuccess(false);
+                    responseDto.setReason("DUPLICATE_LOGIN");
+                    responseDto.setMessage("다른 기기에서 로그인 중입니다.<br>접속을 강제로 끊고 로그인하시겠습니까?");
+                    return responseDto;
+                }
+
                 String userId = request.getUserId();
                 String accessToken = responseDto.getAccessToken();
 
