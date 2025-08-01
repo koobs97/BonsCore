@@ -26,6 +26,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * <pre>
+ * AuthController.java
+ * 설명 : 인증
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-08-01
+ */
 @RestController
 @RequestMapping("api/auth")
 @RequiredArgsConstructor

@@ -1,4 +1,4 @@
-package com.koo.bonscore.biz.aflogin.dto.req;
+package com.koo.bonscore.biz.users.dto.req;
 
 import lombok.Getter;
 

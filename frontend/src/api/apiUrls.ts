@@ -1,9 +1,10 @@
 export enum ApiUrls {
+
     GET_PUBLIC_KEY = "/api/public-key",
+
+    // auth
     LOGIN = '/api/auth/login',
     LOGOUT = '/api/auth/logout',
-    USER_INFO = '/api/user/info',
-    REFRESH_TOKEN = '/api/auth/refresh',
     CHECK_ID = '/api/auth/isDuplicateId',
     CHECK_EMAIL = '/api/auth/isDuplicateEmail',
     SIGN_UP = '/api/auth/signup',
@@ -12,11 +13,12 @@ export enum ApiUrls {
     COPY_ID = '/api/auth/copy-id',
     UPDATE_PASSWORD = '/api/auth/update-password',
 
-    // 필요에 따라 API 추가
-    AF_LOGIN = '/api/aflogin/afterLogin',
-    GET_USER = '/api/aflogin/me',
+    // users
+    GET_USER = '/api/users/me',
 
+    GET_MENUS = '/api/authorization/getMenus',
 
+    // biz
     PAGING = '/api/sample/paging',
     MASKING = '/api/sample/masking',
     TABLE_TEST = '/api/sample/tableTest',

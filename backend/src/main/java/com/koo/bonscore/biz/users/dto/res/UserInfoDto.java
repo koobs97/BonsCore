@@ -1,9 +1,6 @@
-package com.koo.bonscore.biz.aflogin.dto.res;
+package com.koo.bonscore.biz.users.dto.res;
 
-import lombok.Getter;
-import lombok.Setter;
-
-import java.sql.Timestamp;
+import lombok.*;
 
 /**
  * <pre>
@@ -17,6 +14,9 @@ import java.sql.Timestamp;
  */
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserInfoDto {
     private String userId;
     private String userName;
@@ -25,4 +25,5 @@ public class UserInfoDto {
     private String birthDate;
     private String genderCode;
     private String loginTime;
+    private String roleId;
 }
