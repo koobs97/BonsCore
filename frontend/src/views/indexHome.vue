@@ -1,5 +1,5 @@
 <script setup>
-import { ref, shallowRef, onMounted } from 'vue';
+import { ref, shallowRef, onMounted, defineAsyncComponent, computed } from 'vue';
 // 아이콘 import (기존과 동일)
 import {
   Search, Clock, ChatDotRound, Odometer, Star, Moon, Sunny,
@@ -61,6 +61,29 @@ const buildMenuTree = (flatMenus, parentId = null) => {
       });
 };
 
+// 1. Vite의 glob 기능을 사용해 /src/views/admin 폴더 아래의 모든 .vue 파일을 가져옵니다.
+//    이 코드는 컴파일 시점에 해당 폴더의 파일 목록을 기반으로 맵을 생성합니다.
+const adminComponentFiles = import.meta.glob('@/views/admin/*.vue');
+
+// 2. 위에서 가져온 파일 목록을 우리가 사용하기 편한 형태로 가공합니다.
+//    {'Log': () => import('./views/admin/Log.vue'), ...} 와 같은 객체로 만듭니다.
+const adminComponentMap = Object.keys(adminComponentFiles).reduce((map, path) => {
+  // 파일 경로에서 파일 이름(확장자 제외)만 추출합니다.
+  // 예: '@/views/admin/UserManagement.vue' -> 'UserManagement'
+  const componentName = path.split('/').pop().replace('.vue', '');
+
+  // 맵에 { '컴포넌트이름': 동적 import 함수 } 형태로 저장합니다.
+  // defineAsyncComponent로 감싸서 비동기 컴포넌트로 만듭니다.
+  map[componentName] = defineAsyncComponent(adminComponentFiles[path]);
+
+  return map;
+}, {});
+
+// 3. 현재 활성화된 메뉴 키에 따라 맵에서 올바른 컴포넌트를 찾아 반환합니다.
+const currentAdminComponent = computed(() => {
+  return adminComponentMap[activeAdminMenu.value] || null;
+});
+
 onMounted(async () => {
   isLoading.value = true; // API 호출 시작 시 로딩 상태로 설정
   try {
@@ -112,6 +135,7 @@ onMounted(async () => {
 // 핸들러 및 기타 함수 (변경 없음)
 const handleAdminMenuSelect = (index) => {
   activeAdminMenu.value = index;
+  console.log(activeAdminMenu.value)
 };
 const isDarkMode = ref(false);
 const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
@@ -220,19 +244,8 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
 
                   <!-- 우측: 선택된 메뉴에 따른 컨텐츠 -->
                   <div class="admin-content-container">
-                    <!-- [변경] 데이터 구조 변경에 따른 v-if 조건 수정 -->
-                    <template v-if="activeAdminMenu">
-                      <!-- 현재 활성화된 메뉴 정보를 찾기 위한 로직 -->
-                      <div v-for="menu in adminMenuItems" :key="menu.id">
-                        <template v-for="child in menu.children" :key="child.url">
-                          <div v-if="child.url === activeAdminMenu">
-                            <h3>{{ child.name }} 페이지</h3>
-                            <p>이곳에 '{{ child.name }}' 관련 기능이 표시됩니다.</p>
-                            <p>(DB URL: {{ activeAdminMenu }})</p>
-                          </div>
-                        </template>
-                      </div>
-                    </template>
+                    <!-- 이 코드는 script의 로직이 아무리 복잡해져도 그대로 유지됩니다 -->
+                    <component :is="currentAdminComponent" v-if="currentAdminComponent" />
                     <div v-else>
                       <p>관리자 메뉴를 선택해주세요.</p>
                     </div>

@@ -18,6 +18,11 @@ import 'element-plus/dist/index.css';
 import ElementPlus from 'element-plus';
 import ko from 'element-plus/es/locale/lang/ko';
 
+// ag-grid
+import { AgGridVue } from 'ag-grid-vue3'
+import 'ag-grid-community/styles/ag-grid.css'
+import 'ag-grid-community/styles/ag-theme-alpine.css'
+
 // App
 const app = createApp(App);
 
@@ -35,6 +40,7 @@ app
     })
     .use(VCalendar, {})
     .directive('byte-limit', byteLimit)
+    .component('AgGridVue', AgGridVue)
     .mount('#app')
 
 // ✅ 로그인 정보 복원
