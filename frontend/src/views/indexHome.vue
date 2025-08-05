@@ -228,7 +228,9 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
                         :default-active="activeAdminMenu"
                         @select="handleAdminMenuSelect"
                         class="admin-menu"
+                        mode="horizontal"
                     >
+                      <!-- el-sub-menu의 index는 고유 식별자 역할을 하므로 그대로 두어도 괜찮습니다. -->
                       <el-sub-menu v-for="menu in adminMenuItems" :key="menu.id" :index="String(menu.id)">
                         <template #title>
                           <el-icon><component :is="menu.icon" /></el-icon>
@@ -332,28 +334,33 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
 
 .admin-panel-layout {
   display: flex;
-  height: 480px; /* 탭 컨텐츠 높이 고정 */
+  flex-direction: column; /* 가로(row) -> 세로(column)로 변경 */
+  height: 480px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 4px;
 }
 
+/* [수정] admin-menu-container: 가로 메뉴에 맞게 스타일 조정 */
 .admin-menu-container {
-  width: 200px;
+  /* width: 200px; */ /* 더 이상 고정 너비가 필요 없음 */
   flex-shrink: 0;
-  border-right: 1px solid var(--el-border-color-light);
-  height: 100%;
-  overflow-y: auto;
+  /* border-right를 border-bottom으로 변경하여 메뉴와 컨텐츠를 구분 */
+  border-bottom: 1px solid var(--el-border-color-light);
+  /* height: 100%; */ /* 더 이상 100% 높이를 차지하지 않음 */
+  overflow-y: visible; /* 가로 메뉴는 스크롤이 필요 없음 */
 }
 
-.admin-menu {
-  border-right: none; /* 컨테이너에 border가 있으므로 메뉴 자체의 border는 제거 */
+/* [수정] admin-menu: 가로 메뉴일 때 Element Plus가 추가하는 하단 테두리 제거 */
+.admin-menu.el-menu--horizontal {
+  border-bottom: none !important; /* 컨테이너에 테두리가 있으므로 메뉴 자체의 테두리는 제거 */
 }
 
+/* [수정] admin-content-container: 남은 공간을 모두 차지하도록 변경 */
 .admin-content-container {
-  flex-grow: 1;
+  flex-grow: 1; /* 남은 세로 공간을 모두 차지 */
   padding: 20px;
-  height: 100%;
-  overflow-y: auto;
+  /* height: 440px; */ /* 고정 높이 제거 */
+  overflow-y: auto; /* 컨텐츠가 길어지면 스크롤 생성 */
 }
 
 .main-mode-tabs :deep(.el-tabs__header) {

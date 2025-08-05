@@ -22,6 +22,9 @@ import ko from 'element-plus/es/locale/lang/ko';
 import { AgGridVue } from 'ag-grid-vue3'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-alpine.css'
+import { ModuleRegistry } from 'ag-grid-community'
+import { AllCommunityModule } from 'ag-grid-community'
+ModuleRegistry.registerModules([AllCommunityModule])
 
 // App
 const app = createApp(App);

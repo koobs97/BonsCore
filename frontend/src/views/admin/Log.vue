@@ -1,32 +1,29 @@
 <template>
   <div class="activity-log-container">
-    <!-- 1. 페이지 헤더 -->
-    <div class="page-header">
-      <h3>
-        <el-icon><Monitor /></el-icon> 사용자 활동 로그
-      </h3>
-    </div>
 
     <!-- 2. 검색 패널 -->
     <el-card class="search-panel" shadow="never">
-      <el-form :model="searchParams" label-position="top" inline>
-        <el-form-item label="조회 기간">
-          <el-date-picker
-              v-model="searchParams.dateRange"
-              type="datetimerange"
-              range-separator="~"
-              start-placeholder="시작일"
-              end-placeholder="종료일"
-              :shortcuts="dateShortcuts"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DDTHH:mm:ss"
-          />
+      <el-form :model="searchParams" size="small" inline style="text-align: left;">
+        <div>
+          <el-form-item>
+            <el-date-picker
+                v-model="searchParams.dateRange"
+                type="datetimerange"
+                range-separator="~"
+                start-placeholder="시작일시"
+                end-placeholder="종료일시"
+                :shortcuts="dateShortcuts"
+                format="YY-MM-DD HH:mm"
+                value-format="YYYY-MM-DDTHH:mm:ss"
+                style="width: 315px"
+            />
+          </el-form-item>
+        </div>
+        <el-form-item>
+          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px" />
         </el-form-item>
-        <el-form-item label="사용자 ID">
-          <el-input v-model="searchParams.userId" placeholder="사용자 ID 입력" clearable />
-        </el-form-item>
-        <el-form-item label="활동 유형">
-          <el-select v-model="searchParams.activityType" placeholder="전체" clearable>
+        <el-form-item>
+          <el-select v-model="searchParams.activityType" placeholder="활동 유형" clearable style="width: 110px">
             <el-option label="로그인" value="LOGIN" />
             <el-option label="로그아웃" value="LOGOUT" />
             <el-option label="회원가입" value="SIGNUP" />
@@ -34,97 +31,152 @@
             <el-option label="PW 찾기" value="FIND_PW" />
           </el-select>
         </el-form-item>
-        <el-form-item label="결과">
-          <el-select v-model="searchParams.activityResult" placeholder="전체" clearable>
+        <el-form-item>
+          <el-select v-model="searchParams.activityResult" placeholder="결과" clearable style="width: 90px">
             <el-option label="성공" value="SUCCESS" />
             <el-option label="실패" value="FAILURE" />
           </el-select>
         </el-form-item>
-        <el-form-item label=" ">
+        <el-form-item>
           <div class="search-buttons">
-            <el-button type="primary" :icon="Search" @click="onSearch">조회</el-button>
-            <el-button :icon="Refresh" @click="onReset">초기화</el-button>
+            <el-button type="primary" :icon="Search" @click="onSearch" size="small">조회</el-button>
+            <el-button :icon="Refresh" @click="onReset" size="small">초기화</el-button>
+            <!-- [핵심] 크게 보기 버튼 추가 -->
+            <el-button :icon="FullScreen" @click="openFullScreenGrid" size="small">크게 보기</el-button>
           </div>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 3. 데이터 그리드 -->
+    <!-- 3. 데이터 그리드 (기존) -->
     <div class="grid-container">
       <ag-grid-vue
-          class="ag-theme-quartz"
+          class="ag-theme-alpine"
+          :theme="'legacy'"
           style="width: 100%; height: 100%;"
+          :columnDefs="colDefs"
+          :rowData="rowData"
+          :defaultColDef="defaultColDef"
+          :pagination="true"
+          :paginationPageSize="10"
+          :paginationPageSizeSelector="[10, 20, 50]"
+          :localeText="localeText"
+          @grid-ready="onGridReady"
+      >
+      </ag-grid-vue>
+    </div>
+
+    <!-- [핵심] 4. 그리드를 크게 보여줄 모달 (el-dialog) -->
+    <el-dialog
+        v-model="isModalVisible"
+        title="사용자 활동 로그 (전체 화면)"
+        width="70%"
+        height="60%"
+        top="10vh"
+        destroy-on-close
+        class="fullscreen-dialog"
+    >
+      <!-- 모달 내부에도 똑같은 그리드를配置합니다. -->
+      <ag-grid-vue
+          class="ag-theme-alpine"
+          :theme="'legacy'"
+          style="width: 100%; height: 75vh;"
           :columnDefs="colDefs"
           :rowData="rowData"
           :defaultColDef="defaultColDef"
           :pagination="true"
           :paginationPageSize="20"
           :paginationPageSizeSelector="[20, 50, 100]"
-          @grid-ready="onGridReady"
+          :localeText="localeText"
+          @grid-ready="onModalGridReady"
       >
       </ag-grid-vue>
-    </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import 'ag-grid-community/styles/ag-grid.css'
-import 'ag-grid-community/styles/ag-theme-alpine.css'
-import { AgGridVue } from 'ag-grid-vue3'
-// main.ts에서 전역으로 로드했으므로 스타일 import는 필요 없습니다.
-import axios from 'axios';
-import { ElMessage, ElLoading } from 'element-plus';
-// 아이콘은 main.ts에서 전역 등록했으므로 개별 import가 필요 없을 수 있습니다.
-// 만약 안된다면 아래 주석을 해제하세요.
-// import { Monitor, Search, Refresh } from '@element-plus/icons-vue';
+import { AgGridVue } from 'ag-grid-vue3';
+import { ElMessage, ElLoading, ElDialog } from 'element-plus';
+import { Monitor, Search, Refresh, FullScreen } from '@element-plus/icons-vue';
 
 // --- 상태 변수 및 Ref ---
+const isModalVisible = ref(false); // 모달 표시 여부 상태
+const modalGridApi = ref(null);    // 모달 내부 그리드의 API
+
 const gridApi = ref(null);
 const searchParams = reactive({ dateRange: null, userId: '', activityType: '', activityResult: '' });
 const rowData = ref([]);
-const defaultColDef = { resizable: true, sortable: true, filter: true, floatingFilter: true, flex: 1 };
+const defaultColDef = { resizable: true, sortable: true, filter: true };
+
+const localeText = reactive({
+  filterOoo: '필터...',
+  applyFilter: '필터 적용',
+  resetFilter: '필터 초기화',
+  pageSizeSelectorLabel: '페이지 크기:',
+  page: '페이지',
+  of: '/',
+  to: '-',
+  firstPage: '첫 페이지',
+  lastPage: '마지막 페이지',
+  nextPage: '다음',
+  previousPage: '이전',
+  rowCount: '개',
+  noRowsToShow: '표시할 데이터가 없습니다',
+  pinColumn: '열 고정',
+  autosizeThiscolumn: '열 너비 자동 조정',
+});
 
 // --- 그리드 컬럼 정의 ---
 const colDefs = ref([
-  { headerName: 'ID', field: 'logId', width: 90, flex: 0, sort: 'desc' },
-  { headerName: '시간', field: 'createdAt', width: 180,
-    valueFormatter: p => p.value ? new Date(p.value).toLocaleString('ko-KR') : ''
+  { headerName: 'ID', field: 'logId', width: 60, sort: 'desc' },
+  { headerName: '시간', field: 'createdAt', width: 130,
+    valueFormatter: p => p.value ? new Date(p.value).toLocaleString('ko-KR', {
+      year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    }) : ''
   },
-  { headerName: '사용자 ID', field: 'userId', width: 150 },
-  { headerName: '활동 유형', field: 'activityType', width: 130 },
+  { headerName: '사용자ID', field: 'userId', width: 90 },
+  { headerName: '유형', field: 'activityType', width: 80 },
   {
     headerName: '결과',
     field: 'activityResult',
-    width: 100,
+    width: 80,
     cellRenderer: (params) => {
       if (params.value === 'SUCCESS') return `<span style="color: #67c23a;">● 성공</span>`;
       if (params.value === 'FAILURE') return `<span style="color: #f56c6c;">● 실패</span>`;
       return params.value;
     }
   },
-  { headerName: '요청 IP', field: 'requestIp', width: 150 },
-  { headerName: '요청 URI', field: 'requestUri', minWidth: 200 },
-  { headerName: '메소드', field: 'requestMethod', width: 100, flex: 0 },
-  {
-    headerName: '에러 메시지',
-    field: 'errorMessage',
-    minWidth: 250,
-    tooltipValueGetter: (p) => p.value, // 툴팁으로 전체 메시지 보기
-  },
-  {
-    headerName: 'User-Agent',
-    field: 'userAgent',
-    minWidth: 300,
-    tooltipValueGetter: (p) => p.value,
-  },
+  { headerName: '요청 IP', field: 'requestIp', width: 110 },
+  { headerName: '요청 URI', field: 'requestUri', width: 120, tooltipValueGetter: (p) => p.value },
+  { headerName: '메소드', field: 'requestMethod', width: 65 },
+  { headerName: '에러 메시지', field: 'errorMessage', width: 120, tooltipValueGetter: (p) => p.value },
+  { headerName: 'User-Agent', field: 'userAgent', width: 150, tooltipValueGetter: (p) => p.value },
 ]);
 
 // --- 함수 ---
 const onGridReady = (params) => { gridApi.value = params.api; };
 
+// 모달을 여는 함수
+const openFullScreenGrid = () => {
+  isModalVisible.value = true;
+};
+
+// 모달 그리드가 준비되었을 때 호출될 함수
+const onModalGridReady = (params) => {
+  modalGridApi.value = params.api;
+  // 메인 그리드의 컬럼 상태(정렬, 필터 등)를 모달 그리드에 동기화
+  if(gridApi.value) {
+    const mainGridState = gridApi.value.getColumnState();
+    if(mainGridState) {
+      modalGridApi.value.applyColumnState({ state: mainGridState, applyOrder: true });
+    }
+  }
+}
+
 const fetchLogs = async () => {
-  const loadingInstance = ElLoading.service({ target: '.grid-container', text: '데이터를 불러오는 중입니다...' });
+  const loadingInstance = ElLoading.service({ target: '.grid-container', text: '로딩 중...' });
   try {
     const apiParams = {
       startDate: searchParams.dateRange ? searchParams.dateRange[0] : null,
@@ -133,18 +185,12 @@ const fetchLogs = async () => {
       activityType: searchParams.activityType,
       activityResult: searchParams.activityResult,
     };
-
-    // [실제 API 호출] '/api/admin/logs' 엔드포인트를 실제 경로로 수정하세요.
-    // const response = await axios.get('/api/admin/logs', { params: apiParams });
-    // rowData.value = response.data;
-
-    // [테스트용 목업 데이터] API 연동 전까지 사용하세요.
     await new Promise(resolve => setTimeout(resolve, 500));
     rowData.value = generateMockData(apiParams);
 
   } catch (error) {
     console.error("로그 데이터 조회 실패:", error);
-    ElMessage.error('데이터를 불러오는 중 오류가 발생했습니다.');
+    ElMessage.error('데이터 조회 중 오류가 발생했습니다.');
   } finally {
     loadingInstance.close();
   }
@@ -195,16 +241,111 @@ const generateMockData = (params) => {
 </script>
 
 <style scoped>
+/* 전체 컨테이너 스타일 */
 .activity-log-container {
-  padding: 20px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px); /* 실제 레이아웃에 맞게 높이 조절 */
+  height: 350px;
+  background-color: #fff;
+  font-size: 12px;
 }
-.page-header { margin-bottom: 20px; }
-.page-header h3 { font-size: 1.5rem; display: flex; align-items: center; gap: 8px; }
-.search-panel { margin-bottom: 20px; background-color: #fafafa; border: 1px solid #ebeef5; }
-.el-form-item { margin-bottom: 10px; }
-.search-buttons { display: flex; gap: 10px; padding-top: 5px; }
-.grid-container { flex-grow: 1; width: 100%; }
+
+/* 헤더 스타일 */
+.page-header {
+  margin-bottom: 8px;
+}
+.page-header h4 {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+/* 검색 패널 스타일 */
+.search-panel {
+  margin-bottom: 4px;
+  padding: 4px;
+  background-color: #fdfdfd;
+  border: 1px solid #ebeef5;
+}
+.el-form--inline .el-form-item {
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
+.search-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* 그리드 컨테이너 스타일 */
+.grid-container {
+  flex-grow: 1;
+  width: 100%;
+}
+
+:deep(.el-input), :deep(.el-select), :deep(.el-date-editor) {
+  vertical-align: middle;
+}
+
+/* --- 페이지네이션 커스텀 스타일 (기존 코드 유지) --- */
+:deep(.ag-paging-panel) {
+  height: 36px !important;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+:deep(.ag-paging-row-summary-panel) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+:deep(.ag-page-size-selector) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+:deep(.ag-paging-page-summary-panel) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+:deep(.ag-paging-panel > *) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+:deep(.ag-paging-description) {
+  display: none !important;
+}
+:deep(.ag-paging-button) {
+  width: 12px !important;
+  height: 12px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px;
+}
+:deep(.ag-paging-button .ag-icon) {
+  font-size: 16px !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+/* [핵심] 모달(Dialog) 스타일 커스터마이징 */
+:deep(.fullscreen-dialog .el-dialog__header) {
+  padding-bottom: 10px;
+  margin-right: 0;
+}
+
+:deep(.fullscreen-dialog .el-dialog__body) {
+  padding: 0 !important; /* 내부 패딩을 제거하여 그리드가 꽉 차도록 함 */
+}
 </style>
