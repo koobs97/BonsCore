@@ -18,4 +18,20 @@
         ORDER BY B.SORT_ORDER
     </select>
 
+    <!-- 로그 정보 조회 -->
+    <select id="getUserLog" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto" parameterType="com.koo.bonscore.biz.authorization.dto.req.LogReqDto">
+       SELECT A.LOG_ID
+            , A.USER_ID
+            , A.ACTIVITY_TYPE
+            , A.ACTIVITY_RESULT
+            , A.REQUEST_IP
+            , A.REQUEST_URI
+            , A.REQUEST_METHOD
+            , A.ERROR_MESSAGE
+            , A.USER_AGENT
+            , A.CREATED_AT
+         FROM USER_ACTIVITY_LOG A
+        ORDER BY A.LOG_ID
+    </select>
+
 </mapper>

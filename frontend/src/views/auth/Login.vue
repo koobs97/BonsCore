@@ -62,7 +62,6 @@ onMounted(async () => {
   setTimeout(()=>{
     userStore().delUserInfo();
     sessionStorage.clear();
-    localStorage.removeItem('userInfo');
   }, 1000);
 
   state.isVisible = false;

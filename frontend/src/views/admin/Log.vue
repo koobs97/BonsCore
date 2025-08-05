@@ -1,10 +1,11 @@
 <template>
   <div class="activity-log-container">
 
-    <!-- 2. 검색 패널 -->
+    <!-- 검색 패널 -->
     <el-card class="search-panel" shadow="never">
       <el-form :model="searchParams" size="small" inline style="text-align: left;">
         <div>
+          <el-tag type="info" size="small" style="margin-right: 65px;">사용자 활동 로그</el-tag>
           <el-form-item>
             <el-date-picker
                 v-model="searchParams.dateRange"
@@ -15,12 +16,19 @@
                 :shortcuts="dateShortcuts"
                 format="YY-MM-DD HH:mm"
                 value-format="YYYY-MM-DDTHH:mm:ss"
-                style="width: 315px"
+                style="width: 218px"
             />
+          </el-form-item>
+          <el-form-item>
+            <div class="search-buttons">
+              <el-button type="primary" :icon="Search" @click="onSearch" size="small">조회</el-button>
+              <el-button :icon="Refresh" @click="onReset" size="small">초기화</el-button>
+              <el-button :icon="FullScreen" @click="openFullScreenGrid" size="small">크게 보기</el-button>
+            </div>
           </el-form-item>
         </div>
         <el-form-item>
-          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px" />
+          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px; margin-left: 173px;" />
         </el-form-item>
         <el-form-item>
           <el-select v-model="searchParams.activityType" placeholder="활동 유형" clearable style="width: 110px">
@@ -37,14 +45,7 @@
             <el-option label="실패" value="FAILURE" />
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <div class="search-buttons">
-            <el-button type="primary" :icon="Search" @click="onSearch" size="small">조회</el-button>
-            <el-button :icon="Refresh" @click="onReset" size="small">초기화</el-button>
-            <!-- [핵심] 크게 보기 버튼 추가 -->
-            <el-button :icon="FullScreen" @click="openFullScreenGrid" size="small">크게 보기</el-button>
-          </div>
-        </el-form-item>
+
       </el-form>
     </el-card>
 
@@ -76,7 +77,7 @@
         destroy-on-close
         class="fullscreen-dialog"
     >
-      <!-- 모달 내부에도 똑같은 그리드를配置합니다. -->
+      <!-- 모달 내부에도 똑같은 그리드 -->
       <ag-grid-vue
           class="ag-theme-alpine"
           :theme="'legacy'"
@@ -100,6 +101,8 @@ import { ref, reactive, onMounted } from 'vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import { ElMessage, ElLoading, ElDialog } from 'element-plus';
 import { Monitor, Search, Refresh, FullScreen } from '@element-plus/icons-vue';
+import {Api} from "@/api/axiosInstance.js";
+import {ApiUrls} from "@/api/apiUrls.js";
 
 // --- 상태 변수 및 Ref ---
 const isModalVisible = ref(false); // 모달 표시 여부 상태
@@ -130,14 +133,14 @@ const localeText = reactive({
 
 // --- 그리드 컬럼 정의 ---
 const colDefs = ref([
-  { headerName: 'ID', field: 'logId', width: 60, sort: 'desc' },
-  { headerName: '시간', field: 'createdAt', width: 130,
+  { headerName: 'ID', field: 'logId', width: 90 },
+  { headerName: '시간', field: 'createdAt', width: 190,
     valueFormatter: p => p.value ? new Date(p.value).toLocaleString('ko-KR', {
       year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
     }) : ''
   },
-  { headerName: '사용자ID', field: 'userId', width: 90 },
-  { headerName: '유형', field: 'activityType', width: 80 },
+  { headerName: '사용자ID', field: 'userId', width: 180, cellStyle: { 'text-align': 'left' } },
+  { headerName: '유형', field: 'activityType', width: 150, cellStyle: { 'text-align': 'left' } },
   {
     headerName: '결과',
     field: 'activityResult',
@@ -148,11 +151,11 @@ const colDefs = ref([
       return params.value;
     }
   },
-  { headerName: '요청 IP', field: 'requestIp', width: 110 },
-  { headerName: '요청 URI', field: 'requestUri', width: 120, tooltipValueGetter: (p) => p.value },
-  { headerName: '메소드', field: 'requestMethod', width: 65 },
-  { headerName: '에러 메시지', field: 'errorMessage', width: 120, tooltipValueGetter: (p) => p.value },
-  { headerName: 'User-Agent', field: 'userAgent', width: 150, tooltipValueGetter: (p) => p.value },
+  { headerName: '요청 IP', field: 'requestIp', width: 140 },
+  { headerName: '요청 URI', field: 'requestUri', width: 200, tooltipValueGetter: (p) => p.value },
+  { headerName: '메소드', field: 'requestMethod', width: 100 },
+  { headerName: '에러 메시지', field: 'errorMessage', width: 150, tooltipValueGetter: (p) => p.value },
+  { headerName: 'User-Agent', field: 'userAgent', width: 1000, tooltipValueGetter: (p) => p.value },
 ]);
 
 // --- 함수 ---
@@ -186,7 +189,7 @@ const fetchLogs = async () => {
       activityResult: searchParams.activityResult,
     };
     await new Promise(resolve => setTimeout(resolve, 500));
-    rowData.value = generateMockData(apiParams);
+    rowData.value = await generateMockData(apiParams);
 
   } catch (error) {
     console.error("로그 데이터 조회 실패:", error);
@@ -211,32 +214,35 @@ const dateShortcuts = [
 ]
 
 // --- 테스트용 목업 데이터 생성 함수 ---
-const generateMockData = (params) => {
-  const sampleData = [];
-  const types = ['LOGIN', 'LOGOUT', 'SIGNUP', 'FIND_ID'];
-  const results = ['SUCCESS', 'FAILURE'];
-  const users = ['user01', 'admin', 'testuser', 'guest', 'user02'];
-
-  for (let i = 1; i <= 50; i++) {
-    const result = results[Math.floor(Math.random() * results.length)];
-    sampleData.push({
-      logId: 1000 + i,
-      createdAt: new Date(new Date().getTime() - Math.random() * 1000 * 3600 * 24 * 7).toISOString(),
-      userId: users[Math.floor(Math.random() * users.length)],
-      activityType: types[Math.floor(Math.random() * types.length)],
-      activityResult: result,
-      requestIp: `192.168.0.${i}`,
-      requestUri: result === 'SUCCESS' ? '/api/auth/login' : '/api/auth/login-fail',
-      requestMethod: 'POST',
-      errorMessage: result === 'FAILURE' ? '비밀번호가 일치하지 않습니다.' : null,
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    });
-  }
-  return sampleData.filter(d =>
-      (!params.userId || d.userId.includes(params.userId)) &&
-      (!params.activityType || d.activityType === params.activityType) &&
-      (!params.activityResult || d.activityResult === params.activityResult)
-  );
+const generateMockData = async (params) => {
+  const response = await Api.post(ApiUrls.GET_LOGS, { params });
+  console.log(response)
+  return response.data;
+  // const sampleData = [];
+  // const types = ['LOGIN', 'LOGOUT', 'SIGNUP', 'FIND_ID'];
+  // const results = ['SUCCESS', 'FAILURE'];
+  // const users = ['user01', 'admin', 'testuser', 'guest', 'user02'];
+  //
+  // for (let i = 1; i <= 50; i++) {
+  //   const result = results[Math.floor(Math.random() * results.length)];
+  //   sampleData.push({
+  //     logId: 1000 + i,
+  //     createdAt: new Date(new Date().getTime() - Math.random() * 1000 * 3600 * 24 * 7).toISOString(),
+  //     userId: users[Math.floor(Math.random() * users.length)],
+  //     activityType: types[Math.floor(Math.random() * types.length)],
+  //     activityResult: result,
+  //     requestIp: `192.168.0.${i}`,
+  //     requestUri: result === 'SUCCESS' ? '/api/auth/login' : '/api/auth/login-fail',
+  //     requestMethod: 'POST',
+  //     errorMessage: result === 'FAILURE' ? '비밀번호가 일치하지 않습니다.' : null,
+  //     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  //   });
+  // }
+  // return sampleData.filter(d =>
+  //     (!params.userId || d.userId.includes(params.userId)) &&
+  //     (!params.activityType || d.activityType === params.activityType) &&
+  //     (!params.activityResult || d.activityResult === params.activityResult)
+  // );
 };
 </script>
 
@@ -246,16 +252,23 @@ const generateMockData = (params) => {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  height: 350px;
+  height: 380px;
   background-color: #fff;
   font-size: 12px;
 }
-
-/* 헤더 스타일 */
-.page-header {
-  margin-bottom: 8px;
+.el-card {
+  --el-card-border-color: var(--el-border-color-light);
+  --el-card-border-radius: 4px;
+  --el-card-padding: 4px;
+  --el-card-bg-color: var(--el-fill-color-blank);
+  background-color: var(--el-card-bg-color);
+  border: 1px solid var(--el-card-border-color);
+  border-radius: var(--el-card-border-radius);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  transition: var(--el-transition-duration);
 }
-.page-header h4 {
+.page-header h5 {
   font-size: 1.1rem;
   display: flex;
   align-items: center;
@@ -276,7 +289,7 @@ const generateMockData = (params) => {
 }
 .search-buttons {
   display: flex;
-  gap: 8px;
+  gap: 2px;
 }
 
 /* 그리드 컨테이너 스타일 */

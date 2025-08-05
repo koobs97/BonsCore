@@ -2,8 +2,8 @@
 import { ref, shallowRef, onMounted, defineAsyncComponent, computed } from 'vue';
 // 아이콘 import (기존과 동일)
 import {
-  Search, Clock, ChatDotRound, Odometer, Star, Moon, Sunny,
-  Setting, User, CollectionTag, Tools, Operation, ChatSquare,
+  Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
+  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Box,
 } from '@element-plus/icons-vue';
 import TheFooter from "@/components/layout/TheFooter.vue";
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
@@ -143,21 +143,22 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
 
 <template>
   <div class="page-container">
-    <!-- 상단 네비게이션 바 (변경 없음) -->
+    <!-- 상단 네비게이션 바 -->
     <el-header class="main-header">
-      <!-- ... -->
       <div class="logo">
-        <el-icon :size="24" color="#001233" class="logo-icon"><Odometer /></el-icon>
-        <span class="logo-text">웨이팅 레이더</span>
+        <el-icon :size="24"><Box /></el-icon>
+        <span class="logo-text">Dev</span>
       </div>
       <div class="header-actions">
-
         <el-button :icon="ChatSquare" circle /> <!-- chatUi url 추가 -->
         <el-tooltip content="테마 변경" placement="bottom">
           <el-button :icon="isDarkMode ? Moon : Sunny" circle @click="toggleTheme" />
         </el-tooltip>
-        <el-button :icon="ChatSquare" circle /> <!-- github 추가 -->
-
+        <el-tooltip content="깃허브 바로가기" placement="bottom">
+          <el-button circle class="custom-image-button">
+            <img src="@/assets/images/github_icon.png" alt="custom icon" />
+          </el-button>
+        </el-tooltip>
       </div>
     </el-header>
 
@@ -167,7 +168,7 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
           <div class="concept-banner">
             <el-icon :size="20"><CollectionTag /></el-icon>
             <div class="banner-text">
-              <span>온라인 정보를 바탕으로 대기 시간을 예측. 나만의 웨이팅 데이터를 관리.</span>
+              <span>스프링부트 기반 개인 프로젝트</span>
             </div>
           </div>
           <UserInfoAvatar />
@@ -214,7 +215,6 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
               <el-tab-pane v-if="isAdmin" name="admin">
                 <template #label>
                   <div class="admin-tab-label">
-                    <el-icon><Tools /></el-icon>
                     <span>관리자</span>
                   </div>
                 </template>
@@ -264,9 +264,6 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
 </template>
 
 <style scoped>
-/* CSS는 변경할 필요가 없습니다. */
-/* ... 기존 스타일 그대로 ... */
-
 .page-container {
   height: 100vh;
   max-height: 800px;
@@ -274,7 +271,6 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
   flex-direction: column;
   align-items: center;
 }
-
 .main-header {
   width: 100%;
   max-width: 900px; /* 컨텐츠 카드 너비에 맞게 조정 */
@@ -288,7 +284,15 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
   box-sizing: border-box;
   flex-shrink: 0;
 }
-
+.custom-image-button {
+  padding: 0; /* 버튼 내부의 기본 패딩을 제거하여 이미지가 꽉 차게 합니다. */
+}
+.custom-image-button img {
+  width: 24px; /* 이미지의 너비를 조절합니다. */
+  height: 24px; /* 이미지의 높이를 조절합니다. */
+  border-radius: 50%; /* 버튼이 circle 형태이므로 이미지도 둥글게 처리합니다. */
+  display: block; /* 이미지가 버튼 중앙에 오도록 합니다. */
+}
 .content-layout-wrapper {
   display: flex;
   justify-content: center;
@@ -320,7 +324,8 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
 
 .content-card {
   width: 100%;
-  min-height: 570px; /* 최소 높이 설정, 컨텐츠에 따라 늘어날 수 있음 */
+  height: 620px;
+  min-height: 620px; /* 최소 높이 설정, 컨텐츠에 따라 늘어날 수 있음 */
   border-radius: 4px;
   padding: 12px 24px 24px 24px; /* 위쪽 패딩 줄임 */
   box-sizing: border-box;
@@ -358,7 +363,7 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
 /* [수정] admin-content-container: 남은 공간을 모두 차지하도록 변경 */
 .admin-content-container {
   flex-grow: 1; /* 남은 세로 공간을 모두 차지 */
-  padding: 20px;
+  padding: 8px;
   /* height: 440px; */ /* 고정 높이 제거 */
   overflow-y: auto; /* 컨텐츠가 길어지면 스크롤 생성 */
 }

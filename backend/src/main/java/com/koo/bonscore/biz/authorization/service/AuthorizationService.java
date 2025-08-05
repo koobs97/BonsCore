@@ -1,6 +1,8 @@
 package com.koo.bonscore.biz.authorization.service;
 
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
+import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
+import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
 import com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,5 +35,15 @@ public class AuthorizationService {
     @Transactional
     public List<MenuByRoleDto> getMenuByRole(AuthorizationDto request) {
         return authorizationMapper.getMenuByRole(request);
+    }
+
+    /**
+     * 로그 조회 화면의 로그
+     * @param request
+     * @return
+     */
+    @Transactional
+    public List<LogResDto> getUserLog(LogReqDto request) {
+        return authorizationMapper.getUserLog(request);
     }
 }
