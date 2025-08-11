@@ -22,22 +22,49 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * <pre>
+ * SecurityConfig.java
+ * 설명 : 애플리케이션의 주된 웹 보안 설정을 담당하는 클래스
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-03-25
+ */
 @Configuration
-@EnableWebSecurity // ✅ NOTE: 오토와이어링할 수 없습니다. 'HttpSecurity' 타입의 bean을 찾을 수 없습니다. 해결 방법
+@EnableWebSecurity // 오토와이어링할 수 없습니다. 'HttpSecurity' 타입의 bean을 찾을 수 없습니다. 해결
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
 
+    /**
+     * 운영환경별 허용 url 분리
+     */
     @Value("${cors.allowed-origins}")
-    private String allowedOrigins; // 운영환경별 허용 url 분리
+    private String allowedOrigins;
 
+    /**
+     * 비밀번호 암호화를 위한 BCryptPasswordEncoder를 Bean으로 등록.
+     * Spring Security에서 권장하는 강력한 해시 알고리즘 중 하나이다.
+     *
+     * @return BCryptPasswordEncoder 인스턴스
+     */
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Spring Security의 핵심 필터 체인을 구성하고 Bean으로 등록
+     * HTTP 요청에 대한 보안 처리가 이 필터 체인을 통해 이루어진다.
+     *
+     * @param http HttpSecurity 객체. 보안 관련 설정을 구성하는 빌더
+     * @return 구성이 완료된 SecurityFilterChain 객체
+     * @throws Exception 설정 과정에서 발생할 수 있는 예외
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -76,7 +103,7 @@ public class SecurityConfig {
     /**
      * Spring Security의 자동 유저 생성을 막기 위한 용도
      * - 혹시라도 어떤 경로로 이 Bean이 호출되더라도 예외를 발생시키므로 의도치 않은 동작을 방지
-     * @return
+     * @return UserDetailsService의 익명 구현체
      */
     @Bean
     public UserDetailsService userDetailService() {

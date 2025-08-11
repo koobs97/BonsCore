@@ -6,6 +6,16 @@ import org.springframework.ws.config.annotation.EnableWs;
 import org.springframework.ws.config.annotation.WsConfigurerAdapter;
 import org.springframework.ws.soap.addressing.server.AnnotationActionEndpointMapping;
 
+/**
+ * <pre>
+ * WebServiceConfig.java
+ * 설명 : Spring Web Services (SOAP) 관련 설정을 구성하는 클래스
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-08-12
+ */
 @EnableWs
 @Configuration
 public class WebServiceConfig extends WsConfigurerAdapter {
