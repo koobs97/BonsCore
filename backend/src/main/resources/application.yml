@@ -3,6 +3,8 @@ spring:
     name: BonsCore
   banner:
     location: templates/banner/banner.txt
+  main:
+    allow-bean-definition-overriding: true
   mail:
     host: smtp.gmail.com
     port: 587
@@ -19,6 +21,11 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
+server:
+  tomcat:
+    apr:
+      enabled: false
+
 jwt:
   secret: ${JASYPT_KEY}
 
@@ -27,7 +34,7 @@ security:
 
 logging:
   level:
-    root: INFO
+    root: DEBUG
     org.springframework.web: INFO
     com:
       koo:
