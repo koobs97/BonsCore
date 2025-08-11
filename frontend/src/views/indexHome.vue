@@ -139,6 +139,13 @@ const handleAdminMenuSelect = (index) => {
 };
 const isDarkMode = ref(false);
 const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
+
+/**
+ * git 주소로 바로가기
+ */
+const goToGitHub = () => {
+  window.open('https://github.com/koobs97/BonsCore/tree/main', '_blank');
+}
 </script>
 
 <template>
@@ -155,7 +162,7 @@ const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
           <el-button :icon="isDarkMode ? Moon : Sunny" circle @click="toggleTheme" />
         </el-tooltip>
         <el-tooltip content="깃허브 바로가기" placement="bottom">
-          <el-button circle class="custom-image-button">
+          <el-button circle class="custom-image-button" @click="goToGitHub">
             <img src="@/assets/images/github_icon.png" alt="custom icon" />
           </el-button>
         </el-tooltip>
