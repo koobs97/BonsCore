@@ -3,63 +3,92 @@ name: Send Commit to Notion
 
 # 이 워크플로우가 언제 실행될지를 정의합니다.
 on:
+  # 1. main 브랜치에 push 이벤트가 발생할 때 (평상시)
   push:
     branches:
-      - main  # main 브랜치에만 적용.
+      - main
+  
+  # 2. 수동으로 실행할 때 (1회성 과거 데이터 가져오기용)
+  workflow_dispatch:
 
 # 실행될 작업들을 정의합니다.
 jobs:
   send-to-notion:
-    # 작업이 실행될 환경을 지정합니다.
     runs-on: ubuntu-latest
     
-    # 작업의 단계들을 정의합니다.
     steps:
       # 1. 소스 코드를 체크아웃합니다.
       - name: Checkout code
         uses: actions/checkout@v3
         with:
+          # fetch-depth를 0으로 설정하여 모든 커밋 히스토리를 가져옵니다.
           fetch-depth: 0
 
-      # 2. Node.js 환경 설정 (★매우 중요, 추가된 부분★)
-      # 스크립트를 실행하고 npm 패키지를 설치하기 위해 Node.js 환경을 준비합니다.
+      # 2. Node.js 환경 설정
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # 안정적인 LTS 버전 사용
+          node-version: '18'
 
-      # 3. Notion 클라이언트 라이브러리 설치 (★매우 중요, 추가된 부분★)
-      # 스크립트에서 require('@notionhq/client')를 사용하기 위해 npm으로 설치합니다.
+      # 3. Notion 클라이언트 라이브러리 설치
       - name: Install Notion Client SDK
         run: npm install @notionhq/client
 
       # 4. 커밋 정보를 Notion으로 전송합니다.
       - name: Send Commit Info to Notion
         uses: actions/github-script@v6
-        # 환경 변수를 통해 GitHub Secrets에 저장된 값들을 스크립트로 전달합니다.
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          # 수동 실행 여부를 스크립트로 전달
+          IS_MANUAL_RUN: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           script: |
-            // Notion API 클라이언트를 가져옵니다. (이제 정상적으로 불러올 수 있습니다)
             const { Client } = require("@notionhq/client");
-
-            // Notion 클라이언트를 초기화합니다.
             const notion = new Client({ auth: process.env.NOTION_API_KEY });
             const databaseId = process.env.NOTION_DATABASE_ID;
             
-            // GitHub에서 제공하는 컨텍스트에서 커밋 정보를 가져옵니다.
-            const commits = context.payload.commits;
+            const isManualRun = process.env.IS_MANUAL_RUN === 'true';
+            
+            let commits;
 
-            // 각 커밋에 대해 반복 작업을 수행합니다.
-            for (const commit of commits) {
-              // 머지 커밋은 제외 (선택 사항)
+            if (isManualRun) {
+              // ★수동 실행 시: git log를 이용해 모든 커밋 목록을 가져옵니다.
+              console.log('Manual run detected. Fetching all commits from git history...');
+              const { execSync } = require('child_process');
+              const logOutput = execSync(`git log --pretty=format:'{%n  "commit": "%H",%n  "author": "%an",%n  "date": "%aI",%n  "message": "%s"%n},'`).toString();
+              const jsonString = `[${logOutput.slice(0, -1)}]`;
+              const gitLogCommits = JSON.parse(jsonString);
+
+              commits = gitLogCommits.map(c => ({
+                message: c.message,
+                author: { name: c.author },
+                timestamp: c.date,
+                url: `${context.payload.repository.html_url}/commit/${c.commit}`
+              }));
+
+            } else {
+              // ★자동 푸시 실행 시: 푸시된 커밋만 가져옵니다.
+              console.log('Push event detected. Fetching commits from payload...');
+              commits = context.payload.commits;
+            }
+
+            if (!commits || commits.length === 0) {
+              console.log('No commits to process.');
+              return;
+            }
+
+            console.log(`Found ${commits.length} commits to send to Notion.`);
+
+            // 커밋을 오래된 순서부터 Notion에 기록하기 위해 배열을 뒤집습니다.
+            const reversedCommits = commits.reverse();
+
+            for (const commit of reversedCommits) {
               if (commit.message.startsWith('Merge pull request')) {
-                  console.log('Skipping merge commit.');
-                  continue;
+                console.log('Skipping merge commit.');
+                continue;
               }
-              
+
               const commitMessage = commit.message;
               const authorName = commit.author.name;
               const commitUrl = commit.url;
@@ -67,37 +96,18 @@ jobs:
               const repoName = context.repo.repo;
 
               try {
-                // Notion 데이터베이스에 새 페이지(항목)를 생성합니다.
                 await notion.pages.create({
                   parent: { database_id: databaseId },
                   properties: {
-                    "커밋 메시지": {
-                      title: [
-                        { text: { content: commitMessage } }
-                      ]
-                    },
-                    "작성자": {
-                      rich_text: [
-                        { text: { content: authorName } }
-                      ]
-                    },
-                    "리포지토리": {
-                      rich_text: [
-                        { text: { content: repoName } }
-                      ]
-                    },
-                    "커밋 링크": {
-                      url: commitUrl
-                    },
-                    "날짜": {
-                      date: {
-                        start: commitDate
-                      }
-                    }
+                    "커밋 메시지": { title: [{ text: { content: commitMessage } }] },
+                    "작성자": { rich_text: [{ text: { content: authorName } }] },
+                    "리포지토리": { rich_text: [{ text: { content: repoName } }] },
+                    "커밋 링크": { url: commitUrl },
+                    "날짜": { date: { start: commitDate } }
                   }
                 });
                 console.log(`Successfully added commit: "${commitMessage}" to Notion.`);
               } catch (error) {
-                console.error("Error sending to Notion:", error.body || error);
+                console.error(`Error sending commit "${commitMessage}" to Notion:`, error.body || error);
               }
             }
