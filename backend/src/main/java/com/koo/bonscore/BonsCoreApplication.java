@@ -5,6 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+/**
+ *
+ */
 @EnableAsync // 로깅을 위한 비동기처리 활성화
 @EnableScheduling
 @SpringBootApplication
