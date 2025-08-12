@@ -18,6 +18,18 @@
         ORDER BY B.SORT_ORDER
     </select>
 
+    <!-- 활동 유형 조회 -->
+    <select id="getActivityType" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto" parameterType="com.koo.bonscore.biz.authorization.dto.req.LogReqDto">
+       SELECT DISTINCT A.ACTIVITY_TYPE
+         FROM USER_ACTIVITY_LOG A
+    </select>
+
+    <!-- 결과 유형 조회 -->
+    <select id="getActivityResult" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto" parameterType="com.koo.bonscore.biz.authorization.dto.req.LogReqDto">
+       SELECT DISTINCT A.ACTIVITY_RESULT
+         FROM USER_ACTIVITY_LOG A
+    </select>
+
     <!-- 로그 정보 조회 -->
     <select id="getUserLog" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto" parameterType="com.koo.bonscore.biz.authorization.dto.req.LogReqDto">
        SELECT A.LOG_ID
@@ -31,6 +43,10 @@
             , A.USER_AGENT
             , A.CREATED_AT
          FROM USER_ACTIVITY_LOG A
+        WHERE A.CREATED_AT 		BETWEEN TO_DATE(#{startDt}, 'YYYYMMDD') AND TO_DATE(#{endDt}, 'YYYYMMDD') + 0.99999
+          AND A.USER_ID 		LIKE '%' || #{userId} || '%'
+          AND A.ACTIVITY_TYPE 	LIKE '%' || #{activityType} || '%'
+          AND A.ACTIVITY_RESULT LIKE '%' || #{activityResult} || '%'
         ORDER BY A.LOG_ID
     </select>
 

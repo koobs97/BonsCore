@@ -17,6 +17,7 @@ export enum ApiUrls {
     GET_USER = '/api/users/me',
 
     GET_MENUS = '/api/authorization/getMenus',
+    GET_ACTIVITY = '/api/authorization/geActivityCds',
     GET_LOGS = '/api/authorization/getLogs',
 
     // biz

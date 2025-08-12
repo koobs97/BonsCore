@@ -2,13 +2,17 @@ package com.koo.bonscore.biz.authorization.service;
 
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
+import com.koo.bonscore.biz.authorization.dto.res.ActivityResponseDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
 import com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -38,12 +42,39 @@ public class AuthorizationService {
     }
 
     /**
+     * 검색조건에 쓰일 코드 조회
+     *
+     * @param request
+     * @return
+     */
+    @Transactional
+    public ActivityResponseDto getActivityCd(LogReqDto request) {
+        return ActivityResponseDto.builder()
+                .activityTypeList(authorizationMapper.getActivityType(request))
+                .activityResultList(authorizationMapper.getActivityResult(request))
+                .build();
+    }
+
+    /**
      * 로그 조회 화면의 로그
      * @param request
      * @return
      */
     @Transactional
     public List<LogResDto> getUserLog(LogReqDto request) {
+
+        if(StringUtils.isEmpty(request.getStartDt())) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            request.setStartDt(LocalDate.now()
+                    .withMonth(1)
+                    .withDayOfMonth(1)
+                    .format(formatter));
+        }
+        if(StringUtils.isEmpty(request.getEndDt())) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            request.setEndDt(LocalDate.now().format(formatter));
+        }
+
         return authorizationMapper.getUserLog(request);
     }
 }

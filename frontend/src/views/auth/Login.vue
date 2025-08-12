@@ -57,12 +57,14 @@ const togglePassword = () => {
 // 화면진입 시
 onMounted(async () => {
 
-  await Api.post(ApiUrls.LOGOUT, {}, true);
-
-  setTimeout(()=>{
-    userStore().delUserInfo();
-    sessionStorage.clear();
-  }, 1000);
+  const isLoggedIn = userStore().isLoggedIn;
+  if (isLoggedIn) {
+    await Api.post(ApiUrls.LOGOUT, {}, true);
+    setTimeout(()=>{
+      userStore().delUserInfo();
+      sessionStorage.clear();
+    }, 1000);
+  }
 
   state.isVisible = false;
   state.isProcessing = false;

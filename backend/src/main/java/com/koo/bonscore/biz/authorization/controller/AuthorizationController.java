@@ -3,6 +3,7 @@ package com.koo.bonscore.biz.authorization.controller;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
+import com.koo.bonscore.biz.authorization.dto.res.ActivityResponseDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
 import com.koo.bonscore.biz.authorization.service.AuthorizationService;
@@ -40,6 +41,20 @@ public class AuthorizationController {
     public List<MenuByRoleDto> getMenus(@RequestBody AuthorizationDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             return authorizationService.getMenuByRole(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            if (e instanceof BsCoreException)
+                throw (BsCoreException) e;
+            else
+                throw new RuntimeException(e);
+        }
+    }
+
+    @PostMapping("/geActivityCds")
+    public ActivityResponseDto geActivityCds(@RequestBody LogReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            return authorizationService.getActivityCd(request);
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());

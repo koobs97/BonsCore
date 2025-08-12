@@ -29,6 +29,20 @@ public interface AuthorizationMapper {
     List<MenuByRoleDto> getMenuByRole(AuthorizationDto userId);
 
     /**
+     * 활동 유형 조회
+     * @param logReqDto
+     * @return
+     */
+    List<LogResDto> getActivityType(LogReqDto logReqDto);
+
+    /**
+     * 결과 유형 조회
+     * @param logReqDto
+     * @return
+     */
+    List<LogResDto> getActivityResult(LogReqDto logReqDto);
+
+    /**
      * 로그조회 화면의 로그
      * @param logReqDto
      * @return

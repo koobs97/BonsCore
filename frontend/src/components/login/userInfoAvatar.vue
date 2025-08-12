@@ -83,17 +83,23 @@ const onClickLogOut = async () => {
 
     await Api.post(ApiUrls.LOGOUT, {}, true);
 
-    ElLoading.service({
+    const loading = ElLoading.service({
       lock: true,
       text: 'Loading',
       background: 'rgba(0, 0, 0, 0.7)',
     })
-    ElMessage.success('성공적으로 로그아웃되었습니다.');
 
-    setTimeout(()=>{
+    setTimeout(() => {
+      // 1. 사용자 정보 삭제
       userStore().delUserInfo();
       sessionStorage.clear();
+
+      // 2. 로그인 페이지로 이동
       router.push("/login");
+
+      // 3. 성공 메시지 표시 및 로딩 종료
+      ElMessage.success('성공적으로 로그아웃되었습니다.');
+      loading.close();
     }, 1000);
 
   } catch (error) {

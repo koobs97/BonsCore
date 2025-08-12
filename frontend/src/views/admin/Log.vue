@@ -10,12 +10,11 @@
             <el-date-picker
                 v-model="searchParams.dateRange"
                 type="datetimerange"
-                range-separator="~"
+                range-separator="-"
                 start-placeholder="시작일시"
                 end-placeholder="종료일시"
-                :shortcuts="dateShortcuts"
-                format="YY-MM-DD HH:mm"
-                value-format="YYYY-MM-DDTHH:mm:ss"
+                format="YYYY-MM-DD HH:mm"
+                value-format="YYYY-MM-DD HH:mm:ss"
                 style="width: 218px"
             />
           </el-form-item>
@@ -32,17 +31,22 @@
         </el-form-item>
         <el-form-item>
           <el-select v-model="searchParams.activityType" placeholder="활동 유형" clearable style="width: 110px">
-            <el-option label="로그인" value="LOGIN" />
-            <el-option label="로그아웃" value="LOGOUT" />
-            <el-option label="회원가입" value="SIGNUP" />
-            <el-option label="ID 찾기" value="FIND_ID" />
-            <el-option label="PW 찾기" value="FIND_PW" />
+            <el-option
+                v-for="item in activityTypeList"
+                :key="item.activityType"
+                :label="item.activityType"
+                :value="item.activityType"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
           <el-select v-model="searchParams.activityResult" placeholder="결과" clearable style="width: 90px">
-            <el-option label="성공" value="SUCCESS" />
-            <el-option label="실패" value="FAILURE" />
+            <el-option
+                v-for="item in activityResultList"
+                :key="item.activityResult"
+                :label="item.activityResult"
+                :value="item.activityResult"
+            />
           </el-select>
         </el-form-item>
 
@@ -110,6 +114,9 @@ const modalGridApi = ref(null);    // 모달 내부 그리드의 API
 
 const gridApi = ref(null);
 const searchParams = reactive({ dateRange: null, userId: '', activityType: '', activityResult: '' });
+const activityTypeList = ref([])
+const activityResultList = ref([])
+
 const rowData = ref([]);
 const defaultColDef = { resizable: true, sortable: true, filter: true };
 
@@ -178,12 +185,20 @@ const onModalGridReady = (params) => {
   }
 }
 
+const getActivity = async () => {
+  const response = await Api.post(ApiUrls.GET_ACTIVITY, { });
+  console.log(response)
+
+  activityTypeList.value = response.data.activityTypeList
+  activityResultList.value = response.data.activityResultList
+}
+
 const fetchLogs = async () => {
   const loadingInstance = ElLoading.service({ target: '.grid-container', text: '로딩 중...' });
   try {
     const apiParams = {
-      startDate: searchParams.dateRange ? searchParams.dateRange[0] : null,
-      endDate: searchParams.dateRange ? searchParams.dateRange[1] : null,
+      startDate: searchParams.dateRange ? searchParams.dateRange[0] : "",
+      endDate: searchParams.dateRange ? searchParams.dateRange[1] : "",
       userId: searchParams.userId,
       activityType: searchParams.activityType,
       activityResult: searchParams.activityResult,
@@ -205,7 +220,10 @@ const onReset = () => {
   fetchLogs();
 };
 
-onMounted(fetchLogs);
+onMounted(() => {
+  getActivity();
+  fetchLogs();
+});
 
 const dateShortcuts = [
   { text: '오늘', value: () => { const end = new Date(); const start = new Date(); start.setHours(0, 0, 0, 0); return [start, end] } },
@@ -215,34 +233,10 @@ const dateShortcuts = [
 
 // --- 테스트용 목업 데이터 생성 함수 ---
 const generateMockData = async (params) => {
-  const response = await Api.post(ApiUrls.GET_LOGS, { params });
+  console.log(params)
+  const response = await Api.post(ApiUrls.GET_LOGS, params);
   console.log(response)
   return response.data;
-  // const sampleData = [];
-  // const types = ['LOGIN', 'LOGOUT', 'SIGNUP', 'FIND_ID'];
-  // const results = ['SUCCESS', 'FAILURE'];
-  // const users = ['user01', 'admin', 'testuser', 'guest', 'user02'];
-  //
-  // for (let i = 1; i <= 50; i++) {
-  //   const result = results[Math.floor(Math.random() * results.length)];
-  //   sampleData.push({
-  //     logId: 1000 + i,
-  //     createdAt: new Date(new Date().getTime() - Math.random() * 1000 * 3600 * 24 * 7).toISOString(),
-  //     userId: users[Math.floor(Math.random() * users.length)],
-  //     activityType: types[Math.floor(Math.random() * types.length)],
-  //     activityResult: result,
-  //     requestIp: `192.168.0.${i}`,
-  //     requestUri: result === 'SUCCESS' ? '/api/auth/login' : '/api/auth/login-fail',
-  //     requestMethod: 'POST',
-  //     errorMessage: result === 'FAILURE' ? '비밀번호가 일치하지 않습니다.' : null,
-  //     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-  //   });
-  // }
-  // return sampleData.filter(d =>
-  //     (!params.userId || d.userId.includes(params.userId)) &&
-  //     (!params.activityType || d.activityType === params.activityType) &&
-  //     (!params.activityResult || d.activityResult === params.activityResult)
-  // );
 };
 </script>
 
