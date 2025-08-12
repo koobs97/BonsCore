@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * BonsCoreApplication
  *
+ *
  */
 @EnableAsync // 로깅을 위한 비동기처리 활성화
 @EnableScheduling
