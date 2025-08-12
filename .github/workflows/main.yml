@@ -1,0 +1,105 @@
+name: Send Commit to Notion
+
+# 이 워크플로우가 언제 실행될지를 정의합니다.
+# 여기서는 main 브랜치에 push 이벤트가 발생할 때마다 실행됩니다.
+on:
+  push:
+    branches:
+      - main  # main 브랜치에만 적용. 모든 브랜치에 적용하려면 이 줄을 지우세요.
+
+# 실행될 작업들을 정의합니다.
+jobs:
+  send-to-notion:
+    # 작업이 실행될 환경을 지정합니다. 최신 우분투 환경을 사용합니다.
+    runs-on: ubuntu-latest
+    
+    # 작업의 단계들을 정의합니다.
+    steps:
+      # 1. 소스 코드를 체크아웃합니다.
+      # 이 단계를 통해 워크플로우가 리포지토리의 코드에 접근할 수 있게 됩니다.
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # 커밋 기록을 모두 가져오기 위해 fetch-depth를 0으로 설정합니다.
+          fetch-depth: 0
+
+      # 2. 커밋 정보를 Notion으로 전송합니다.
+      # actions/github-script를 사용하여 JavaScript 코드를 직접 실행합니다.
+      - name: Send Commit Info to Notion
+        uses: actions/github-script@v6
+        # 환경 변수를 통해 GitHub Secrets에 저장된 값들을 스크립트로 전달합니다.
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        with:
+          script: |
+            // Notion API 클라이언트를 가져옵니다.
+            const { Client } = require("@notionhq/client");
+
+            // Notion 클라이언트를 초기화합니다.
+            const notion = new Client({ auth: process.env.NOTION_API_KEY });
+            const databaseId = process.env.NOTION_DATABASE_ID;
+            
+            // GitHub에서 제공하는 컨텍스트에서 커밋 정보를 가져옵니다.
+            const commits = context.payload.commits;
+
+            // 각 커밋에 대해 반복 작업을 수행합니다.
+            for (const commit of commits) {
+              const commitMessage = commit.message;
+              const authorName = commit.author.name;
+              const commitUrl = commit.url;
+              const commitDate = commit.timestamp; // ISO 8601 형식의 날짜 문자열
+              const repoName = context.repo.repo;
+
+              try {
+                // Notion 데이터베이스에 새 페이지(항목)를 생성합니다.
+                await notion.pages.create({
+                  parent: { database_id: databaseId },
+                  properties: {
+                    // "커밋 메시지"는 Notion 데이터베이스의 '제목' 속성입니다.
+                    "커밋 메시지": {
+                      title: [
+                        {
+                          text: {
+                            content: commitMessage,
+                          },
+                        },
+                      ],
+                    },
+                    // "작성자"는 '텍스트' 속성입니다.
+                    "작성자": {
+                      rich_text: [
+                        {
+                          text: {
+                            content: authorName,
+                          },
+                        },
+                      ],
+                    },
+                    // "리포지토리"는 '텍스트' 속성입니다.
+                    "리포지토리": {
+                      rich_text: [
+                        {
+                          text: {
+                            content: repoName,
+                          },
+                        },
+                      ],
+                    },
+                    // "커밋 링크"는 'URL' 속성입니다.
+                    "커밋 링크": {
+                      url: commitUrl,
+                    },
+                    // "날짜"는 '날짜' 속성입니다.
+                    "날짜": {
+                      date: {
+                        start: commitDate,
+                      },
+                    },
+                  },
+                });
+                console.log(`Successfully added commit: "${commitMessage}" to Notion.`);
+              } catch (error) {
+                console.error("Error sending to Notion:", error.body || error);
+              }
+            }
