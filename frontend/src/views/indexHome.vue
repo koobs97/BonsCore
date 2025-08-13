@@ -300,8 +300,8 @@ const goToGitHub = () => {
 <style scoped>
 /* 모든 스타일은 변경 없이 그대로 유지됩니다 */
 .page-container {
-  height: 100vh;
-  max-height: 800px;
+  height: 120vh;
+  max-height: 850px;
   display: flex;
   flex-direction: column;
   align-items: center;
