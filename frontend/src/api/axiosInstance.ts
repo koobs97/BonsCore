@@ -103,6 +103,7 @@ axiosInstance.interceptors.response.use(
             const redirectToLogin = async () => {
                 await Api.post(ApiUrls.LOGOUT, {}, true);
                 userStore().delUserInfo();
+                sessionStorage.clear();
                 if(router.currentRoute.value.path !== '/login') {
                     await router.push("/login");
                     window.location.reload();

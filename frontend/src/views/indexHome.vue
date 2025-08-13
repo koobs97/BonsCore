@@ -1,9 +1,9 @@
 <script setup>
 import { ref, shallowRef, onMounted, defineAsyncComponent, computed } from 'vue';
-// 아이콘 import (기존과 동일)
+// [수정] ArrowDown 아이콘 추가
 import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
-  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Box,
+  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Box, ArrowDown,
 } from '@element-plus/icons-vue';
 import TheFooter from "@/components/layout/TheFooter.vue";
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
@@ -17,19 +17,20 @@ const router = useRouter();
 const userStoreObj = userStore();
 
 // ------------------- 상태(State) 관리 -------------------
-const isLoading = ref(true); // [신규] 로딩 상태 추가
+const isLoading = ref(true);
 const userName = ref('');
 const isAdmin = ref(false);
 const searchQuery = ref('');
 const activeMainTab = ref('user');
-const activeUserTab = ref(''); // [변경] 초기값을 빈 문자열로 설정
+// [수정] activeUserTab을 activeUserMenuUrl로 변경하여 현재 선택된 메뉴의 URL을 추적합니다.
+const activeUserMenuUrl = ref('');
 const activeAdminMenu = ref('');
 
 // ------------------- 메뉴 데이터 -------------------
 const userMenuItems = shallowRef([]);
 const adminMenuItems = shallowRef([]);
 
-// [변경 없음] 아이콘 매핑
+// 아이콘 매핑 (기존과 동일)
 const iconMap = {
   '시간대별 예측': Clock,
   '저장소': ChatDotRound,
@@ -41,19 +42,18 @@ const iconMap = {
   '기본아이콘': Operation
 };
 
-// [변경] 더 안전하고 단순화된 메뉴 트리 변환 함수
+// 메뉴 트리 변환 함수 (기존과 동일)
 const buildMenuTree = (flatMenus, parentId = null) => {
   return flatMenus
       .filter(menu => menu.parentMenuId === parentId)
-      .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder)) // sortOrder를 숫자로 명시적 변환
+      .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
       .map(menu => {
         const children = buildMenuTree(flatMenus, menu.menuId);
         return {
-          // Vue 템플릿에서 사용할 속성들을 명확하게 정의
           id: menu.menuId,
           name: menu.menuName,
           label: menu.menuName,
-          url: menu.menuUrl || '', // null 대신 빈 문자열
+          url: menu.menuUrl || '',
           icon: iconMap[menu.menuName] || iconMap['기본아이콘'],
           description: `메뉴: ${menu.menuName}`,
           children: children.length > 0 ? children : undefined,
@@ -61,88 +61,91 @@ const buildMenuTree = (flatMenus, parentId = null) => {
       });
 };
 
-// 1. Vite의 glob 기능을 사용해 /src/views/admin 폴더 아래의 모든 .vue 파일을 가져옵니다.
-//    이 코드는 컴파일 시점에 해당 폴더의 파일 목록을 기반으로 맵을 생성합니다.
+// 관리자 컴포넌트 맵 생성 (기존과 동일)
 const adminComponentFiles = import.meta.glob('@/views/admin/*.vue');
-
-// 2. 위에서 가져온 파일 목록을 우리가 사용하기 편한 형태로 가공합니다.
-//    {'Log': () => import('./views/admin/Log.vue'), ...} 와 같은 객체로 만듭니다.
 const adminComponentMap = Object.keys(adminComponentFiles).reduce((map, path) => {
-  // 파일 경로에서 파일 이름(확장자 제외)만 추출합니다.
-  // 예: '@/views/admin/UserManagement.vue' -> 'UserManagement'
   const componentName = path.split('/').pop().replace('.vue', '');
-
-  // 맵에 { '컴포넌트이름': 동적 import 함수 } 형태로 저장합니다.
-  // defineAsyncComponent로 감싸서 비동기 컴포넌트로 만듭니다.
   map[componentName] = defineAsyncComponent(adminComponentFiles[path]);
-
   return map;
 }, {});
 
-// 3. 현재 활성화된 메뉴 키에 따라 맵에서 올바른 컴포넌트를 찾아 반환합니다.
+// 사용자 서비스 컴포넌트 맵 생성 (기존과 동일)
+const userComponentFiles = import.meta.glob('@/views/biz/*.vue');
+const userComponentMap = Object.keys(userComponentFiles).reduce((map, path) => {
+  const componentName = path.split('/').pop().replace('.vue', '');
+  map[componentName] = defineAsyncComponent(userComponentFiles[path]);
+  return map;
+}, {});
+
+// ======================= [신규] 동적 컴포넌트 로딩 로직 =======================
+// 현재 활성화된 관리자 메뉴에 따른 컴포넌트 반환 (기존과 동일)
 const currentAdminComponent = computed(() => {
   return adminComponentMap[activeAdminMenu.value] || null;
 });
 
+// [신규] 현재 활성화된 사용자 메뉴 URL에 따라 렌더링할 컴포넌트를 반환합니다.
+const currentUserComponent = computed(() => {
+  if (!activeUserMenuUrl.value) return null; // 선택된 메뉴가 없으면 null 반환
+  return userComponentMap[activeUserMenuUrl.value] || null;
+});
+// =========================================================================
+
 onMounted(async () => {
-  isLoading.value = true; // API 호출 시작 시 로딩 상태로 설정
+  isLoading.value = true;
   try {
     const isLoggedIn = userStore().isLoggedIn;
     if (!isLoggedIn) {
       await router.push("/login");
-      return; // 로그인 페이지로 갔으므로 더 이상 진행하지 않음
+      return;
     }
 
     const user = userStoreObj.getUserInfo;
     userName.value = user.userName;
 
-    // API 호출로 메뉴 데이터 가져오기
     const response = await Api.post(ApiUrls.GET_MENUS, { userId: user.userId });
-    const allMenus = response.data || []; // 데이터가 없을 경우 빈 배열로 처리
-
-    // 플랫 데이터를 계층 구조로 변환
+    const allMenus = response.data || [];
     const menuTree = buildMenuTree(allMenus);
 
-    // [변경] 관리자 메뉴와 일반 사용자 메뉴를 더 유연하게 분리
-    // '시스템 관리' 메뉴가 최상위 메뉴에 있는지 여부로 관리자 판단
-    const adminRootMenus = menuTree.filter(menu => menu.name === '시스템 관리'); // 예시 기준
+    const adminRootMenus = menuTree.filter(menu => menu.name === '시스템 관리');
     const regularUserMenus = menuTree.filter(menu => menu.name !== '시스템 관리');
 
     if (user.roleId === 'ADMIN') {
       isAdmin.value = true;
       adminMenuItems.value = adminRootMenus;
-      // 관리자의 첫 번째 하위 메뉴를 기본 활성화 메뉴로 설정
       if (adminRootMenus[0]?.children?.[0]?.url) {
         activeAdminMenu.value = adminRootMenus[0].children[0].url;
       }
     }
 
     userMenuItems.value = regularUserMenus;
-    // 일반 사용자의 첫 번째 메뉴를 기본 활성화 탭으로 설정
-    if (regularUserMenus.length > 0) {
-      activeUserTab.value = regularUserMenus[0].id; // el-tab-pane의 name은 id로 사용
+    // [수정] 컴포넌트 첫 진입 시, 첫 번째 사용자 메뉴를 활성화합니다.
+    if (regularUserMenus.length > 0 && regularUserMenus[0].url) {
+      activeUserMenuUrl.value = regularUserMenus[0].url;
     }
 
   } catch (error) {
     console.error("메뉴 정보를 가져오는 데 실패했습니다:", error);
-    // TODO: 사용자에게 에러 알림 표시
   } finally {
-    isLoading.value = false; // API 호출 완료/실패 후 로딩 상태 해제
+    isLoading.value = false;
   }
 });
 
 
-// 핸들러 및 기타 함수 (변경 없음)
+// [신규] 사용자 메뉴 선택 핸들러
+const handleUserMenuSelect = (url) => {
+  if (url) {
+    activeUserMenuUrl.value = url;
+  }
+};
+
+// 핸들러 및 기타 함수 (기존과 동일)
 const handleAdminMenuSelect = (index) => {
   activeAdminMenu.value = index;
-  console.log(activeAdminMenu.value)
 };
 const isDarkMode = ref(false);
-const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; };
-
-/**
- * git 주소로 바로가기
- */
+const toggleTheme = () => {
+  isDarkMode.value = !isDarkMode.value;
+};
 const goToGitHub = () => {
   window.open('https://github.com/koobs97/BonsCore/tree/main', '_blank');
 }
@@ -150,20 +153,22 @@ const goToGitHub = () => {
 
 <template>
   <div class="page-container">
-    <!-- 상단 네비게이션 바 -->
+    <!-- 상단 네비게이션 바 (기존과 동일) -->
     <el-header class="main-header">
       <div class="logo">
-        <el-icon :size="24"><Box /></el-icon>
+        <el-icon :size="24">
+          <Box/>
+        </el-icon>
         <span class="logo-text">Dev</span>
       </div>
       <div class="header-actions">
-        <el-button :icon="ChatSquare" circle /> <!-- chatUi url 추가 -->
+        <el-button :icon="ChatSquare" circle/>
         <el-tooltip content="테마 변경" placement="bottom">
-          <el-button :icon="isDarkMode ? Moon : Sunny" circle @click="toggleTheme" />
+          <el-button :icon="isDarkMode ? Moon : Sunny" circle @click="toggleTheme"/>
         </el-tooltip>
         <el-tooltip content="깃허브 바로가기" placement="bottom">
           <el-button circle class="custom-image-button" @click="goToGitHub">
-            <img src="@/assets/images/github_icon.png" alt="custom icon" />
+            <img src="@/assets/images/github_icon.png" alt="custom icon"/>
           </el-button>
         </el-tooltip>
       </div>
@@ -171,54 +176,77 @@ const goToGitHub = () => {
 
     <div class="content-layout-wrapper">
       <div class="main-content-area">
+        <!-- 정보 래퍼 (기존과 동일) -->
         <div class="info-wrapper">
           <div class="concept-banner">
-            <el-icon :size="20"><CollectionTag /></el-icon>
+            <el-icon :size="20" style="margin-left: 36px;">
+              <CollectionTag/>
+            </el-icon>
             <div class="banner-text">
               <span>스프링부트 기반 개인 프로젝트</span>
             </div>
           </div>
-          <UserInfoAvatar />
+          <UserInfoAvatar/>
         </div>
 
         <el-main class="main-content">
           <el-card class="content-card" shadow="never">
-            <!-- [변경] 로딩 상태에 따라 스켈레톤 또는 실제 컨텐츠 표시 -->
-            <el-skeleton :rows="10" animated v-if="isLoading" />
+            <el-skeleton :rows="10" animated v-if="isLoading"/>
             <el-tabs v-model="activeMainTab" class="main-mode-tabs" v-else>
 
-              <!-- 1. 일반 사용자 탭 -->
-              <el-tab-pane label="서비스" name="user">
-                <el-input
-                    v-model="searchQuery"
-                    placeholder="맛집 또는 지역을 입력해 주세요"
-                    size="large"
-                    class="search-input"
-                    :prefix-icon="Search"
-                    clearable
-                />
-                <!-- [변경] userMenuItems 데이터가 있을 때만 렌더링 -->
-                <el-tabs v-if="userMenuItems.length > 0" v-model="activeUserTab" class="content-tabs">
-                  <el-tab-pane
-                      v-for="menu in userMenuItems"
-                      :key="menu.id"
-                      :label="menu.label"
-                      :name="menu.id"
-                  >
-                    <div class="tab-content-placeholder">
+              <!-- ======================= [수정된 사용자 탭] ======================= -->
+              <el-tab-pane name="user">
+                <!-- 1. #label 슬롯을 사용하여 탭의 제목을 <el-dropdown>으로 교체 -->
+                <template #label>
+                  <el-dropdown trigger="hover" @command="handleUserMenuSelect">
+                    <span class="el-dropdown-link">
+                      서비스
+                      <el-icon class="el-icon--right"><arrow-down/></el-icon>
+                    </span>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item
+                            v-for="menu in userMenuItems"
+                            :key="menu.id"
+                            :command="menu.url"
+                            :icon="menu.icon"
+                        >
+                          {{ menu.name }}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </template>
+
+                <!-- 2. 사용자 탭 컨텐츠 영역 -->
+                <div v-if="userMenuItems.length > 0">
+                  <!-- 3. 선택된 메뉴에 따라 동적으로 컴포넌트를 렌더링 -->
+                  <div class="user-content-container">
+                    <keep-alive>
+                      <component :is="currentUserComponent" v-if="currentUserComponent"/>
+                    </keep-alive>
+
+                    <!-- 4. 컴포넌트를 찾지 못했을 경우의 폴백 UI -->
+                    <div v-if="!currentUserComponent && activeUserMenuUrl" class="tab-content-placeholder">
                       <el-icon :size="32" class="placeholder-icon">
-                        <component :is="menu.icon" />
+                        <Tools/>
                       </el-icon>
-                      <p>{{ menu.description }}</p>
+                      <p>'{{ activeUserMenuUrl }}' 컴포넌트를 찾을 수 없습니다.</p>
+                      <p style="font-size: 12px; color: #909399;">/src/views/biz/{{ activeUserMenuUrl }}.vue 파일이 있는지
+                        확인해주세요.</p>
                     </div>
-                  </el-tab-pane>
-                </el-tabs>
+                  </div>
+                </div>
+
+                <!-- 사용 가능한 서비스 메뉴가 없을 경우 -->
                 <div v-else class="tab-content-placeholder">
                   <p>사용 가능한 서비스 메뉴가 없습니다.</p>
                 </div>
               </el-tab-pane>
+              <!-- ================================================================ -->
 
-              <!-- 2. 관리자 탭 (관리자일 때만 보임) -->
+
+              <!-- 관리자 탭 (기존과 동일) -->
               <el-tab-pane v-if="isAdmin" name="admin">
                 <template #label>
                   <div class="admin-tab-label">
@@ -227,9 +255,7 @@ const goToGitHub = () => {
                 </template>
 
                 <div class="admin-panel-layout">
-                  <!-- 좌측: 관리자 메뉴 -->
                   <div class="admin-menu-container">
-                    <!-- [변경] adminMenuItems 데이터가 있을 때만 렌더링 -->
                     <el-menu
                         v-if="adminMenuItems.length > 0"
                         :default-active="activeAdminMenu"
@@ -237,24 +263,25 @@ const goToGitHub = () => {
                         class="admin-menu"
                         mode="horizontal"
                     >
-                      <!-- el-sub-menu의 index는 고유 식별자 역할을 하므로 그대로 두어도 괜찮습니다. -->
                       <el-sub-menu v-for="menu in adminMenuItems" :key="menu.id" :index="String(menu.id)">
                         <template #title>
-                          <el-icon><component :is="menu.icon" /></el-icon>
+                          <el-icon>
+                            <component :is="menu.icon"/>
+                          </el-icon>
                           <span>{{ menu.name }}</span>
                         </template>
                         <el-menu-item v-for="child in menu.children" :key="child.url" :index="child.url">
-                          <el-icon><component :is="child.icon" /></el-icon>
+                          <el-icon>
+                            <component :is="child.icon"/>
+                          </el-icon>
                           <span>{{ child.name }}</span>
                         </el-menu-item>
                       </el-sub-menu>
                     </el-menu>
                   </div>
 
-                  <!-- 우측: 선택된 메뉴에 따른 컨텐츠 -->
                   <div class="admin-content-container">
-                    <!-- 이 코드는 script의 로직이 아무리 복잡해져도 그대로 유지됩니다 -->
-                    <component :is="currentAdminComponent" v-if="currentAdminComponent" />
+                    <component :is="currentAdminComponent" v-if="currentAdminComponent"/>
                     <div v-else>
                       <p>관리자 메뉴를 선택해주세요.</p>
                     </div>
@@ -266,11 +293,12 @@ const goToGitHub = () => {
         </el-main>
       </div>
     </div>
-    <TheFooter />
+    <TheFooter/>
   </div>
 </template>
 
 <style scoped>
+/* 모든 스타일은 변경 없이 그대로 유지됩니다 */
 .page-container {
   height: 100vh;
   max-height: 800px;
@@ -278,9 +306,10 @@ const goToGitHub = () => {
   flex-direction: column;
   align-items: center;
 }
+
 .main-header {
   width: 100%;
-  max-width: 900px; /* 컨텐츠 카드 너비에 맞게 조정 */
+  max-width: 900px;
   height: 50px;
   display: flex;
   justify-content: space-between;
@@ -291,27 +320,30 @@ const goToGitHub = () => {
   box-sizing: border-box;
   flex-shrink: 0;
 }
+
 .custom-image-button {
-  padding: 0; /* 버튼 내부의 기본 패딩을 제거하여 이미지가 꽉 차게 합니다. */
+  padding: 0;
 }
+
 .custom-image-button img {
-  width: 24px; /* 이미지의 너비를 조절합니다. */
-  height: 24px; /* 이미지의 높이를 조절합니다. */
-  border-radius: 50%; /* 버튼이 circle 형태이므로 이미지도 둥글게 처리합니다. */
-  display: block; /* 이미지가 버튼 중앙에 오도록 합니다. */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: block;
 }
+
 .content-layout-wrapper {
   display: flex;
   justify-content: center;
   width: 100%;
   flex-grow: 1;
-  overflow: hidden; /* 스크롤은 내부에서 처리 */
+  overflow: hidden;
 }
 
 .main-content-area {
   display: flex;
   flex-direction: column;
-  align-items: center; /* 자식 요소들을 가운데 정렬 */
+  align-items: center;
 }
 
 .info-wrapper {
@@ -332,10 +364,33 @@ const goToGitHub = () => {
 .content-card {
   width: 100%;
   height: 620px;
-  min-height: 620px; /* 최소 높이 설정, 컨텐츠에 따라 늘어날 수 있음 */
+  min-height: 620px;
   border-radius: 4px;
-  padding: 12px 24px 24px 24px; /* 위쪽 패딩 줄임 */
+  padding: 12px 24px 24px 24px;
   box-sizing: border-box;
+}
+
+/* [신규/수정] 사용자 컨텐츠 영역 스타일 추가 */
+.user-content-container {
+  height: 500px; /* 관리자 패널과 높이를 맞추거나 조절 */
+  overflow-y: auto;
+  padding: 8px;
+  margin: -8px; /* 부모 패딩 고려 */
+}
+
+/* [신규] 드롭다운 링크 스타일 */
+.el-dropdown-link {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--el-color-primary); /* Element Plus 테마 색상 사용 */
+  font-size: 1rem; /* [수정] 탭과 동일하게 1rem으로 명시적으로 지정 */
+  font-weight: 500; /* [추가] 탭 기본 폰트 두께와 맞춤 */
+  outline: none; /* 클릭 시 테두리 제거 */
+}
+
+.el-dropdown-link:hover {
+  color: var(--el-color-primary-light-3);
 }
 
 .admin-tab-label {
@@ -346,51 +401,98 @@ const goToGitHub = () => {
 
 .admin-panel-layout {
   display: flex;
-  flex-direction: column; /* 가로(row) -> 세로(column)로 변경 */
+  flex-direction: column;
   height: 480px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 4px;
 }
 
-/* [수정] admin-menu-container: 가로 메뉴에 맞게 스타일 조정 */
 .admin-menu-container {
-  /* width: 200px; */ /* 더 이상 고정 너비가 필요 없음 */
   flex-shrink: 0;
-  /* border-right를 border-bottom으로 변경하여 메뉴와 컨텐츠를 구분 */
   border-bottom: 1px solid var(--el-border-color-light);
-  /* height: 100%; */ /* 더 이상 100% 높이를 차지하지 않음 */
-  overflow-y: visible; /* 가로 메뉴는 스크롤이 필요 없음 */
+  overflow-y: visible;
 }
 
-/* [수정] admin-menu: 가로 메뉴일 때 Element Plus가 추가하는 하단 테두리 제거 */
 .admin-menu.el-menu--horizontal {
-  border-bottom: none !important; /* 컨테이너에 테두리가 있으므로 메뉴 자체의 테두리는 제거 */
+  border-bottom: none !important;
 }
 
-/* [수정] admin-content-container: 남은 공간을 모두 차지하도록 변경 */
 .admin-content-container {
-  flex-grow: 1; /* 남은 세로 공간을 모두 차지 */
+  flex-grow: 1;
   padding: 8px;
-  /* height: 440px; */ /* 고정 높이 제거 */
-  overflow-y: auto; /* 컨텐츠가 길어지면 스크롤 생성 */
+  overflow-y: auto;
 }
 
 .main-mode-tabs :deep(.el-tabs__header) {
   margin-bottom: 20px;
 }
-.main-mode-tabs :deep(.el-tabs__item) {
-  font-size: 1.1rem;
-  height: 48px;
-}
-.search-input { margin-bottom: 1rem; }
 
-.logo { display: flex; align-items: center; gap: 8px; }
-.logo-text { font-size: 19px; font-weight: 600; color: #303133; }
-.tab-content-placeholder { height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; color: var(--el-text-color-secondary); background-color: var(--el-fill-color-light); border-radius: 4px; }
-.placeholder-icon { color: var(--el-text-color-placeholder); }
-.concept-banner { width: 70%; height: 100%; display: flex; align-items: center; gap: 10px; background-color: #ffffff; border-radius: 4px; border: 1px solid #e4e7ed; padding: 8px; box-sizing: border-box; }
-.concept-banner .el-icon { color: var(--el-color-primary); }
-.concept-banner .banner-text { font-size: 14px; color: #606266; }
+.main-mode-tabs :deep(.el-tabs__item) {
+  font-size: 1rem; /* [수정] 폰트 크기를 1rem으로 조정 */
+  height: 48px;
+  /* 드롭다운이 탭 내부에 있으므로, 패딩을 조절하여 정렬을 맞춥니다. */
+  padding: 0 10px;
+}
+
+/* 드롭다운이 포함된 탭의 padding을 0으로 설정하여 자체 스타일링을 쉽게 합니다. */
+.main-mode-tabs :deep(.el-tabs__item:has(.el-dropdown)) {
+  padding: 0;
+}
+
+
+.search-input {
+  margin-bottom: 1rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-text {
+  font-size: 19px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.tab-content-placeholder {
+  height: 350px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  color: var(--el-text-color-secondary);
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
+}
+
+.placeholder-icon {
+  color: var(--el-text-color-placeholder);
+}
+
+.concept-banner {
+  width: 70%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.concept-banner .el-icon {
+  color: var(--el-color-primary);
+}
+
+.concept-banner .banner-text {
+  font-size: 14px;
+  color: #606266;
+}
 
 .custom-el-card {
   --el-card-border-color: var(--el-border-color-light);
@@ -404,5 +506,4 @@ const goToGitHub = () => {
   overflow: hidden;
   transition: var(--el-transition-duration);
 }
-
 </style>

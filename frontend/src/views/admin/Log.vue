@@ -9,12 +9,13 @@
           <el-form-item>
             <el-date-picker
                 v-model="searchParams.dateRange"
-                type="datetimerange"
+                type="daterange"
                 range-separator="-"
                 start-placeholder="시작일시"
                 end-placeholder="종료일시"
-                format="YYYY-MM-DD HH:mm"
-                value-format="YYYY-MM-DD HH:mm:ss"
+                format="YYYY-MM-DD"
+                value-format="YYYYMMDD"
+                :size="'small'"
                 style="width: 218px"
             />
           </el-form-item>
@@ -113,7 +114,7 @@ const isModalVisible = ref(false); // 모달 표시 여부 상태
 const modalGridApi = ref(null);    // 모달 내부 그리드의 API
 
 const gridApi = ref(null);
-const searchParams = reactive({ dateRange: null, userId: '', activityType: '', activityResult: '' });
+const searchParams = reactive({ dateRange: [], userId: '', activityType: '', activityResult: '' });
 const activityTypeList = ref([])
 const activityResultList = ref([])
 
@@ -216,7 +217,7 @@ const fetchLogs = async () => {
 
 const onSearch = () => fetchLogs();
 const onReset = () => {
-  Object.assign(searchParams, { dateRange: null, userId: '', activityType: '', activityResult: '' });
+  Object.assign(searchParams, { dateRange: [], userId: '', activityType: '', activityResult: '' });
   fetchLogs();
 };
 

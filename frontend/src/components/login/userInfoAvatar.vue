@@ -25,7 +25,7 @@ const state = reactive({
   } as userState,
 })
 
-onMounted(() => {
+onMounted(async () => {
   state.User = userStoreObj.getUserInfo;
   console.log(state.User)
 
