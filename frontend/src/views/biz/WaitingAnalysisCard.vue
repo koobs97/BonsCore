@@ -1,184 +1,534 @@
 <template>
-  <div class="component-wrapper">
-    <el-input
-        v-model="searchQuery"
-        placeholder="검색어를 입력해 주세요"
-        size="large"
-        class="search-input"
-        :prefix-icon="Search"
-        clearable
-    />
-    <el-card shadow="never" class="content-card">
-      <div class="info-popover-trigger-area">
-        <el-popover
-            placement="right-start"
-            :width="420"
-            v-model:visible="isPopoverVisible"
-            popper-class="congestion-guide-popper"
-        >
-          <template #reference>
-            <el-button :icon="InfoFilled" circle class="info-button" @click="isPopoverVisible = true"/>
-          </template>
-          <div class="guide-content">
-            <h4 class="guide-title">혼잡도 안내</h4>
-            <ul class="guide-list">
-              <li v-for="item in congestionGuide" :key="item.level" class="guide-item">
-                <span class="guide-level" :class="item.colorClass">
-                  {{ item.emoji }} {{ item.level }}
-                </span>
-                <p class="guide-message">{{ item.message }}</p>
-              </li>
-            </ul>
-          </div>
-        </el-popover>
+  <div class="estimator-container">
+    <div class="card">
+      <div class="card-header">
+        <h1 class="title">웨이팅 지수 분석기 📈</h1>
+        <p class="subtitle">가게의 오늘 웨이팅 지수를 예측해 드립니다.</p>
       </div>
-      <div class="store-info">
-        <h1 class="store-name">{{ analysisData.storeName }}</h1>
-        <p class="store-address">{{ analysisData.address }}</p>
-      </div>
-      <div class="gauge-wrapper">
-        <svg class="gauge-svg" viewBox="0 0 120 120">
-          <defs>
-            <linearGradient id="free-gradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#6EE7B7;"/><stop offset="100%" style="stop-color:#34D399;"/></linearGradient>
-            <linearGradient id="normal-gradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FDE047;"/><stop offset="100%" style="stop-color:#FACC15;"/></linearGradient>
-            <linearGradient id="crowded-gradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FDBA74;"/><stop offset="100%" style="stop-color:#FB923C;"/></linearGradient>
-            <linearGradient id="very-crowded-gradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FCA5A5;"/><stop offset="100%" style="stop-color:#F87171;"/></linearGradient>
-          </defs>
-          <circle class="gauge-track" cx="60" cy="60" r="54"/>
-          <circle class="gauge-bar" cx="60" cy="60" r="54" :stroke="gaugeGradientUrl" :stroke-dasharray="circumference" :stroke-dashoffset="gaugeOffset"/>
-        </svg>
-        <div class="gauge-content">
-          <div class="gauge-score">{{ analysisData.score === 1 ? '?' : analysisData.score }}</div>
-          <div class="gauge-label" :class="textColorClass">{{ statusText }}</div>
+
+      <!-- 1. 초기 검색 단계 -->
+      <div v-if="step === 'search'" class="card-body">
+        <div class="search-form">
+          <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="가게 이름을 입력하세요 (예: 런던베이글)"
+              @keyup.enter="searchStores"
+          />
+          <button
+              @click="searchStores"
+              :disabled="!searchQuery"
+              :class="{ 'is-disabled': !searchQuery }"
+          >
+            분석 시작
+          </button>
         </div>
       </div>
-      <div class="ai-comment">
-        <div class="ai-icon-wrapper"><i class="fas fa-robot"></i></div>
-        <p>"{{ analysisData.aiComment }}"</p>
+
+      <!-- 2. 지점 선택 단계 -->
+      <div v-if="step === 'selectStore'" class="card-body">
+        <h2 class="step-title">어느 지점의 웨이팅이 궁금하세요?</h2>
+        <ul class="store-list">
+          <li v-for="store in foundStores" :key="store.id" @click="selectStore(store)">
+            {{ store.name }}
+            <span>{{ store.address }}</span>
+          </li>
+        </ul>
+        <button class="back-button" @click="reset">처음으로</button>
       </div>
-      <div class="details-section">
-        <div class="detail-item"><i class="fas fa-clock detail-icon"></i><span class="detail-label">예상 대기</span><span class="detail-value">{{ analysisData.estimatedWaitTime }}</span></div>
-        <div class="detail-item"><i class="fas fa-users detail-icon"></i><span class="detail-label">실시간 인원</span><span class="detail-value">{{ analysisData.liveCrowdStatus }}</span></div>
-        <div class="detail-item"><i class="fas fa-cloud-sun-rain detail-icon"></i><span class="detail-label">현재 날씨</span><span class="detail-value">{{ analysisData.weather }}</span></div>
-        <div class="detail-item"><i class="fas fa-calendar-day detail-icon"></i><span class="detail-label">분석 시간</span><span class="detail-value">{{ analysisData.analysisTime }}</span></div>
+
+      <!-- 2.5. ★★★ 방문 시간 선택 단계 (새로 추가) ★★★ -->
+      <div v-if="step === 'selectTime'" class="card-body">
+        <h2 class="step-title">방문 예정 시간을 선택해주세요.</h2>
+        <div class="time-slots">
+          <button
+              v-for="time in timeSlots"
+              :key="time.value"
+              class="time-slot-btn"
+              :class="{ active: selectedTime === time.value }"
+              @click="selectTimeSlot(time.value)"
+          >
+            {{ time.label }}
+          </button>
+        </div>
+        <div class="button-group">
+          <button class="back-button" @click="step = 'selectStore'">지점 다시 선택</button>
+          <button @click="confirmTimeAndAnalyze" :disabled="!selectedTime">분석하기</button>
+        </div>
       </div>
-    </el-card>
+
+      <!-- 3. 데이터 분석 중 (로딩) 단계 -->
+      <div v-if="step === 'loading'" class="card-body loading-state">
+        <div class="spinner"></div>
+        <h2 class="step-title">{{ selectedStore.name }} 분석 중...</h2>
+        <p class="loading-message">잠시만 기다려주세요. 실시간 데이터를 수집하고 있습니다.</p>
+        <div class="progress-list">
+          <p :class="{ done: progress.weather }">기상청 날씨 정보 수집</p>
+          <p :class="{ done: progress.reviews }">네이버 리뷰 및 인지도 분석</p>
+          <p :class="{ done: progress.sns }">실시간 SNS 언급량 확인</p>
+          <p :class="{ done: progress.map }">지도 앱 혼잡도 데이터 크롤링</p>
+        </div>
+      </div>
+
+      <!-- 4. 결과 표시 단계 (대대적 개선) -->
+      <div v-if="step === 'result'" class="card-body result-state">
+        <!-- 상단 요약 결과 -->
+        <div class="result-summary">
+          <span class="result-emoji">{{ result.emoji }}</span>
+          <div class="result-text">
+            <h2 class="result-index">{{ selectedStore.name }}은(는) 현재 <span :class="result.waitingIndex">{{ result.waitingIndex }}</span></h2>
+            <p class="result-message">{{ result.message }}</p>
+          </div>
+        </div>
+
+        <!-- 상세 점수 분석 (스크롤 영역) -->
+        <div class="score-details">
+          <h3 class="details-title">상세 점수 분석</h3>
+          <ul class="details-list">
+            <li v-for="(detail, index) in scoreDetails" :key="index">
+              <span class="factor">{{ detail.factor }}</span>
+              <span class="condition">{{ detail.condition }}</span>
+              <span class="score" :class="{ positive: detail.score > 0, negative: detail.score < 0 }">
+                {{ detail.score > 0 ? '+' : '' }}{{ detail.score }}
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 최종 점수 및 리셋 버튼 -->
+        <div class="result-footer">
+          <div class="total-score">
+            <span class="factor">최종 웨이팅 점수</span>
+            <span class="score">{{ result.totalScore }}</span>
+          </div>
+          <button class="reset-button" @click="reset">새로운 가게 분석하기</button>
+        </div>
+      </div>
+
+      <!-- 휴무일 예외 처리 -->
+      <div v-if="step === 'closed'" class="card-body closed-state">
+        <span class="result-emoji">💤</span>
+        <h2 class="result-index">오늘은 휴무일입니다</h2>
+        <p class="result-message">선택하신 {{ selectedStore.name }}은(는) 오늘 영업하지 않아요.</p>
+        <button class="reset-button" @click="reset">다른 가게 분석하기</button>
+      </div>
+    </div>
+
+<!--    <footer class="footer">-->
+<!--      <p>본 분석 결과는 참고용이며, 실제 웨이팅 상황과 다를 수 있습니다.</p>-->
+<!--      <p class="copyright">© 2024 AI Waiting Analyzer. All rights reserved.</p>-->
+<!--    </footer>-->
   </div>
 </template>
 
 <script setup>
-// Script 부분은 변경사항 없습니다.
-import { ref, computed, onMounted } from 'vue';
-import { Search, InfoFilled } from "@element-plus/icons-vue";
+// 스크립트 부분은 수정 없이 그대로 사용합니다.
+import { ref } from 'vue';
 
-const isPopoverVisible = ref(false);
-onMounted(() => { setTimeout(() => { isPopoverVisible.value = true; }, 300); });
-const analysisData = ref({ storeName: "[가게 이름]", address: "[가게 주소]", score: 1, aiComment: "혼잡도 안내 메시지", estimatedWaitTime: "[예상 대기 시간]", liveCrowdStatus: "[인원 수치]", weather: "[날씨, 온도]", analysisTime: "[기준 시간]" });
+const step = ref('search');
 const searchQuery = ref('');
-const congestionGuide = [ { level: "매우 혼잡", emoji: "🌋", message: "웨이팅이 매우 길 것으로 예상돼요. 원격 줄서기나 다른 가게를 추천해요.", colorClass: "text-very-crowded" }, { level: "혼잡", emoji: "🔴", message: "웨이팅이 있을 가능성이 높아요. 방문에 참고하세요.", colorClass: "text-crowded" }, { level: "보통", emoji: "🟡", message: "붐비기 시작하는 시간이네요. 약간의 대기가 있을 수 있어요.", colorClass: "text-normal" }, { level: "여유", emoji: "🟢", message: "아직은 여유로운 편이에요. 지금 방문하면 좋을 것 같아요.", colorClass: "text-free" }, { level: "한산", emoji: "🔵", message: "매우 한산해요! 기다림 없이 바로 즐길 수 있어요.", colorClass: "text-free" }, { level: "휴무일", emoji: "💤", message: "오늘은 가게가 쉬는 날이에요.", colorClass: "text-secondary" }, ];
-const circumference = 2 * Math.PI * 54;
-const gaugeOffset = computed(() => (circumference * (1 - analysisData.value.score / 100)));
-const statusText = computed(() => { const score = analysisData.value.score; if (score > 80) return "매우 혼잡"; if (score > 60) return "혼잡"; if (score > 40) return "보통"; if (score > 20) return "여유"; if (score <= 1) return "[혼잡도]"; return "한산"; });
-const gaugeGradientUrl = computed(() => { const score = analysisData.value.score; if (score > 80) return "url(#very-crowded-gradient)"; if (score > 60) return "url(#crowded-gradient)"; if (score > 40) return "url(#normal-gradient)"; return "url(#free-gradient)"; });
-const textColorClass = computed(() => { const score = analysisData.value.score; if (score > 80) return "text-very-crowded"; if (score > 60) return "text-crowded"; if (score > 40) return "text-normal"; if (score <= 1) return "text-secondary"; return "text-free"; });
+const foundStores = ref([]);
+const selectedStore = ref(null);
+const result = ref(null);
+const scoreDetails = ref([]);
+const progress = ref({
+  weather: false,
+  reviews: false,
+  sns: false,
+  map: false
+});
+
+// ★★★ 방문 시간 선택 관련 ref 추가 ★★★
+const selectedTime = ref(null);
+const timeSlots = ref([
+  { label: '평일 점심 (12-14시)', value: 'weekdayLunch' },
+  { label: '평일 저녁 (18-20시)', value: 'weekdayDinner' },
+  { label: '주말 점심 (12-14시)', value: 'weekendLunch' },
+  { label: '주말 저녁 (18-20시)', value: 'weekendDinner' },
+  { label: '애매한 시간 (15-17시)', value: 'offPeak' },
+  { label: '기타 시간', value: 'etc' },
+]);
+
+const searchStores = () => {
+  if (!searchQuery.value) return;
+  foundStores.value = [
+    { id: 1, name: `${searchQuery.value} 강남점`, address: '서울 강남구' },
+    { id: 2, name: `${searchQuery.value} 홍대점`, address: '서울 마포구' },
+    { id: 3, name: `${searchQuery.value} 잠실점`, address: '서울 송파구' },
+  ];
+  step.value = 'selectStore';
+};
+
+// ★★★ 지점 선택 함수 수정 ★★★
+const selectStore = (store) => {
+  selectedStore.value = store;
+  selectedTime.value = null; // 시간 선택 초기화
+  step.value = 'selectTime'; // 로딩 대신 시간 선택 단계로 이동
+};
+
+// ★★★ 시간 선택 관련 함수들 추가 ★★★
+const selectTimeSlot = (timeValue) => {
+  selectedTime.value = timeValue;
+};
+
+const startAnalysis = () => {
+  Object.keys(progress.value).forEach(k => progress.value[k] = false);
+  setTimeout(() => progress.value.weather = true, 300);
+  setTimeout(() => progress.value.reviews = true, 1000);
+  setTimeout(() => progress.value.sns = true, 1800);
+  setTimeout(() => progress.value.map = true, 2500);
+  setTimeout(() => {
+    calculateScore();
+  }, 3000);
+};
+
+const calculateScore = () => {
+  let totalScore = 0;
+  const details = [];
+
+  if (Math.random() < 0.05) {
+    step.value = 'closed';
+    return;
+  }
+
+  const timeFactors = [ { condition: '금요일 저녁 (18-20시)', score: 30 }, { condition: '평일 저녁 (18-20시)', score: 20 }, { condition: '주말 점심 (12-14시)', score: 20 }, { condition: '평일 점심 (12-13시)', score: 15 }, { condition: '애매한 시간 (15-17시)', score: -10 }, ];
+  const timeFactor = timeFactors[Math.floor(Math.random() * timeFactors.length)];
+  details.push({ factor: '시간/요일', ...timeFactor });
+  totalScore += timeFactor.score;
+
+  const reviewCount = Math.floor(Math.random() * 2000);
+  let reviewScore = 0;
+  if (reviewCount > 1000) reviewScore = 15;
+  else if (reviewCount > 500) reviewScore = 10;
+  else if (reviewCount > 100) reviewScore = 5;
+  if (reviewScore > 0) {
+    details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${reviewCount}개`, score: reviewScore });
+    totalScore += reviewScore;
+  }
+
+  const rating = (Math.random() * 1.5 + 3.5).toFixed(1);
+  const ratingScore = rating >= 4.2 ? 10 : -5;
+  details.push({ factor: '만족도(별점)', condition: `네이버 별점 ${rating}`, score: ratingScore });
+  totalScore += ratingScore;
+
+  const weatherFactors = [ { condition: '폭우, 폭설, 폭염', score: -15 }, { condition: '맑고 쾌적한 날씨', score: 5 }, { condition: '흐림/구름 많음', score: 0 }, ];
+  const weatherFactor = weatherFactors[Math.floor(Math.random() * weatherFactors.length)];
+  if(weatherFactor.score !== 0) {
+    details.push({ factor: '현재 날씨', ...weatherFactor });
+    totalScore += weatherFactor.score;
+  }
+
+  const mapFactors = [ { condition: '평소보다 매우 붐빔', score: 30 }, { condition: '평소보다 약간 붐빔', score: 15 }, { condition: '평소와 비슷함', score: 0 }, { condition: '한산함', score: -20 }, ];
+  const mapFactor = mapFactors[Math.floor(Math.random() * mapFactors.length)];
+  if(mapFactor.score !== 0) {
+    details.push({ factor: '지도 앱 혼잡도', ...mapFactor });
+    totalScore += mapFactor.score;
+  }
+
+  if (Math.random() > 0.6) {
+    const snsScore = 10;
+    details.push({ factor: '실시간 SNS', condition: '최근 1시간 내 언급', score: snsScore });
+    totalScore += snsScore;
+  }
+
+  scoreDetails.value = details;
+  generateFinalResult(totalScore);
+};
+
+const generateFinalResult = (totalScore) => {
+  let waitingIndex = '';
+  let message = '';
+  let emoji = '';
+
+  if (totalScore >= 70) { // 점수 구간 조정
+    waitingIndex = '매우 혼잡';
+    emoji = '🌋';
+    message = '웨이팅이 매우 길 것으로 예상돼요. 원격 줄서기나 다른 가게를 추천해요.';
+  } else if (totalScore >= 50) {
+    waitingIndex = '혼잡';
+    emoji = '🔴';
+    message = '웨이팅이 있을 가능성이 높아요. 방문에 참고하세요.';
+  } else if (totalScore >= 30) {
+    waitingIndex = '보통';
+    emoji = '🟡';
+    message = '붐비기 시작하는 시간이네요. 약간의 대기가 있을 수 있어요.';
+  } else if (totalScore >= 10) {
+    waitingIndex = '여유';
+    emoji = '🟢';
+    message = '아직은 여유로운 편이에요. 지금 방문하면 좋을 것 같아요.';
+  } else {
+    waitingIndex = '한산';
+    emoji = '🔵';
+    message = '매우 한산해요! 기다림 없이 바로 즐길 수 있어요.';
+  }
+
+  result.value = { totalScore, waitingIndex, message, emoji };
+  step.value = 'result';
+};
+
+const reset = () => {
+  step.value = 'search';
+  searchQuery.value = '';
+  foundStores.value = [];
+  selectedStore.value = null;
+  result.value = null;
+  scoreDetails.value = [];
+};
 </script>
 
 <style scoped>
-/* Font Awesome 및 CSS 변수는 변경사항 없습니다. */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
-:root { --card-bg: #ffffff; --text-primary: #2c3e50; --text-secondary: #7f8c8d; --border-color: #eef0f5; --accent-color: #5b21b6; --color-free: #34D399; --color-normal: #FACC15; --color-crowded: #FB923C; --color-very-crowded: #F87171; }
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
-/* ================== [수정된 스타일] ================== */
-
-/* [고정] 이 영역의 높이는 변경하지 않습니다. */
-.component-wrapper { width: 100%; height: 500px; display: flex; flex-direction: column; gap: 16px; }
-.content-card { --el-card-padding: 0; flex-grow: 1; /* 남는 공간을 모두 차지하도록 설정 */ }
-.content-card :deep(.el-card__body) {
-  position: relative; padding: 24px 20px; display: flex; flex-direction: column;
-  align-items: center; justify-content: space-between;
-  height: 100%; /* 부모 높이를 100% 사용 */
-  box-sizing: border-box;
+:root {
+  --primary-color: #6c5ce7;
+  --bg-color: #f4f7f9;
+  --card-bg: #ffffff;
+  --text-color: #333;
+  --light-text-color: #777;
+  --border-color: #e9e9e9;
+  --green: #2ecc71;
+  --yellow: #f1c40f;
+  --orange: #e67e22;
+  --red: #e74c3c;
+  --blue: #3498db;
 }
-/* ====================================================== */
 
-.info-popover-trigger-area { position: absolute; top: 16px; right: 16px; z-index: 10; }
-.info-button { width: 28px; height: 28px; }
-.store-info { width: 100%; text-align: center; flex-shrink: 0; /* 높이가 줄어들지 않도록 설정 */ }
-.store-name { font-size: 24px; font-weight: 700; margin: 0; }
-.store-address { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
-
-/* [수정] 게이지 확대 */
-.gauge-wrapper {
-  position: relative;
-  width: 170px; /* 150px -> 170px */
-  height: 170px; /* 150px -> 170px */
-  display: flex; justify-content: center; align-items: center;
+.estimator-container {
+  font-family: 'Noto Sans KR', sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 550px;
+  background-color: var(--bg-color);
+  padding: 0;
+}
+.card {
+  width: calc(100% - 2px);
+  height: 100%;
+  padding: 0;
+  background: var(--card-bg);
+  border-radius: 4px;
+  border: 1px solid rgba(108, 92, 231, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.card-header {
+  background: var(--el-color-primary);
+  color: white;
+  padding: 15px 20px;
+  text-align: center;
   flex-shrink: 0;
 }
-.gauge-svg { position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); }
-.gauge-track, .gauge-bar { fill: none; stroke-width: 12; }
-.gauge-track { stroke: #e5e7eb; }
-.gauge-bar { stroke-linecap: round; transition: stroke-dashoffset 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-.gauge-content { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-.gauge-score {
-  font-size: 48px; /* 42px -> 48px */
-  font-weight: 800; line-height: 1;
+.title { font-size: 1.4rem; margin: 0; font-weight: 700; }
+.subtitle { font-size: 0.8rem; margin: 4px 0 0; opacity: 0.9; }
+.card-body {
+  padding: 20px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
-.gauge-label {
-  font-size: 17px; /* 16px -> 17px */
-  font-weight: 600; margin-top: 8px; transition: color 0.5s;
-}
-
-.text-free { color: var(--color-free); }
-.text-normal { color: var(--color-normal); }
-.text-crowded { color: var(--color-crowded); }
-.text-very-crowded { color: var(--color-very-crowded); }
-.text-secondary { color: var(--text-secondary); }
-
-.ai-comment {
-  display: flex; align-items: center; gap: 12px; padding: 8px 16px; /* 세로 패딩 축소 */
-  font-size: 13px; /* 폰트 축소 */ font-weight: 500; text-align: center;
-  max-width: 340px; justify-content: center; flex-shrink: 0;
-}
-.ai-icon-wrapper {
-  flex-shrink: 0; width: 28px; height: 28px; /* 아이콘 크기 축소 */
-  border-radius: 50%; background-image: linear-gradient(135deg, #a855f7, #6d28d9);
-  color: white; display: flex; align-items: center; justify-content: center; font-size: 14px;
+.step-title { text-align: center; margin-top: 0; margin-bottom: 20px; font-weight: 500; font-size: 1.1rem; color: var(--primary-color); flex-shrink: 0; }
+.search-form { display: flex; gap: 8px; margin: auto 0; }
+input[type="text"] {
+  flex-grow: 1;
+  padding: 12px;
+  /* border-color를 조금 더 진한 색으로 변경하여 항상 보이게 함 */
+  border: 3px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
 }
 
-/* [수정] 세부 정보 축소 */
-.details-section {
-  display: flex; justify-content: space-around; width: 100%;
-  padding-top: 12px; /* 상단 여백 축소 */
-  border-top: 1px solid var(--border-color); flex-shrink: 0;
+/* 포커스될 때의 스타일은 그대로 유지하여 시각적 피드백을 줍니다. */
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--el-border-color); /* 포커스 시에는 메인 색상으로 변경 */
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
 }
-.detail-item {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 2px; /* 내부 간격 대폭 축소 */
-  transition: transform 0.2s ease-in-out;
+button {
+  padding: 12px 18px;
+  background-color: var(--el-color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  flex-shrink: 0;
 }
-.detail-item:hover { transform: translateY(-3px); }
-.detail-icon {
-  font-size: 18px; /* 아이콘 크기 축소 */
-  color: var(--accent-color); margin-bottom: 2px;
-}
-.detail-label {
-  font-size: 11px; /* 라벨 크기 대폭 축소 */
-  color: var(--text-secondary);
-}
-.detail-value {
-  font-size: 13px; /* 값 크기 축소 */
-  font-weight: 600;
-}
-</style>
 
-<!-- Popover 전역 스타일 (변경 없음) -->
-<style>
-.congestion-guide-popper { border-radius: 12px !important; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important; border: 1px solid #f0f0f0 !important; padding: 12px !important; }
-.congestion-guide-popper .guide-content { font-family: 'Pretendard', sans-serif; }
-.congestion-guide-popper .guide-title { font-size: 16px; font-weight: 600; color: #2c3e50; margin: 0 0 12px 4px; }
-.congestion-guide-popper .guide-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.congestion-guide-popper .guide-item { display: flex; flex-direction: column; gap: 4px; }
-.congestion-guide-popper .guide-level { font-size: 14px; font-weight: 600; }
-.congestion-guide-popper .guide-message { font-size: 13px; color: #576574; margin: 0; line-height: 1.5; }
+button:hover {
+  background-color: #5848c8;
+}
+
+/* ★★★ :disabled 대신 클래스로 제어 ★★★ */
+button.is-disabled {
+  background-color: #b5b5b5;
+  cursor: not-allowed;
+}
+
+/* .is-disabled 상태일 때는 hover 효과를 없앰 */
+button.is-disabled:hover {
+  background-color: #b5b5b5;
+}
+.store-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+.store-list li { padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+.store-list li span { font-size: 0.8rem; color: var(--light-text-color); }
+.store-list li:hover { background-color: #f9f6ff; border-color: var(--primary-color); transform: translateY(-2px); }
+.back-button { width: 100%; margin-top: 15px; background-color: #7f8c8d; }
+.back-button:hover { background-color: #6c7a7b; }
+.loading-state { justify-content: center; text-align: center; }
+.spinner { width: 40px; height: 40px; border: 4px solid rgba(108, 92, 231, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-message { color: var(--light-text-color); font-size: 0.9rem; margin-bottom: 20px; }
+.progress-list { text-align: left; background-color: #fafafa; padding: 10px 15px; border-radius: 8px; }
+.progress-list p { margin: 8px 0; font-size: 0.85rem; color: var(--light-text-color); transition: all 0.5s ease; }
+.progress-list p.done { color: var(--text-color); font-weight: 500; }
+.progress-list p.done::after { content: ' ✓'; color: var(--green); }
+.footer { margin-top: 20px; text-align: center; font-size: 0.75rem; color: var(--light-text-color); }
+.footer p {
+  margin: 2px 0; /* 위아래 간격 줄이기 */
+}
+.footer .copyright {
+  font-size: 0.7rem; /* 저작권 폰트는 약간 작게 */
+  opacity: 0.8;
+}
+
+/* =============================================================== */
+/* ============= [핵심] 결과 화면 & 상세 분석 영역 개선 ============= */
+/* =============================================================== */
+
+/* 전체 결과 화면 레이아웃 */
+.result-state {
+  justify-content: space-between; /* 요소들을 위, 중간, 아래로 분산 */
+  padding: 15px; /* 패딩 약간 축소 */
+}
+
+/* 1. 상단 요약 정보 */
+.result-summary {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background-color: #f8f9fa;
+  padding: 12px;
+  border-radius: 10px;
+  flex-shrink: 0; /* 높이 고정 */
+}
+.result-emoji { font-size: 2.5rem; }
+.result-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 주 축(main-axis, 현재는 세로)의 중앙으로 정렬 */
+  flex-grow: 1;
+}
+.result-index {
+  font-size: 1rem; /* 폰트 크기 조정 */
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-color);
+}
+/* 혼잡도 텍스트에 색상 부여 */
+.result-index .매우.혼잡, .result-index .혼잡 { color: var(--red); }
+.result-index .보통 { color: var(--orange); }
+.result-index .여유 { color: var(--green); }
+.result-index .한산 { color: var(--blue); }
+
+.result-message {
+  font-size: 0.8rem;
+  margin: 4px 0 0;
+  color: var(--light-text-color);
+  line-height: 1.4;
+}
+
+/* 2. [핵심] 스크롤되는 상세 분석 영역 */
+.score-details {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* 남은 세로 공간을 모두 차지 */
+  min-height: 0; /* 자식 요소(ul)가 넘칠 때 스크롤이 가능하게 하는 핵심 속성 */
+  margin: 12px 0;
+}
+.details-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: var(--text-color);
+  flex-shrink: 0; /* 높이 고정 */
+}
+.details-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(108, 92, 231, 0.2);
+  overflow-y: auto;
+  flex-grow: 1;
+  background-color: var(--card-bg); /* 스크롤 영역에 흰색 배경을 줘서 구분 */
+}
+/* 스크롤바 디자인 (선택사항) */
+.details-list::-webkit-scrollbar { width: 6px; }
+.details-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
+.details-list::-webkit-scrollbar-track { background-color: #f1f1f1; }
+
+.details-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 0.85rem;
+}
+.details-list li:last-child { border-bottom: none; }
+
+.factor { font-weight: 500; }
+.condition {
+  color: var(--light-text-color);
+  font-size: 0.8rem;
+  flex-grow: 1;
+  text-align: right;
+  margin-right: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.score {
+  font-weight: 700;
+  min-width: 35px;
+  text-align: right;
+  font-size: 0.9rem;
+}
+.score.positive { color: var(--green); }
+.score.negative { color: var(--red); }
+
+/* 3. 하단 최종 점수 및 버튼 */
+.result-footer {
+  flex-shrink: 0; /* 높이 고정 */
+}
+.total-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background-color: #f8f6ff;
+  border-radius: 8px;
+  border: 1px solid #e2dffc;
+}
+.total-score .factor { font-size: 0.9rem; color: var(--primary-color); font-weight: 700; }
+.total-score .score { font-size: 1.2rem; color: var(--primary-color); font-weight: 700; }
+.reset-button { width: 100%; }
+
+/* 휴무일 화면 스타일 */
+.closed-state {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+.closed-state .result-index { font-size: 1.3rem; font-weight: 700; }
+.closed-state .reset-button { margin-top: 15px; }
+
 </style>

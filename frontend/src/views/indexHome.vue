@@ -179,7 +179,7 @@ const goToGitHub = () => {
         <!-- 정보 래퍼 (기존과 동일) -->
         <div class="info-wrapper">
           <div class="concept-banner">
-            <el-icon :size="20" style="margin-left: 36px;">
+            <el-icon :size="20" style="margin-left: 28px;">
               <CollectionTag/>
             </el-icon>
             <div class="banner-text">
@@ -301,7 +301,7 @@ const goToGitHub = () => {
 /* 모든 스타일은 변경 없이 그대로 유지됩니다 */
 .page-container {
   height: 120vh;
-  max-height: 850px;
+  max-height: 880px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -363,19 +363,19 @@ const goToGitHub = () => {
 
 .content-card {
   width: 100%;
-  height: 620px;
+  height: 700px;
   min-height: 620px;
   border-radius: 4px;
-  padding: 12px 24px 24px 24px;
+  padding: 8px;
   box-sizing: border-box;
 }
 
 /* [신규/수정] 사용자 컨텐츠 영역 스타일 추가 */
 .user-content-container {
-  height: 500px; /* 관리자 패널과 높이를 맞추거나 조절 */
+  height: 600px; /* 관리자 패널과 높이를 맞추거나 조절 */
   overflow-y: auto;
-  padding: 8px;
-  margin: -8px; /* 부모 패딩 고려 */
+  padding: 0;
+  margin: 0; /* 부모 패딩 고려 */
 }
 
 /* [신규] 드롭다운 링크 스타일 */
@@ -402,7 +402,7 @@ const goToGitHub = () => {
 .admin-panel-layout {
   display: flex;
   flex-direction: column;
-  height: 480px;
+  height: 550px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 4px;
 }
@@ -481,7 +481,7 @@ const goToGitHub = () => {
   background-color: #ffffff;
   border-radius: 4px;
   border: 1px solid #e4e7ed;
-  padding: 8px;
+  padding: 0;
   box-sizing: border-box;
 }
 
