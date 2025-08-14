@@ -127,7 +127,7 @@ const copyEmail = (email: string) => {
 </script>
 
 <template>
-  <el-card class="custom-el-card" shadow="never" style="width: 230px;">
+  <el-card class="custom-el-card" shadow="never" style="width: 230px; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05);">
     <template #header>
       <div style="height: 60px; display: flex; align-items: center;">
         <div style="display: flex; justify-content: flex-start; padding: 0 0 0 8px;">

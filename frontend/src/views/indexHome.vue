@@ -11,6 +11,7 @@ import { userStore } from '@/store/userStore';
 import { useRouter } from 'vue-router';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
+import TimeViewr from "@/components/time/TimeViewr.vue";
 
 // router, user
 const router = useRouter();
@@ -155,19 +156,18 @@ const goToGitHub = () => {
   <div class="page-container">
     <!-- 상단 네비게이션 바 (기존과 동일) -->
     <el-header class="main-header">
-      <div class="logo">
-        <el-icon :size="24">
-          <Box/>
-        </el-icon>
-        <span class="logo-text">Dev</span>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 16px 8px 16px; background-color: #f4f7f9; border-radius: 4px;">
+        <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 400; color: #777;">Project By</span>
+        <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: #333;">Bons</span>
+        <div style="width: 7px; height: 7px; background-color: var(--el-color-primary); border-radius: 50%;"></div>
       </div>
       <div class="header-actions">
-        <el-button :icon="ChatSquare" circle/>
+        <el-button class="custom-image-button" :icon="ChatSquare" />
         <el-tooltip content="테마 변경" placement="bottom">
-          <el-button :icon="isDarkMode ? Moon : Sunny" circle @click="toggleTheme"/>
+          <el-button class="custom-image-button" :icon="isDarkMode ? Moon : Sunny" @click="toggleTheme"/>
         </el-tooltip>
         <el-tooltip content="깃허브 바로가기" placement="bottom">
-          <el-button circle class="custom-image-button" @click="goToGitHub">
+          <el-button class="custom-image-button" @click="goToGitHub">
             <img src="@/assets/images/github_icon.png" alt="custom icon"/>
           </el-button>
         </el-tooltip>
@@ -178,14 +178,29 @@ const goToGitHub = () => {
       <div class="main-content-area">
         <!-- 정보 래퍼 (기존과 동일) -->
         <div class="info-wrapper">
-          <div class="concept-banner">
-            <el-icon :size="20" style="margin-left: 28px;">
-              <CollectionTag/>
-            </el-icon>
-            <div class="banner-text">
-              <span>스프링부트 기반 개인 프로젝트</span>
+<!--            <img src="@/assets/images/spring-icon.svg" class="banner-icon" alt="Spring Boot Icon">-->
+<!--            <div class="banner-text">-->
+<!--              <span class="banner-title">스프링부트 기반 개인 프로젝트</span>-->
+<!--            </div>-->
+
+            <div style="display: flex; align-items: center; gap: 20px; padding: 24px; border-radius: 4px;
+background:
+linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(255, 255, 255, 0.9) 70%), /* 은은한 그라데이션 */
+linear-gradient(to bottom, rgba(74, 144, 226, 0.15) 1px, transparent 1px), /* 가로선 */
+linear-gradient(to right, rgba(74, 144, 226, 0.2) 1px, transparent 1px); /* 세로선 */
+background-size: 100%, 20px 20px, 20px 20px; /* 그리드 크기 지정 */
+border: 1px solid #e2dffc;
+box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background-color: #eef2f7; display: flex; align-items: center; justify-content: center;">
+                <img src="@/assets/images/spring-icon.svg" class="banner-icon" alt="Spring Boot Icon">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <h3 style="margin: 0; font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 600; color: #333;">Spring Boot Project</h3>
+                <p style="margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 0.85rem; color: #777; text-align: left;">Waiting Index Analyzer</p>
+              </div>
             </div>
-          </div>
+
+
           <UserInfoAvatar/>
         </div>
 
@@ -298,6 +313,8 @@ const goToGitHub = () => {
 </template>
 
 <style scoped>
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Poppins:wght@600;700&family=Outfit:wght@600;700&family=Rubik:wght@600;700&display=swap');
 /* 모든 스타일은 변경 없이 그대로 유지됩니다 */
 .page-container {
   height: 120vh;
@@ -316,18 +333,20 @@ const goToGitHub = () => {
   align-items: center;
   background-color: #ffffff;
   border-bottom: 1px solid #e4e7ed;
-  padding: 0 12px;
+  padding: 0;
   box-sizing: border-box;
   flex-shrink: 0;
 }
 
 .custom-image-button {
   padding: 0;
+  width: 32px;
+  height: 32px;
 }
 
 .custom-image-button img {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: block;
 }
@@ -363,11 +382,12 @@ const goToGitHub = () => {
 
 .content-card {
   width: 100%;
-  height: 700px;
-  min-height: 620px;
+  height: 680px;
+  min-height: 600px;
   border-radius: 4px;
   padding: 8px;
   box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05);
 }
 
 /* [신규/수정] 사용자 컨텐츠 영역 스타일 추가 */
@@ -431,7 +451,7 @@ const goToGitHub = () => {
   font-size: 1rem; /* [수정] 폰트 크기를 1rem으로 조정 */
   height: 48px;
   /* 드롭다운이 탭 내부에 있으므로, 패딩을 조절하여 정렬을 맞춥니다. */
-  padding: 0 10px;
+  padding: 0 16px;
 }
 
 /* 드롭다운이 포함된 탭의 padding을 0으로 설정하여 자체 스타일링을 쉽게 합니다. */
@@ -449,11 +469,12 @@ const goToGitHub = () => {
   align-items: center;
   gap: 8px;
 }
-
 .logo-text {
-  font-size: 19px;
-  font-weight: 600;
+  font-size: 1.8rem;
+  margin: 0;
+  font-weight: 700;
   color: #303133;
+  font-family: 'Outfit', sans-serif;
 }
 
 .tab-content-placeholder {
@@ -476,12 +497,12 @@ const goToGitHub = () => {
   width: 70%;
   height: 100%;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: center; /* 세로 중앙 정렬 */
+  gap: 12px; /* 아이콘과 텍스트 사이 간격 */
   background-color: #ffffff;
   border-radius: 4px;
   border: 1px solid #e4e7ed;
-  padding: 0;
+  padding: 0 28px; /* 내부 좌우 여백 */
   box-sizing: border-box;
 }
 
@@ -493,7 +514,17 @@ const goToGitHub = () => {
   font-size: 14px;
   color: #606266;
 }
+.banner-icon {
+  width: 24px;  /* 아이콘 크기 지정 */
+  height: 24px; /* 아이콘 크기 지정 */
+}
 
+/* 2. 텍스트 강조 스타일 */
+.banner-title {
+  font-size: 15px; /* 기본 폰트보다 살짝 크게 */
+  font-weight: 500; /* 살짝 두껍게 */
+  color: #606266;
+}
 .custom-el-card {
   --el-card-border-color: var(--el-border-color-light);
   --el-card-border-radius: 4px;

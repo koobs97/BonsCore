@@ -6,8 +6,8 @@
         <p class="subtitle">가게의 오늘 웨이팅 지수를 예측해 드립니다.</p>
       </div>
 
-      <!-- 1. 초기 검색 단계 -->
-      <div v-if="step === 'search'" class="card-body">
+      <!-- 1. 초기 검색 단계 (수정됨) -->
+      <div v-if="step === 'search'" class="card-body search-step-body">
         <div class="search-form">
           <input
               type="text"
@@ -22,6 +22,19 @@
           >
             분석 시작
           </button>
+        </div>
+
+        <!-- 아래에 추가된 정보 섹션 -->
+        <div class="info-section">
+          <div class="info-block">
+            <h3 class="info-title">이런 가게는 어때요? ✨</h3>
+            <ul class="example-list">
+              <li>#런던베이글뮤지엄</li>
+              <li>#카멜커피</li>
+              <li>#다운타우너</li>
+              <li>#노티드도넛</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -170,6 +183,12 @@ const selectStore = (store) => {
 const selectTimeSlot = (timeValue) => {
   selectedTime.value = timeValue;
 };
+
+const confirmTimeAndAnalyze = () => {
+  if (!selectedTime.value) return;
+  step.value = 'loading';
+  startAnalysis();
+}
 
 const startAnalysis = () => {
   Object.keys(progress.value).forEach(k => progress.value[k] = false);
@@ -326,17 +345,28 @@ const reset = () => {
 .card-body {
   padding: 20px;
   flex-grow: 1;
-  display: flex;
   flex-direction: column;
   min-height: 0;
 }
+.card-body.search-step-body {
+  justify-content: space-between; /* 검색창은 위로, 정보 섹션은 아래 근처로 */
+  padding: 25px 20px;
+
+}
+
+/* 기존 search-form의 중앙 정렬을 제거합니다. */
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
 .step-title { text-align: center; margin-top: 0; margin-bottom: 20px; font-weight: 500; font-size: 1.1rem; color: var(--primary-color); flex-shrink: 0; }
 .search-form { display: flex; gap: 8px; margin: auto 0; }
 input[type="text"] {
   flex-grow: 1;
   padding: 12px;
   /* border-color를 조금 더 진한 색으로 변경하여 항상 보이게 함 */
-  border: 3px solid #ccc;
+  border: 2px solid #ccc;
   border-radius: 8px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
@@ -347,6 +377,51 @@ input[type="text"]:focus {
   outline: none;
   border-color: var(--el-border-color); /* 포커스 시에는 메인 색상으로 변경 */
   box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+}
+
+.info-section {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
+  margin-top: 20px;
+}
+
+.info-block {
+  text-align: center;
+}
+
+.info-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0 0 8px 0;
+}
+
+.info-text {
+  font-size: 0.85rem;
+  color: var(--light-text-color);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.example-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.example-list li {
+  background-color: #f4f7f9;
+  color: var(--primary-color);
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: default; /* 클릭 기능이 없으므로 기본 커서로 */
 }
 button {
   padding: 12px 18px;
@@ -362,7 +437,7 @@ button {
 }
 
 button:hover {
-  background-color: #5848c8;
+  background-color: var(--el-color-primary-light-3);
 }
 
 /* ★★★ :disabled 대신 클래스로 제어 ★★★ */
@@ -381,6 +456,50 @@ button.is-disabled:hover {
 .store-list li:hover { background-color: #f9f6ff; border-color: var(--primary-color); transform: translateY(-2px); }
 .back-button { width: 100%; margin-top: 15px; background-color: #7f8c8d; }
 .back-button:hover { background-color: #6c7a7b; }
+.time-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: auto 0;
+  flex-grow: 1;
+  align-content: center;
+}
+.time-slot-btn {
+  padding: 15px 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background-color: var(--el-border-color);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.time-slot-btn:hover {
+  border-color: var(--el-color-primary-light-3);
+  background-color: var(--el-border-color-extra-light);
+  transform: translateY(-2px);
+}
+.time-slot-btn.active {
+  background-color: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 700;
+  border-color: var(--el-text-color-regular);
+  box-shadow: 0 4px 10px rgba(108, 92, 231, 0.15);
+  transform: translateY(-2px);
+}
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-shrink: 0;
+}
+.button-group button {
+  flex: 1;
+}
+.button-group .back-button {
+  margin-top: 0; /* 기존 back-button의 margin-top 제거 */
+}
 .loading-state { justify-content: center; text-align: center; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(108, 92, 231, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
 @keyframes spin { to { transform: rotate(360deg); } }

@@ -12,7 +12,7 @@ let timer: any
 
 onMounted(() => {
 
-  setTimeout(()=>{visible.value = true}, 500)
+  // setTimeout(()=>{visible.value = true}, 500)
 
   timer = setInterval(() => {
     currentTime.value = dayjs().format('A h:mm')
@@ -42,7 +42,7 @@ onUnmounted(() => {
       ></VDatePicker>
     </template>
 
-    <el-tag type="info" effect="plain" style="margin-right: 4px; text-align: center; height: 92px; width: 110px;">
+    <el-tag type="info" effect="plain" style="text-align: center; height: 92px; width: 113px;">
 
       <div style="display: inline-flex; align-items: center; font-size: 10px;">
         <el-icon style="margin-right: 4px" :size="12" @click="visible = !visible">
@@ -64,5 +64,9 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-
+.el-tag--plain.el-tag--info {
+  --el-tag-bg-color: var(--el-fill-color-blank);
+  --el-tag-border-color: var(--el-border-color-light);
+  --el-tag-hover-color: var(--el-color-info);
+}
 </style>
