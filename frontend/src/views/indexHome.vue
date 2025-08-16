@@ -172,11 +172,17 @@ const goToGitHub = () => {
   <div class="page-container">
     <!-- 상단 네비게이션 바 (기존과 동일) -->
     <el-header class="main-header">
-      <div style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 16px 8px 16px; background-color: var(--main-header-background); border-radius: 4px;">
-        <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 400; color: var(--main-header-text-color1);">Project By</span>
-        <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: #333;">Bons</span>
-        <div style="width: 7px; height: 7px; background-color: var(--el-color-primary); border-radius: 50%;"></div>
-      </div>
+      <a href="/" class="logo-container">
+        <!-- 아이콘 영역 -->
+        <div class="logo-icon-wrapper">
+          <div class="logo-icon"></div>
+        </div>
+        <!-- 텍스트 영역 -->
+        <div>
+          <span class="logo-main-text">BONS</span>
+          <span class="logo-sub-text">Project</span>
+        </div>
+      </a>
       <div class="header-actions">
         <el-button class="custom-image-button" :icon="ChatSquare" />
         <el-tooltip content="테마 변경" placement="bottom">
@@ -339,19 +345,98 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   box-sizing: border-box;
   flex-shrink: 0;
 }
+.logo-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none; /* a 태그의 밑줄 제거 */
+}
 
+/* 2. 아이콘을 감싸는 배경 */
+.logo-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px; /* 부드러운 사각형 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--el-color-primary-light-9); /* 아주 연한 배경색 */
+  transition: transform 0.2s ease;
+}
+
+/* 3. 실제 아이콘 (핵심 색상) */
+.logo-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background-color: var(--el-color-primary);
+}
+
+/* 4. 텍스트를 세로로 정렬하기 위한 래퍼 */
+.logo-text-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 5. 메인 텍스트 (BONS) 스타일 */
+.logo-main-text {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  line-height: 1.2;
+  transition: color 0.2s ease;
+  letter-spacing: 0.5px; /* 글자 간격을 살짝 주어 세련미 추가 */
+}
+
+/* 6. 서브 텍스트 (Project) 스타일 */
+.logo-sub-text {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.75rem;
+  text-align: left;
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  line-height: 1;
+}
+
+/* 7. 마우스를 올렸을 때의 인터랙션 효과 */
+.logo-container:hover .logo-icon-wrapper {
+  transform: rotate(10deg) scale(1.05); /* 아이콘이 살짝 회전하며 커짐 */
+}
+
+.logo-container:hover .logo-main-text {
+  color: var(--el-color-primary); /* 메인 텍스트 색상이 테마 색상으로 변경 */
+}
 .custom-image-button {
-  padding: 0;
   width: 32px;
   height: 32px;
+  padding: 0;
+  border-radius: 50%; /* 완전한 원형으로 변경 */
+  border: none; /* 테두리 제거 */
+  background-color: transparent; /* 배경색 제거 */
+  color: var(--el-text-color-secondary);
+  font-size: 18px;
+  transition: all 0.2s ease;
   outline: none;
 }
 
+.custom-image-button:hover {
+  background-color: var(--el-fill-color-light); /* 호버 시 은은한 배경색 */
+  color: var(--el-text-color-primary);
+}
+
 .custom-image-button img {
-  width: 32px;
-  height: 32px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: block;
+  margin: auto; /* 이미지를 버튼 중앙에 위치 */
+  opacity: 0.8;
+}
+.custom-image-button:hover img {
+  opacity: 1;
 }
 
 .content-layout-wrapper {
