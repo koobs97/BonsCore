@@ -318,9 +318,9 @@ const reset = () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 550px;
+  height: 600px;
   background-color: var(--bg-color);
-  padding: 0;
+  padding: 4px 0 0 0;
 }
 .card {
   width: calc(100% - 2px);

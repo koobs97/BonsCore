@@ -204,8 +204,6 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
           <UserInfoAvatar/>
         </div>
 
-        <el-main class="main-content">
-          <el-card class="content-card" shadow="never">
             <el-skeleton :rows="10" animated v-if="isLoading"/>
             <el-tabs v-model="activeMainTab" class="main-mode-tabs" v-else>
 
@@ -304,8 +302,6 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
                 </div>
               </el-tab-pane>
             </el-tabs>
-          </el-card>
-        </el-main>
       </div>
     </div>
     <TheFooter/>
@@ -392,7 +388,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 
 /* [신규/수정] 사용자 컨텐츠 영역 스타일 추가 */
 .user-content-container {
-  height: 600px; /* 관리자 패널과 높이를 맞추거나 조절 */
+  height: 620px; /* 관리자 패널과 높이를 맞추거나 조절 */
   overflow-y: auto;
   padding: 0;
   margin: 0; /* 부모 패딩 고려 */
@@ -407,6 +403,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   font-size: 1rem; /* [수정] 탭과 동일하게 1rem으로 명시적으로 지정 */
   font-weight: 500; /* [추가] 탭 기본 폰트 두께와 맞춤 */
   outline: none; /* 클릭 시 테두리 제거 */
+  padding: 0 0 0 20px;
 }
 
 .el-dropdown-link:hover {
@@ -443,21 +440,6 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   overflow-y: auto;
 }
 
-.main-mode-tabs :deep(.el-tabs__header) {
-  margin-bottom: 20px;
-}
-
-.main-mode-tabs :deep(.el-tabs__item) {
-  font-size: 1rem; /* [수정] 폰트 크기를 1rem으로 조정 */
-  height: 48px;
-  /* 드롭다운이 탭 내부에 있으므로, 패딩을 조절하여 정렬을 맞춥니다. */
-  padding: 0 16px;
-}
-
-/* 드롭다운이 포함된 탭의 padding을 0으로 설정하여 자체 스타일링을 쉽게 합니다. */
-.main-mode-tabs :deep(.el-tabs__item:has(.el-dropdown)) {
-  padding: 0;
-}
 
 
 .search-input {
@@ -524,6 +506,63 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   font-size: 15px; /* 기본 폰트보다 살짝 크게 */
   font-weight: 500; /* 살짝 두껍게 */
   color: #606266;
+}
+.main-mode-tabs {
+  width: 100%;
+  /* 탭 헤더와 콘텐츠 카드 사이의 연결을 위해 margin-bottom을 음수값으로 설정 */
+  margin-bottom: -1px;
+  z-index: 1; /* 콘텐츠 카드보다 위에 오도록 설정 */
+}
+
+/* 탭 헤더(el-tabs__header) 스타일링 */
+.main-mode-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  border: 1px solid var(--el-border-color-light);
+  background-color: var(--el-fill-color-light);
+  /* 위쪽만 둥글게 설정 */
+  border-radius: 4px 4px 0 0;
+}
+
+/* 탭 네비게이션 영역(el-tabs__nav-wrap)의 기본 하단 라인 제거 */
+.main-mode-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
+}
+
+/* 개별 탭 아이템(el-tabs__item) 스타일 */
+.main-mode-tabs :deep(.el-tabs__item) {
+  font-size: 1rem;
+  height: 48px;
+  padding: 0 20px;
+  border-top: 3px solid transparent; /* 비활성 탭 상단 테두리 투명 처리 */
+}
+
+/* 활성화된 탭 아이템 스타일 */
+.main-mode-tabs :deep(.el-tabs__item.is-active) {
+  background-color: #ffffff; /* 흰색 배경 */
+  border-bottom-color: transparent; /* 하단 테두리 제거하여 콘텐츠와 연결 */
+  /* 위쪽 모서리만 둥글게 하여 카드와 자연스럽게 연결 */
+  border-radius: 3px 3px 0 0;
+}
+
+.main-mode-tabs :deep(.el-tabs__item:last-child) {
+  padding-right: 20px !important;
+}
+
+/* 드롭다운이 포함된 탭의 padding을 0으로 설정 */
+.main-mode-tabs :deep(.el-tabs__item:has(.el-dropdown)) {
+  padding: 0 20px;
+}
+
+/* 2. 가상 요소를 사용해 우리가 원하는 너비의 '새로운 막대'를 생성합니다. */
+.main-mode-tabs :deep(.el-tabs__active-bar)::before {
+  content: "";
+  position: absolute;
+  /* left와 right를 -20px로 설정하여 양옆으로 20px씩 늘려줍니다. */
+  left: -20px;
+  right: -20px;
+  bottom: 0;
+  height: 2px; /* 원래 막대와 동일한 높이 */
+  background-color: var(--el-color-primary); /* 원래 막대와 동일한 색상 */
 }
 .custom-el-card {
   --el-card-border-color: var(--el-border-color-light);
