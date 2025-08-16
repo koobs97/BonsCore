@@ -1,6 +1,5 @@
 <script setup>
-import { ref, shallowRef, onMounted, defineAsyncComponent, computed } from 'vue';
-// [수정] ArrowDown 아이콘 추가
+import { ref, shallowRef, onMounted, defineAsyncComponent, computed, watch } from 'vue';
 import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
   Setting, User, CollectionTag, Tools, Operation, ChatSquare, Box, ArrowDown,
@@ -11,7 +10,6 @@ import { userStore } from '@/store/userStore';
 import { useRouter } from 'vue-router';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import TimeViewr from "@/components/time/TimeViewr.vue";
 
 // router, user
 const router = useRouter();
@@ -19,17 +17,15 @@ const userStoreObj = userStore();
 
 // ------------------- 상태(State) 관리 -------------------
 const isLoading = ref(true);
-const userName = ref('');
 const isAdmin = ref(false);
-const searchQuery = ref('');
+// [수정] activeMainTab은 이제 'user' 또는 'UserManagement'와 같은 관리자 메뉴 URL을 직접 가리킵니다.
 const activeMainTab = ref('user');
-// [수정] activeUserTab을 activeUserMenuUrl로 변경하여 현재 선택된 메뉴의 URL을 추적합니다.
 const activeUserMenuUrl = ref('');
-const activeAdminMenu = ref('');
 
 // ------------------- 메뉴 데이터 -------------------
 const userMenuItems = shallowRef([]);
-const adminMenuItems = shallowRef([]);
+// [신규] 관리자 메뉴를 드롭다운으로 사용하기 위한 데이터
+const adminDropdownItems = shallowRef([]);
 
 // 아이콘 매핑 (기존과 동일)
 const iconMap = {
@@ -78,18 +74,20 @@ const userComponentMap = Object.keys(userComponentFiles).reduce((map, path) => {
   return map;
 }, {});
 
-// ======================= [신규] 동적 컴포넌트 로딩 로직 =======================
-// 현재 활성화된 관리자 메뉴에 따른 컴포넌트 반환 (기존과 동일)
-const currentAdminComponent = computed(() => {
-  return adminComponentMap[activeAdminMenu.value] || null;
+// 현재 활성화된 컴포넌트를 결정하는 로직
+const currentUserComponent = computed(() => {
+  if (activeMainTab.value === 'user') {
+    return userComponentMap[activeUserMenuUrl.value] || null;
+  }
+  return null;
 });
 
-// [신규] 현재 활성화된 사용자 메뉴 URL에 따라 렌더링할 컴포넌트를 반환합니다.
-const currentUserComponent = computed(() => {
-  if (!activeUserMenuUrl.value) return null; // 선택된 메뉴가 없으면 null 반환
-  return userComponentMap[activeUserMenuUrl.value] || null;
+const currentAdminComponent = computed(() => {
+  if (isAdmin.value && activeMainTab.value !== 'user') {
+    return adminComponentMap[activeMainTab.value] || null;
+  }
+  return null;
 });
-// =========================================================================
 
 onMounted(async () => {
   isLoading.value = true;
@@ -101,8 +99,6 @@ onMounted(async () => {
     }
 
     const user = userStoreObj.getUserInfo;
-    userName.value = user.userName;
-
     const response = await Api.post(ApiUrls.GET_MENUS, { userId: user.userId });
     const allMenus = response.data || [];
     const menuTree = buildMenuTree(allMenus);
@@ -110,19 +106,26 @@ onMounted(async () => {
     const adminRootMenus = menuTree.filter(menu => menu.name === '시스템 관리');
     const regularUserMenus = menuTree.filter(menu => menu.name !== '시스템 관리');
 
+    // [수정] 관리자 메뉴를 드롭다운 아이템으로 설정
     if (user.roleId === 'ADMIN') {
       isAdmin.value = true;
-      adminMenuItems.value = adminRootMenus;
-      if (adminRootMenus[0]?.children?.[0]?.url) {
-        activeAdminMenu.value = adminRootMenus[0].children[0].url;
+      if (adminRootMenus[0]?.children) {
+        adminDropdownItems.value = adminRootMenus[0].children;
       }
     }
 
     userMenuItems.value = regularUserMenus;
-    // [수정] 컴포넌트 첫 진입 시, 첫 번째 사용자 메뉴를 활성화합니다.
+    // 첫 진입 시 활성화할 탭 설정
     if (regularUserMenus.length > 0 && regularUserMenus[0].url) {
       activeUserMenuUrl.value = regularUserMenus[0].url;
+      activeMainTab.value = 'user';
+    } else if (isAdmin.value && adminDropdownItems.value.length > 0) {
+      activeMainTab.value = adminDropdownItems.value[0].url;
     }
+
+    // 페이지 진입 시 저장된 테마를 읽고 적용
+    const savedTheme = localStorage.getItem('theme');
+    isDarkMode.value = savedTheme === 'dark';
 
   } catch (error) {
     console.error("메뉴 정보를 가져오는 데 실패했습니다:", error);
@@ -131,22 +134,35 @@ onMounted(async () => {
   }
 });
 
-
-// [신규] 사용자 메뉴 선택 핸들러
+// [수정] 사용자 메뉴 선택 시 'user' 탭을 활성화하도록 수정
 const handleUserMenuSelect = (url) => {
   if (url) {
     activeUserMenuUrl.value = url;
+    activeMainTab.value = 'user';
   }
 };
 
-// 핸들러 및 기타 함수 (기존과 동일)
-const handleAdminMenuSelect = (index) => {
-  activeAdminMenu.value = index;
+// [신규] 관리자 메뉴 선택 핸들러
+const handleAdminMenuSelect = (url) => {
+  if (url) {
+    activeMainTab.value = url;
+  }
 };
+
 const isDarkMode = ref(false);
 const toggleTheme = () => {
   isDarkMode.value = !isDarkMode.value;
 };
+// isDarkMode의 변경을 감지하여 <html> 클래스와 localStorage를 업데이트
+watch(isDarkMode, (newVal) => {
+  if (newVal) {
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('theme', 'dark'); // 변경된 테마를 localStorage에 저장
+  } else {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light'); // 변경된 테마를 localStorage에 저장
+  }
+});
 const goToGitHub = () => {
   window.open('https://github.com/koobs97/BonsCore/tree/main', '_blank');
 }
@@ -156,8 +172,8 @@ const goToGitHub = () => {
   <div class="page-container">
     <!-- 상단 네비게이션 바 (기존과 동일) -->
     <el-header class="main-header">
-      <div style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 16px 8px 16px; background-color: #f4f7f9; border-radius: 4px;">
-        <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 400; color: #777;">Project By</span>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 16px 8px 16px; background-color: var(--main-header-background); border-radius: 4px;">
+        <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 400; color: var(--main-header-text-color1);">Project By</span>
         <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: #333;">Bons</span>
         <div style="width: 7px; height: 7px; background-color: var(--el-color-primary); border-radius: 50%;"></div>
       </div>
@@ -194,9 +210,9 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
               <div style="width: 52px; height: 52px; border-radius: 50%; background-color: #eef2f7; display: flex; align-items: center; justify-content: center;">
                 <img src="@/assets/images/spring-icon.svg" class="banner-icon" alt="Spring Boot Icon">
               </div>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <h3 style="margin: 0; font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 600; color: #333;">Spring Boot Project</h3>
-                <p style="margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 0.85rem; color: #777; text-align: left;">Waiting Index Analyzer</p>
+              <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+                <h3 style="margin: 0; font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--main-header-text-color2);">개인 프로젝트 공간</h3>
+                <p style="margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 0.85rem; color: var(--main-header-text-color1);">Powered by Spring Boot, Vue 3</p>
               </div>
             </div>
 
@@ -260,42 +276,32 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 
 
               <!-- 관리자 탭 (기존과 동일) -->
-              <el-tab-pane v-if="isAdmin" name="admin">
+              <el-tab-pane v-if="isAdmin" :name="activeMainTab === 'user' ? 'admin' : activeMainTab">
                 <template #label>
-                  <div class="admin-tab-label">
-                    <span>관리자</span>
-                  </div>
+                  <el-dropdown trigger="hover" @command="handleAdminMenuSelect">
+                <span class="admin-tab-label"> <!-- 기존 스타일 재사용 -->
+                  관리자
+                  <el-icon class="el-icon--right"><arrow-down/></el-icon>
+                </span>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item
+                            v-for="menu in adminDropdownItems"
+                            :key="menu.id"
+                            :command="menu.url"
+                            :icon="menu.icon"
+                        >
+                          {{ menu.name }}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                 </template>
-
-                <div class="admin-panel-layout">
-                  <div class="admin-menu-container">
-                    <el-menu
-                        v-if="adminMenuItems.length > 0"
-                        :default-active="activeAdminMenu"
-                        @select="handleAdminMenuSelect"
-                        class="admin-menu"
-                        mode="horizontal"
-                    >
-                      <el-sub-menu v-for="menu in adminMenuItems" :key="menu.id" :index="String(menu.id)">
-                        <template #title>
-                          <el-icon>
-                            <component :is="menu.icon"/>
-                          </el-icon>
-                          <span>{{ menu.name }}</span>
-                        </template>
-                        <el-menu-item v-for="child in menu.children" :key="child.url" :index="child.url">
-                          <el-icon>
-                            <component :is="child.icon"/>
-                          </el-icon>
-                          <span>{{ child.name }}</span>
-                        </el-menu-item>
-                      </el-sub-menu>
-                    </el-menu>
-                  </div>
-
+                <!-- 관리자 탭 콘텐츠 -->
+                <div class="content-card">
                   <div class="admin-content-container">
                     <component :is="currentAdminComponent" v-if="currentAdminComponent"/>
-                    <div v-else>
+                    <div v-else class="tab-content-placeholder">
                       <p>관리자 메뉴를 선택해주세요.</p>
                     </div>
                   </div>
@@ -327,7 +333,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #ffffff;
+  background-color: var(--el-bg-color);
   border-bottom: 1px solid #e4e7ed;
   padding: 0;
   box-sizing: border-box;
@@ -338,6 +344,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   padding: 0;
   width: 32px;
   height: 32px;
+  outline: none;
 }
 
 .custom-image-button img {
@@ -354,7 +361,6 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   flex-grow: 1;
   overflow: hidden;
 }
-
 .main-content-area {
   display: flex;
   flex-direction: column;
@@ -370,97 +376,52 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   margin-top: 12px;
   margin-bottom: 12px;
 }
-
-.main-content {
-  width: 820px;
-  padding: 0;
-}
-
 .content-card {
   width: 100%;
   height: 680px;
   min-height: 600px;
   border-radius: 4px;
-  padding: 8px;
   box-sizing: border-box;
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05);
 }
-
-/* [신규/수정] 사용자 컨텐츠 영역 스타일 추가 */
 .user-content-container {
-  height: 620px; /* 관리자 패널과 높이를 맞추거나 조절 */
+  height: 670px; /* 관리자 패널과 높이를 맞추거나 조절 */
   overflow-y: auto;
   padding: 0;
   margin: 0; /* 부모 패딩 고려 */
 }
-
-/* [신규] 드롭다운 링크 스타일 */
 .el-dropdown-link {
   cursor: pointer;
   display: flex;
   align-items: center;
-  color: var(--el-color-primary); /* Element Plus 테마 색상 사용 */
+  color: var(--el-overlay-color-light); /* Element Plus 테마 색상 사용 */
   font-size: 1rem; /* [수정] 탭과 동일하게 1rem으로 명시적으로 지정 */
   font-weight: 500; /* [추가] 탭 기본 폰트 두께와 맞춤 */
   outline: none; /* 클릭 시 테두리 제거 */
   padding: 0 0 0 20px;
 }
-
 .el-dropdown-link:hover {
   color: var(--el-color-primary-light-3);
 }
-
 .admin-tab-label {
+  cursor: pointer; /* 클릭 가능한 요소임을 나타내기 위해 커서 변경 */
   display: flex;
   align-items: center;
   gap: 6px;
+  color: var(--el-overlay-color-light); /* '서비스' 탭과 동일한 색상 적용 */
+  font-size: 1rem;                 /* '서비스' 탭과 동일한 폰트 크기 적용 */
+  font-weight: 500;                /* '서비스' 탭과 동일한 폰트 두께 적용 */
+  outline: none;                   /* 클릭 시 나타나는 포커스 선 제거 */
 }
-
-.admin-panel-layout {
-  display: flex;
-  flex-direction: column;
-  height: 550px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
+.admin-tab-label:hover {
+  color: var(--el-color-primary-light-3);
 }
-
-.admin-menu-container {
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--el-border-color-light);
-  overflow-y: visible;
-}
-
-.admin-menu.el-menu--horizontal {
-  border-bottom: none !important;
-}
-
 .admin-content-container {
   flex-grow: 1;
-  padding: 8px;
   overflow-y: auto;
 }
-
-
-
-.search-input {
-  margin-bottom: 1rem;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.logo-text {
-  font-size: 1.8rem;
-  margin: 0;
-  font-weight: 700;
-  color: #303133;
-  font-family: 'Outfit', sans-serif;
-}
-
 .tab-content-placeholder {
-  height: 350px;
+  height: 620px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -469,24 +430,12 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   color: var(--el-text-color-secondary);
   background-color: var(--el-fill-color-light);
   border-radius: 4px;
+  margin: 4px 0 0 0;
 }
-
 .placeholder-icon {
   color: var(--el-text-color-placeholder);
 }
 
-.concept-banner {
-  width: 70%;
-  height: 100%;
-  display: flex;
-  align-items: center; /* 세로 중앙 정렬 */
-  gap: 12px; /* 아이콘과 텍스트 사이 간격 */
-  background-color: #ffffff;
-  border-radius: 4px;
-  border: 1px solid #e4e7ed;
-  padding: 0 28px; /* 내부 좌우 여백 */
-  box-sizing: border-box;
-}
 
 .concept-banner .el-icon {
   color: var(--el-color-primary);
@@ -500,20 +449,13 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   width: 24px;  /* 아이콘 크기 지정 */
   height: 24px; /* 아이콘 크기 지정 */
 }
-
-/* 2. 텍스트 강조 스타일 */
-.banner-title {
-  font-size: 15px; /* 기본 폰트보다 살짝 크게 */
-  font-weight: 500; /* 살짝 두껍게 */
-  color: #606266;
-}
 .main-mode-tabs {
+  font-family: 'Pretendardaw', sans-serif;
   width: 100%;
   /* 탭 헤더와 콘텐츠 카드 사이의 연결을 위해 margin-bottom을 음수값으로 설정 */
   margin-bottom: -1px;
   z-index: 1; /* 콘텐츠 카드보다 위에 오도록 설정 */
 }
-
 /* 탭 헤더(el-tabs__header) 스타일링 */
 .main-mode-tabs :deep(.el-tabs__header) {
   margin: 0;
@@ -538,7 +480,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 
 /* 활성화된 탭 아이템 스타일 */
 .main-mode-tabs :deep(.el-tabs__item.is-active) {
-  background-color: #ffffff; /* 흰색 배경 */
+  background-color: var(--el-bg-color); /* 흰색 배경 */
   border-bottom-color: transparent; /* 하단 테두리 제거하여 콘텐츠와 연결 */
   /* 위쪽 모서리만 둥글게 하여 카드와 자연스럽게 연결 */
   border-radius: 3px 3px 0 0;
@@ -563,6 +505,49 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   bottom: 0;
   height: 2px; /* 원래 막대와 동일한 높이 */
   background-color: var(--el-color-primary); /* 원래 막대와 동일한 색상 */
+}
+/* 드롭다운 메뉴 전체적인 디자인 */
+:deep(.el-dropdown__menu) {
+  /* 그림자로 입체감 부여 */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-radius: 8px; /* 부드러운 곡선 */
+  border: 1px solid #e4e7ed;
+  padding: 6px; /* 내부 여백 */
+  background-color: #ffffff;
+}
+
+/* 드롭다운 메뉴의 각 아이템 */
+:deep(.el-dropdown-menu__item) {
+  font-family: 'Noto Sans KR', sans-serif; /* 가독성 좋은 폰트 적용 */
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  border-radius: 6px; /* 아이템에도 부드러운 곡선 적용 */
+  padding: 0 12px;
+  height: 38px;
+  line-height: 38px;
+  transition: all 0.2s ease; /* 부드러운 전환 효과 */
+}
+
+/* 마우스를 올렸을 때(hover) 아이템 스타일 */
+:deep(.el-dropdown-menu__item:hover) {
+  background-color: #f5f7fa; /* 은은한 배경색 변경 */
+  color: var(--el-color-primary); /* 테마 색상으로 텍스트 색상 변경 */
+}
+
+/* 아이템 내부의 아이콘 스타일 */
+:deep(.el-dropdown-menu__item .el-icon) {
+  margin-right: 10px; /* 아이콘과 텍스트 사이 간격 */
+  font-size: 16px;
+}
+
+/* 드롭다운 메뉴가 나타날 때 화살표(popper) 숨김 */
+:deep(.el-popper.is-light) {
+  border: none; /* 기본 테두리 제거 */
+}
+
+:deep(.el-popper.is-light .el-popper__arrow::before) {
+  display: none; /* 화살표 숨기기 */
 }
 .custom-el-card {
   --el-card-border-color: var(--el-border-color-light);

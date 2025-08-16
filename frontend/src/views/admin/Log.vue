@@ -3,9 +3,9 @@
 
     <!-- 검색 패널 -->
     <el-card class="search-panel" shadow="never">
-      <el-form :model="searchParams" size="small" inline style="text-align: left;">
+      <el-form :model="searchParams" size="small" inline style="text-align: left; background-color: var(--el-bg-color);">
         <div>
-          <el-tag type="info" size="small" style="margin-right: 65px;">사용자 활동 로그</el-tag>
+          <el-tag type="info" size="small" style="margin-right: 190px;">사용자 활동 로그</el-tag>
           <el-form-item>
             <el-date-picker
                 v-model="searchParams.dateRange"
@@ -21,14 +21,14 @@
           </el-form-item>
           <el-form-item>
             <div class="search-buttons">
-              <el-button type="primary" :icon="Search" @click="onSearch" size="small">조회</el-button>
+              <el-button type="primary" :icon="Search" @click="onSearch" size="small" style="color: var(--el-bg-color);">조회</el-button>
               <el-button :icon="Refresh" @click="onReset" size="small">초기화</el-button>
               <el-button :icon="FullScreen" @click="openFullScreenGrid" size="small">크게 보기</el-button>
             </div>
           </el-form-item>
         </div>
         <el-form-item>
-          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px; margin-left: 173px;" />
+          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px; margin-left: 298px;" />
         </el-form-item>
         <el-form-item>
           <el-select v-model="searchParams.activityType" placeholder="활동 유형" clearable style="width: 110px">
@@ -244,12 +244,12 @@ const generateMockData = async (params) => {
 <style scoped>
 /* 전체 컨테이너 스타일 */
 .activity-log-container {
-  padding: 10px;
   display: flex;
   flex-direction: column;
-  height: 450px;
-  background-color: #fff;
+  height: 620px;
+  background-color: var(--el-bg-color);
   font-size: 12px;
+  padding: 4px 0 0 0;
 }
 .el-card {
   --el-card-border-color: var(--el-border-color-light);
@@ -275,7 +275,7 @@ const generateMockData = async (params) => {
 .search-panel {
   margin-bottom: 4px;
   padding: 4px;
-  background-color: #fdfdfd;
+  background-color: var(--el-bg-color);
   border: 1px solid #ebeef5;
 }
 .el-form--inline .el-form-item {

@@ -43,7 +43,7 @@
         <h2 class="step-title">어느 지점의 웨이팅이 궁금하세요?</h2>
         <ul class="store-list">
           <li v-for="store in foundStores" :key="store.id" @click="selectStore(store)">
-            {{ store.name }}
+            <el-text>{{ store.name }}</el-text>
             <span>{{ store.address }}</span>
           </li>
         </ul>
@@ -52,6 +52,17 @@
 
       <!-- 2.5. ★★★ 방문 시간 선택 단계 (새로 추가) ★★★ -->
       <div v-if="step === 'selectTime'" class="card-body">
+        <div class="input-group">
+          <h3 class="input-label">방문 인원을 설정해주세요.</h3>
+          <el-input-number
+              v-model="numberOfPeople"
+              :min="1"
+              :max="10"
+              size="large"
+              controls-position="right"
+              style="width: 100%;"
+          />
+        </div>
         <h2 class="step-title">방문 예정 시간을 선택해주세요.</h2>
         <div class="time-slots">
           <button
@@ -66,7 +77,7 @@
         </div>
         <div class="button-group">
           <button class="back-button" @click="step = 'selectStore'">지점 다시 선택</button>
-          <button @click="confirmTimeAndAnalyze" :disabled="!selectedTime">분석하기</button>
+          <button class="right-button"@click="confirmTimeAndAnalyze" :disabled="!selectedTime">분석하기</button>
         </div>
       </div>
 
@@ -114,7 +125,7 @@
             <span class="factor">최종 웨이팅 점수</span>
             <span class="score">{{ result.totalScore }}</span>
           </div>
-          <button class="reset-button" @click="reset">새로운 가게 분석하기</button>
+          <el-button type="primary" class="reset-button" @click="reset">새로운 가게 분석하기</el-button>
         </div>
       </div>
 
@@ -150,6 +161,8 @@ const progress = ref({
   sns: false,
   map: false
 });
+
+const numberOfPeople = ref(1);
 
 // ★★★ 방문 시간 선택 관련 ref 추가 ★★★
 const selectedTime = ref(null);
@@ -298,37 +311,23 @@ const reset = () => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
-:root {
-  --primary-color: #6c5ce7;
-  --bg-color: #f4f7f9;
-  --card-bg: #ffffff;
-  --text-color: #333;
-  --light-text-color: #777;
-  --border-color: #e9e9e9;
-  --green: #2ecc71;
-  --yellow: #f1c40f;
-  --orange: #e67e22;
-  --red: #e74c3c;
-  --blue: #3498db;
-}
-
 .estimator-container {
   font-family: 'Noto Sans KR', sans-serif;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 600px;
-  background-color: var(--bg-color);
+  height: 620px;
+  background-color: var(--el-bg-color);
   padding: 4px 0 0 0;
 }
 .card {
   width: calc(100% - 2px);
   height: 100%;
   padding: 0;
-  background: var(--card-bg);
+  background: var(--el-bg-color);
   border-radius: 4px;
-  border: 1px solid rgba(108, 92, 231, 0.2);
+  border: 1px solid var(--el-border-color);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -340,8 +339,8 @@ const reset = () => {
   text-align: center;
   flex-shrink: 0;
 }
-.title { font-size: 1.4rem; margin: 0; font-weight: 700; }
-.subtitle { font-size: 0.8rem; margin: 4px 0 0; opacity: 0.9; }
+.title { font-size: 1.4rem; margin: 0; font-weight: 700; color: var(--el-fill-color); }
+.subtitle { font-size: 0.8rem; margin: 4px 0 0; opacity: 0.9; color: var(--el-fill-color); }
 .card-body {
   padding: 20px;
   flex-grow: 1;
@@ -351,7 +350,7 @@ const reset = () => {
 .card-body.search-step-body {
   justify-content: space-between; /* 검색창은 위로, 정보 섹션은 아래 근처로 */
   padding: 25px 20px;
-
+  background-color: var(--el-bg-color);
 }
 
 /* 기존 search-form의 중앙 정렬을 제거합니다. */
@@ -360,7 +359,8 @@ const reset = () => {
   gap: 8px;
 }
 
-.step-title { text-align: center; margin-top: 0; margin-bottom: 20px; font-weight: 500; font-size: 1.1rem; color: var(--primary-color); flex-shrink: 0; }
+.step-title {
+  text-align: center; margin-top: 30px; margin-bottom: 20px; font-weight: 500; font-size: 1.1rem; color: var(--el-color-primary); flex-shrink: 0; }
 .search-form { display: flex; gap: 8px; margin: auto 0; }
 input[type="text"] {
   flex-grow: 1;
@@ -387,13 +387,14 @@ input[type="text"]:focus {
 }
 
 .info-block {
+  margin-top: 20px;
   text-align: center;
 }
 
 .info-title {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text-color);
+  color: var(--el-color-primary);
   margin: 0 0 8px 0;
 }
 
@@ -415,8 +416,8 @@ input[type="text"]:focus {
 }
 
 .example-list li {
-  background-color: #f4f7f9;
-  color: var(--primary-color);
+  background-color: var(--el-border-color-extra-light);
+  color: var(--el-color-primary);
   padding: 6px 12px;
   border-radius: 15px;
   font-size: 0.8rem;
@@ -450,10 +451,10 @@ button.is-disabled {
 button.is-disabled:hover {
   background-color: #b5b5b5;
 }
-.store-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-.store-list li { padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
-.store-list li span { font-size: 0.8rem; color: var(--light-text-color); }
-.store-list li:hover { background-color: #f9f6ff; border-color: var(--primary-color); transform: translateY(-2px); }
+.store-list { list-style: none; padding: 12px 0 0 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+.store-list li { padding: 12px 15px; border: 1px solid var(--el-color-primary); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+.store-list li span { font-size: 0.8rem; color: var(--el-color-primary); }
+.store-list li:hover { background-color: var(--el-bg-color); border-color: var(--el-color-primary); transform: translateY(-2px); }
 .back-button { width: 100%; margin-top: 15px; background-color: #7f8c8d; }
 .back-button:hover { background-color: #6c7a7b; }
 .time-slots {
@@ -463,13 +464,14 @@ button.is-disabled:hover {
   margin: auto 0;
   flex-grow: 1;
   align-content: center;
+  color: var(--el-color-primary)
 }
 .time-slot-btn {
   padding: 15px 10px;
   font-size: 0.9rem;
   font-weight: 500;
   background-color: var(--el-border-color);
-  color: var(--primary-color);
+  color: var(--el-color-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
@@ -500,10 +502,15 @@ button.is-disabled:hover {
 .button-group .back-button {
   margin-top: 0; /* 기존 back-button의 margin-top 제거 */
 }
+.button-group .right-button {
+  margin-top: 0; /* 기존 back-button의 margin-top 제거 */
+  background-color: var(--el-color-primary);
+  color: var(--el-bg-color);
+}
 .loading-state { justify-content: center; text-align: center; }
-.spinner { width: 40px; height: 40px; border: 4px solid rgba(108, 92, 231, 0.2); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+.spinner { width: 40px; height: 40px; border: 4px solid rgba(108, 92, 231, 0.2); border-top-color: var(--el-color-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 15px auto 15px; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-message { color: var(--light-text-color); font-size: 0.9rem; margin-bottom: 20px; }
+.loading-message { color: var(--el-color-primary); font-size: 0.9rem; margin-bottom: 20px; }
 .progress-list { text-align: left; background-color: #fafafa; padding: 10px 15px; border-radius: 8px; }
 .progress-list p { margin: 8px 0; font-size: 0.85rem; color: var(--light-text-color); transition: all 0.5s ease; }
 .progress-list p.done { color: var(--text-color); font-weight: 500; }
@@ -532,7 +539,7 @@ button.is-disabled:hover {
   display: flex;
   align-items: center;
   gap: 15px;
-  background-color: #f8f9fa;
+  background-color: var(--el-fill-color);
   padding: 12px;
   border-radius: 10px;
   flex-shrink: 0; /* 높이 고정 */
@@ -543,12 +550,13 @@ button.is-disabled:hover {
   flex-direction: column;
   justify-content: center; /* 주 축(main-axis, 현재는 세로)의 중앙으로 정렬 */
   flex-grow: 1;
+  color: var(--el-color-primary);
 }
 .result-index {
   font-size: 1rem; /* 폰트 크기 조정 */
   font-weight: 700;
   margin: 0;
-  color: var(--text-color);
+  color: var(--el-color-primary);
 }
 /* 혼잡도 텍스트에 색상 부여 */
 .result-index .매우.혼잡, .result-index .혼잡 { color: var(--red); }
@@ -575,17 +583,17 @@ button.is-disabled:hover {
   font-weight: 700;
   font-size: 0.9rem;
   margin-bottom: 8px;
-  color: var(--text-color);
+  color: var(--el-color-primary);
   flex-shrink: 0; /* 높이 고정 */
 }
 .details-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  border: 1px solid rgba(108, 92, 231, 0.2);
+  border: 1px solid var(--el-color-primary);
   overflow-y: auto;
   flex-grow: 1;
-  background-color: var(--card-bg); /* 스크롤 영역에 흰색 배경을 줘서 구분 */
+  background-color: var(--el-bg-color); /* 스크롤 영역에 흰색 배경을 줘서 구분 */
 }
 /* 스크롤바 디자인 (선택사항) */
 .details-list::-webkit-scrollbar { width: 6px; }
@@ -599,6 +607,7 @@ button.is-disabled:hover {
   padding: 9px 12px;
   border-bottom: 1px solid #f5f5f5;
   font-size: 0.85rem;
+  color: var(--el-color-primary);
 }
 .details-list li:last-child { border-bottom: none; }
 
@@ -625,6 +634,7 @@ button.is-disabled:hover {
 /* 3. 하단 최종 점수 및 버튼 */
 .result-footer {
   flex-shrink: 0; /* 높이 고정 */
+
 }
 .total-score {
   display: flex;
@@ -632,13 +642,13 @@ button.is-disabled:hover {
   align-items: center;
   padding: 10px 12px;
   margin-bottom: 12px;
-  background-color: #f8f6ff;
+  background-color: var(--primary-color-light);
   border-radius: 8px;
-  border: 1px solid #e2dffc;
+  border: 1px solid var(--border-color-light);
 }
-.total-score .factor { font-size: 0.9rem; color: var(--primary-color); font-weight: 700; }
-.total-score .score { font-size: 1.2rem; color: var(--primary-color); font-weight: 700; }
-.reset-button { width: 100%; }
+.total-score .factor { font-size: 0.9rem; color: var(--el-color-primary); font-weight: 700; }
+.total-score .score { font-size: 1.2rem; color: var(--el-color-primary); font-weight: 700; }
+.reset-button { width: 100%; height: 50px; color: var(--el-bg-color); }
 
 /* 휴무일 화면 스타일 */
 .closed-state {
@@ -649,5 +659,15 @@ button.is-disabled:hover {
 }
 .closed-state .result-index { font-size: 1.3rem; font-weight: 700; }
 .closed-state .reset-button { margin-top: 15px; }
+.input-group {
+  margin-bottom: 24px; /* 아래 요소와의 간격 */
+  text-align: left; /* 라벨 왼쪽 정렬 */
+}
 
+.input-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  margin-bottom: 8px; /* 입력창과의 간격 */
+}
 </style>

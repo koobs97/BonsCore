@@ -156,7 +156,7 @@ const copyEmail = (email: string) => {
                         position: absolute;
                         bottom: -4px;
                         right: -4px;
-                        background: white;
+                        background: var(--el-bg-color);
                         border-radius: 50%;
                         font-size: 14px;
                         padding: 2px;
@@ -207,7 +207,7 @@ const copyEmail = (email: string) => {
                     />
                   </div>
                   <div style="margin: 0 0 0 0;">
-                    <el-text tag="mark" style="font-weight: bold;">@{{ state.User.userName }}</el-text>
+                    <el-text tag="mark" style="font-weight: bold; color: var(--el-overlay-color)">@{{ state.User.userName }}</el-text>
                   </div>
                   <el-descriptions
                       style="margin-top: 12px;"
@@ -312,4 +312,5 @@ const copyEmail = (email: string) => {
   overflow: hidden;
   transition: var(--el-transition-duration);
 }
+
 </style>

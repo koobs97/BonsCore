@@ -17,6 +17,7 @@ import 'v-calendar/style.css';
 import 'element-plus/dist/index.css';
 import ElementPlus from 'element-plus';
 import ko from 'element-plus/es/locale/lang/ko';
+import 'element-plus/theme-chalk/dark/css-vars.css' // Element Plus 다크 모드 CSS
 
 // ag-grid
 import { AgGridVue } from 'ag-grid-vue3'

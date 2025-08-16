@@ -311,7 +311,7 @@ const checklist = ref([
                 <div class="overlay-content">
                   <el-icon
                       :size="40"
-                      style="color: var(--el-color-primary-dark-2);"
+                      style="color: var(--el-color-primary);"
                   >
                     <InfoFilled />
                   </el-icon>
@@ -416,7 +416,7 @@ const checklist = ref([
 }
 .title {
   font-size: 26px;
-  color: #1f2d3d;
+  color: var(--el-color-primary);
   text-align: center;
   margin: 0 0 10px;
 }
@@ -508,6 +508,7 @@ const checklist = ref([
   font-weight: bold;
   font-size: 16px;
   margin-top: 10px;
+  color: var(--el-bg-color);
 }
 /* 하단 네비게이션 링크 */
 .navigation-links { margin-top: 25px; text-align: center; }
@@ -534,7 +535,7 @@ b {
 .timer-text {
   font-weight: bold;
   font-size: 12px;
-  color: #1f2d3d;
+  color: var(--el-color-primary);
 }
 .timer-icon {
   margin-right: 1px;
@@ -570,6 +571,6 @@ b {
 }
 .overlay-content .overlay-description {
   font-size: 0.9rem;
-  color: #606266;
+  color: var(--el-fill-color);
 }
 </style>

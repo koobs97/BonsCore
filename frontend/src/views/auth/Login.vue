@@ -297,7 +297,7 @@ const onClickToGoPage = (param: string) => {
 }
 .login-title {
   font-size: 28px;
-  color: #0D1B2A;
+  color: var(--el-color-primary);
   text-align: center;
   margin-bottom: 30px;
 }
@@ -324,6 +324,7 @@ const onClickToGoPage = (param: string) => {
   font-weight: bold;
   font-size: 16px;
   margin-top: 16px;
+  color: var(--el-bg-color);
 }
 .find-links {
   margin-top: 20px;
@@ -343,6 +344,7 @@ const onClickToGoPage = (param: string) => {
 .signup-link {
   font-weight: bold;
   margin-left: 8px;
+  color: var(--el-color-primary) !important;
 }
 .caps-lock-placeholder {
   height: 8px; /* 경고 메시지를 담을 충분한 높이를 항상 차지 */
@@ -362,5 +364,20 @@ const onClickToGoPage = (param: string) => {
 .caps-lock-warning.visible {
   opacity: 1;
   visibility: visible;
+}
+</style>
+<style>
+html.dark .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--el-color-primary) !important; /* 밝은 Primary 색상 */
+  border-color: var(--el-color-primary) !important;     /* 밝은 Primary 색상 */
+}
+/* 2. 체크 표시(V)의 색상 (border-color 사용) */
+html.dark .el-checkbox__input.is-checked .el-checkbox__inner::after {
+  /* ★★★ 핵심: 체크 표시의 테두리 색상을 어두운 색으로 강제 지정 */
+  border-color: var(--el-bg-color-page) !important;
+}
+/* 3. (선택) 체크되지 않은 박스의 테두리 색상도 명확하게 지정 */
+html.dark .el-checkbox__input .el-checkbox__inner {
+  border-color: var(--el-border-color-light) !important;
 }
 </style>

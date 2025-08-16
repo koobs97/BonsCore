@@ -1075,4 +1075,7 @@ const formatBirthDate = (value: string) => {
   padding-bottom: 8px;
   border-width: 1px;
 }
+.signup-link {
+  color: var(--el-color-primary) !important;
+}
 </style>

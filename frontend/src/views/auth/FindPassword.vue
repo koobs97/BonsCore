@@ -243,7 +243,7 @@ const goToLogin = () => {
  */
 const goToFindId = () => {
   // '/find-id' 경로가 실제 라우터에 설정되어 있어야 합니다.
-  router.push("/find-id");
+  router.push("/FindId");
 };
 
 /**
@@ -460,7 +460,7 @@ const checklist = ref([
 }
 .title {
   font-size: 26px;
-  color: #1f2d3d;
+  color: var(--el-color-primary);
   text-align: center;
   margin: 0 0 10px;
 }
@@ -475,7 +475,7 @@ const checklist = ref([
 .find-form .el-form-item { margin-bottom: 8px; }
 .find-form :deep(.el-form-item__label) {
   font-size: 14px;
-  color: #475669;
+  color: var(--el-color-primary);
   padding-bottom: 6px;
   line-height: normal;
   width: 100%;
@@ -497,6 +497,7 @@ const checklist = ref([
   font-weight: bold;
   font-size: 16px;
   margin-top: 20px;
+  color: var(--el-bg-color);
 }
 .result-section {
   text-align: center;
@@ -521,7 +522,7 @@ const checklist = ref([
 .timer-text {
   font-weight: bold;
   font-size: 12px;
-  color: #1f2d3d;
+  color: var(--el-color-primary);
 }
 .timer-icon {
   margin-right: 1px;
