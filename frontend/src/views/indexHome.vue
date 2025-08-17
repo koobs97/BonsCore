@@ -190,7 +190,7 @@ const goToGitHub = () => {
         </el-tooltip>
         <el-tooltip content="깃허브 바로가기" placement="bottom">
           <el-button class="custom-image-button" @click="goToGitHub">
-            <img src="@/assets/images/github_icon.png" alt="custom icon"/>
+            <img class="theme-sensitive" src="@/assets/images/github_icon.png" alt="custom icon"/>
           </el-button>
         </el-tooltip>
       </div>
@@ -633,6 +633,16 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 
 :deep(.el-popper.is-light .el-popper__arrow::before) {
   display: none; /* 화살표 숨기기 */
+}
+/* 기본 (라이트모드) */
+.theme-sensitive {
+  filter: none;
+  transition: filter 0.3s ease; /* 모드 전환시 부드럽게 */
+}
+
+/* 다크모드 */
+.dark .theme-sensitive {
+  filter: invert(1) hue-rotate(180deg);
 }
 .custom-el-card {
   --el-card-border-color: var(--el-border-color-light);
