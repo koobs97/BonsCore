@@ -457,6 +457,9 @@ const checklist = ref([
   box-sizing: border-box;
 }
 .title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
   font-size: 26px;
   color: var(--el-color-primary);
   text-align: center;

@@ -951,8 +951,10 @@ const formatBirthDate = (value: string) => {
 
 }
 .card-header {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
   font-size: 20px;
-  font-weight: bold;
   text-align: center;
 }
 .text-title1, .text-title2 {

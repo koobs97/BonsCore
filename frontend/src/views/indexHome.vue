@@ -320,7 +320,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 
 <style scoped>
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Poppins:wght@600;700&family=Outfit:wght@600;700&family=Rubik:wght@600;700&display=swap');
+
 /* 모든 스타일은 변경 없이 그대로 유지됩니다 */
 .page-container {
   height: 120vh;

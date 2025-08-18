@@ -293,6 +293,9 @@ const onClickToGoPage = (param: string) => {
   box-sizing: border-box; /* 패딩이 너비에 영향을 주지 않도록 설정 */
 }
 .login-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
   font-size: 28px;
   color: var(--el-color-primary);
   text-align: center;
