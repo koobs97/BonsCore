@@ -7,26 +7,31 @@ const userStoreObj = userStore();
 const router = useRouter();
 
 /**
- * 창 크기가 변경될 때마다 #app 요소의 zoom 속성을 다시 계산하고 적용합니다.
- * 이 함수는 가장 간단하고 직접적인 방법입니다.
+ * zoom 대신 transform: scale()을 사용하여 화면 크기를 조정합니다.
  */
-const adjustZoom = () => {
+const adjustScale = () => {
   const baseWidth = 1920; // 기준 너비
   const baseHeight = 945;  // 기준 높이
 
   const currentWidth = window.innerWidth;
   const currentHeight = window.innerHeight;
 
-  // 너비와 높이 비율을 계산하여 더 작은 값을 zoom 레벨로 사용합니다.
   const scaleX = currentWidth / baseWidth;
   const scaleY = currentHeight / baseHeight;
-  const zoomLevel = Math.min(scaleX, scaleY);
+  const scale = Math.min(scaleX, scaleY);
 
+  // #app 요소에 transform 스타일을 적용합니다.
   const appElement = document.getElementById('app');
   if (appElement) {
-    // #app 요소에 직접 zoom 스타일을 적용합니다.
-    appElement.style.zoom = `${zoomLevel}`;
+    appElement.style.transform = `scale(${scale})`;
   }
+
+  // --- ⬇️ 푸터에도 동일한 스케일을 적용하는 코드 추가 ⬇️ ---
+  const footerContainer = document.getElementById('footer-container');
+  if (footerContainer) {
+    footerContainer.style.transform = `scale(${scale})`;
+  }
+  // --------------------------------------------------------
 };
 
 onMounted(() => {
@@ -36,19 +41,26 @@ onMounted(() => {
     router.push('/');
   }
 
-  // 페이지가 처음 로드될 때와 창 크기가 바뀔 때마다 함수를 실행합니다.
-  adjustZoom();
-  window.addEventListener('resize', adjustZoom);
+  adjustScale();
+  window.addEventListener('resize', adjustScale);
 });
 
 onUnmounted(() => {
-  // 컴포넌트가 사라질 때 이벤트 리스너를 제거하고 zoom을 초기화합니다.
-  window.removeEventListener('resize', adjustZoom);
+  window.removeEventListener('resize', adjustScale);
+
   const appElement = document.getElementById('app');
   if (appElement) {
-    appElement.style.zoom = '1';
+    appElement.style.transform = 'scale(1)';
   }
+
+  // --- ⬇️ 컴포넌트 unmount 시 푸터의 스케일도 초기화 ⬇️ ---
+  const footerContainer = document.getElementById('footer-container');
+  if (footerContainer) {
+    footerContainer.style.transform = 'scale(1)';
+  }
+  // ---------------------------------------------------------
 });
+
 
 </script>
 
@@ -56,10 +68,8 @@ onUnmounted(() => {
   <router-view></router-view>
 </template>
 
-<style scoped>
-
-</style>
 <style>
+/* body 스타일은 그대로 유지해도 좋습니다. */
 body {
   margin: 0;
   width: 100vw;
@@ -67,22 +77,41 @@ body {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background-color: var(--el-bg-color); /* 배경색은 body에 유지 */
+  background-color: var(--el-bg-color);
 }
+
+/* #app 스타일을 transform에 맞게 수정합니다. */
 #app {
 
+  /* scale 변환의 기준점을 중앙으로 설정합니다. */
   transform-origin: center center;
-  overflow: auto;
-  box-sizing: border-box;
+
+  /* 부드러운 전환 효과를 줍니다. */
   transition: transform 0.2s ease-out;
 
-  /* --- ⬇️ 이 부분이 추가/수정되었습니다 ⬇️ --- */
-  /*
-    #app 스스로가 Flex 컨테이너가 되어,
-    내부의 컨텐츠(<router-view>)를 정중앙에 배치합니다.
-  */
+  /* 기존의 다른 스타일들 */
+  overflow: auto;
+  box-sizing: border-box;
   display: flex;
-  flex-direction: column; /* 컨텐츠를 세로로 쌓음 */
-  align-items: center;     /* 수평 중앙 정렬 */
+  flex-direction: column;
+  align-items: center;
+}
+
+.app-footer {
+  position: fixed;
+  bottom: 2%;
+  left: 0;
+  right: 0;
+
+  font-size: 12px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  z-index: 1000;
+  pointer-events: none;
+
+  /* --- ⬇️ 스케일 변환의 기준점을 설정합니다 ⬇️ --- */
+  /* 중앙 하단을 기준으로 크기가 조절되도록 설정 */
+  transform-origin: center bottom;
+  /* --------------------------------------------- */
 }
 </style>

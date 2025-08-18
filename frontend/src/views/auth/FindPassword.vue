@@ -22,7 +22,6 @@ import {
   MoreFilled,
   Promotion
 } from '@element-plus/icons-vue';
-import TheFooter from "@/components/layout/TheFooter.vue";
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
@@ -440,7 +439,6 @@ const checklist = ref([
         <el-button type="info" link @click="goToFindId">아이디 찾기</el-button>
       </div>
     </el-card>
-    <TheFooter />
   </div>
 </template>
 

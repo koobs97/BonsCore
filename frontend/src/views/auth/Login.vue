@@ -18,7 +18,6 @@ import { Common } from '@/common/common';
 import { useRouter } from 'vue-router';
 import { userStore, userState } from '@/store/userStore';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
-import TheFooter from "@/components/layout/TheFooter.vue";
 
 // router
 const router = useRouter();
@@ -275,8 +274,6 @@ const onClickToGoPage = (param: string) => {
         회원가입
       </el-button>
     </el-card>
-
-    <TheFooter />
   </div>
 </template>
 
@@ -343,7 +340,6 @@ const onClickToGoPage = (param: string) => {
 }
 .signup-link {
   font-weight: bold;
-  margin-left: 8px;
   color: var(--el-color-primary) !important;
 }
 .caps-lock-placeholder {

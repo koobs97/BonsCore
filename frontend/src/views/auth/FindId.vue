@@ -13,7 +13,6 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { DocumentCopy, Key, MoreFilled, Promotion, QuestionFilled, Timer, InfoFilled } from '@element-plus/icons-vue';
 import { ElAlert, ElMessage} from 'element-plus';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
-import TheFooter from "@/components/layout/TheFooter.vue";
 import { ApiUrls } from "@/api/apiUrls";
 import { Api } from "@/api/axiosInstance";
 import { Common } from "@/common/common";
@@ -394,8 +393,6 @@ const checklist = ref([
         <el-button type="info" link @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
       </div>
     </el-card>
-
-    <TheFooter />
   </div>
 </template>
 

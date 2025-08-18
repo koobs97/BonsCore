@@ -6,6 +6,8 @@ import * as ElIcons from '@element-plus/icons-vue';
 import { userStore } from '@/store/userStore';
 import { createPinia } from "pinia";
 
+import TheFooter from "@/components/layout/TheFooter.vue";
+
 // custom-directives
 import { byteLimit } from '@/directives/byteLimit'
 
@@ -47,9 +49,24 @@ app
     .component('AgGridVue', AgGridVue)
     .mount('#app')
 
-// ✅ 로그인 정보 복원
+const footerApp = createApp(TheFooter);
+// 만약 푸터가 Vuex 스토어나 다른 플러그인을 사용한다면 여기에도 등록해줘야 합니다.
+// footerApp.use(store);
+footerApp.mount('#footer-container');
+
+// 새로고침 시 로그인 정보 복원
 const savedUserInfo = localStorage.getItem('userInfo');
 if (savedUserInfo) {
     const userInfo = JSON.parse(savedUserInfo);
     userStore().setUserInfo(userInfo);
+}
+
+// 화면 모드 설정 유지
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark') {
+    // 앱이 로드되기 전에 html 태그에 'dark' 클래스를 즉시 추가
+    document.documentElement.classList.add('dark');
+} else {
+    // 라이트 모드이거나 설정이 없을 경우 'dark' 클래스를 제거
+    document.documentElement.classList.remove('dark');
 }

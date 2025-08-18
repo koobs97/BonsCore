@@ -4,7 +4,6 @@ import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
   Setting, User, CollectionTag, Tools, Operation, ChatSquare, Box, ArrowDown,
 } from '@element-plus/icons-vue';
-import TheFooter from "@/components/layout/TheFooter.vue";
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 import { userStore } from '@/store/userStore';
 import { useRouter } from 'vue-router';
@@ -316,7 +315,6 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
             </el-tabs>
       </div>
     </div>
-    <TheFooter/>
   </div>
 </template>
 

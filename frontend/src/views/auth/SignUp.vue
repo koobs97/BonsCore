@@ -13,13 +13,12 @@ import { computed, h, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { Check, Close, InfoFilled } from "@element-plus/icons-vue";
 import { ElAlert, ElCheckbox, ElLoading, ElMessage, ElMessageBox, ElTag } from 'element-plus';
 import { defineComponent } from "@vue/runtime-dom";
-import TheFooter from "@/components/layout/TheFooter.vue";
-import {useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 import { userStore } from "@/store/userStore";
 import { Common } from '@/common/common';
+import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 
 // router
 const router = useRouter();
@@ -861,8 +860,6 @@ const formatBirthDate = (value: string) => {
       <el-text>이미 계정이 있으신가요?</el-text>
       <el-button type="primary" link class="signup-link" @click="onClickToOpenLogin">로그인</el-button>
     </el-card>
-
-    <TheFooter />
   </div>
 </template>
 
