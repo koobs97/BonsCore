@@ -56,6 +56,12 @@ public interface AuthMapper {
     void signUpUser(SignUpDto signUpDto);
 
     /**
+     * 회원가입 시 일반사용자 권한부여
+     * @param signUpDto
+     */
+    void signUpUserRole(SignUpDto signUpDto);
+
+    /**
      * 유저명, 이메일로 유효한 사용자인지 조회
      * @param userInfoSearchDto
      * @return

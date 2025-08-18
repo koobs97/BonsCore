@@ -161,8 +161,9 @@ public class AuthService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        // 로그저장
+        // 회원가입 및 권한 저장
         authMapper.signUpUser(item);
+        authMapper.signUpUserRole(item);
     }
 
     /**
