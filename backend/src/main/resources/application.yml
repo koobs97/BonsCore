@@ -21,20 +21,20 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
-server:
-  tomcat:
-    apr:
-      enabled: false
-
 jwt:
   secret: ${JASYPT_KEY}
 
 security:
   encryption-key: ${ENCRYPTION_KEY}
 
+naver:
+  client:
+    id: ${NAVER_CLIENT_ID}
+    secret: ${NAVER_CLIENT_SECRET}
+
 logging:
   level:
-    root: INFO
+    root: DEBUG
     org.springframework.web: INFO
     com:
       koo:

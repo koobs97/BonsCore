@@ -8,23 +8,58 @@
 
       <!-- 1. 초기 검색 단계 (수정됨) -->
       <div v-if="step === 'search'" class="card-body search-step-body">
-        <div class="search-form">
-          <input
-              type="text"
-              v-model="searchQuery"
-              placeholder="가게 이름을 입력하세요 (예: 런던베이글)"
-              @keyup.enter="searchStores"
-          />
-          <button
-              @click="searchStores"
-              :disabled="!searchQuery"
-              :class="{ 'is-disabled': !searchQuery }"
-          >
-            분석 시작
-          </button>
+        <!-- 검색 UI를 감싸는 컨테이너 추가 -->
+        <div class="search-container">
+          <div class="search-form">
+            <el-input
+                v-model="searchQuery"
+                placeholder="가게 이름을 입력하세요 (예: 런던베이글)"
+                @keyup.enter="searchStores"
+                size="large"
+                clearable
+            >
+              <template #suffix>
+                <el-popover
+                    placement="top"
+                    :width="470"
+                trigger="hover"
+                popper-class="search-tip-popover"
+                >
+                <!-- Popover의 트리거가 되는 아이콘 -->
+                <template #reference>
+                  <el-icon class="info-icon"><QuestionFilled /></el-icon>
+                </template>
+
+                <!-- ★★★ Popover의 내용물을 ElAlert로 변경 ★★★ -->
+                  <div class="modern-alert modern-alert-info">
+                    <div class="modern-alert-icon">
+                      <!-- 아이콘 (예: SVG 또는 아이콘 폰트) -->
+                      <i class="el-icon-info"></i>
+                    </div>
+                    <div class="modern-alert-content">
+                      <p class="modern-alert-title">빠른 검색 팁!</p>
+                      <p class="modern-alert-description">
+                        네이버 정책에 따라 검색 결과는 <strong>최대 5개</strong>까지 제공됩니다.
+                      </p>
+                    </div>
+                  </div>
+
+                </el-popover>
+              </template>
+            </el-input>
+
+            <button
+                @click="searchStores"
+                :disabled="!searchQuery"
+                :class="{ 'is-disabled': !searchQuery }"
+                class="search-button"
+            >
+              분석 시작
+            </button>
+          </div>
         </div>
 
-        <!-- 아래에 추가된 정보 섹션 -->
+        <!-- 아래 정보 섹션은 그대로 유지 -->
         <div class="info-section">
           <div class="info-block">
             <h3 class="info-title">이런 가게는 어때요? ✨</h3>
@@ -44,7 +79,7 @@
         <ul class="store-list">
           <li v-for="store in foundStores" :key="store.id" @click="selectStore(store)">
             <el-text>{{ store.name }}</el-text>
-            <span>{{ store.address }}</span>
+            <span>{{ store.simpleAddress }}</span>
           </li>
         </ul>
         <button class="back-button" @click="reset">처음으로</button>
@@ -145,13 +180,16 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // 스크립트 부분은 수정 없이 그대로 사용합니다.
-import { ref } from 'vue';
+import {ref} from 'vue';
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import {QuestionFilled} from "@element-plus/icons-vue";
 
 const step = ref('search');
 const searchQuery = ref('');
-const foundStores = ref([]);
+const foundStores = ref([]) as any;
 const selectedStore = ref(null);
 const result = ref(null);
 const scoreDetails = ref([]);
@@ -175,18 +213,18 @@ const timeSlots = ref([
   { label: '기타 시간', value: 'etc' },
 ]);
 
-const searchStores = () => {
+const searchStores = async () => {
   if (!searchQuery.value) return;
-  foundStores.value = [
-    { id: 1, name: `${searchQuery.value} 강남점`, address: '서울 강남구' },
-    { id: 2, name: `${searchQuery.value} 홍대점`, address: '서울 마포구' },
-    { id: 3, name: `${searchQuery.value} 잠실점`, address: '서울 송파구' },
-  ];
+
+  const result = await Api.post(ApiUrls.NAVER_SEARCH, {query: searchQuery.value});
+  console.log(result)
+
+  foundStores.value = result.data;
   step.value = 'selectStore';
 };
 
 // ★★★ 지점 선택 함수 수정 ★★★
-const selectStore = (store) => {
+const selectStore = (store: any) => {
   selectedStore.value = store;
   selectedTime.value = null; // 시간 선택 초기화
   step.value = 'selectTime'; // 로딩 대신 시간 선택 단계로 이동
@@ -311,6 +349,59 @@ const reset = () => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
+:global(.el-popper.search-tip-popover) {
+  /* 배경, 테두리, 그림자를 모두 제거하여 투명하게 만듭니다. */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  /* 내부 여백도 제거합니다. */
+  padding: 0 !important;
+}
+
+/* Popover에 기본으로 달려있는 작은 화살표를 숨깁니다. */
+:global(.el-popper.search-tip-popover .el-popper__arrow) {
+  display: none !important;
+}
+
+.modern-alert {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.modern-alert-info {
+  background-color: #F0F7FF; /* 부드러운 파란색 계열 */
+  border-left: 4px solid #5096FF;
+}
+
+.modern-alert-icon {
+  margin-right: 12px;
+  font-size: 24px;
+  color: #5096FF;
+  /* 아이콘이 없어서 임시로 아이콘 폰트를 위한 공간 설정 */
+  width: 24px;
+  text-align: center;
+}
+
+.modern-alert-content {
+  flex-grow: 1;
+}
+
+.modern-alert-title {
+  margin: 0;
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.modern-alert-description {
+  margin: 4px 0 0;
+  color: #555;
+  font-size: 14px;
+}
+
 .estimator-container {
   font-family: 'Noto Sans KR', sans-serif;
   display: flex;
@@ -356,7 +447,37 @@ const reset = () => {
 /* 기존 search-form의 중앙 정렬을 제거합니다. */
 .search-form {
   display: flex;
+  align-items: center; /* ElInput(large)와 버튼의 높이를 맞춤 */
   gap: 8px;
+  margin: auto 0;
+}
+.search-input-with-icon {
+  flex-grow: 1;
+}
+
+/* ElInput 오른쪽의 도움말 아이콘 스타일 */
+.info-icon {
+  cursor: pointer;
+  color: var(--el-text-color-placeholder);
+  font-size: 16px;
+  transition: color 0.2s;
+}
+.info-icon:hover {
+  color: var(--el-color-primary);
+}
+
+/* Popover 내부 p 태그 스타일 (전역 CSS 오염 방지) */
+.popover-content {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--el-text-color-regular);
+}
+
+/* ElInput(size="large")에 맞춰 버튼 높이 조정 */
+.search-button-large {
+  height: 40px;
+  padding: 0 18px;
 }
 
 .step-title {
@@ -427,7 +548,7 @@ input[type="text"]:focus {
 button {
   padding: 12px 18px;
   background-color: var(--el-color-primary);
-  color: white;
+  color: var(--el-bg-color);
   border: none;
   border-radius: 8px;
   font-size: 0.95rem;
@@ -451,8 +572,18 @@ button.is-disabled {
 button.is-disabled:hover {
   background-color: #b5b5b5;
 }
-.store-list { list-style: none; padding: 12px 0 0 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-.store-list li { padding: 12px 15px; border: 1px solid var(--el-color-primary); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+.store-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0; /* 위쪽 제목과의 간격을 margin-top으로 조정 */
+
+  /* ★★★★★★★★★★★ 핵심 수정사항 ★★★★★★★★★★★ */
+  flex-grow: 1;       /* 1. 부모(.card-body)의 남은 세로 공간을 모두 차지합니다. */
+  overflow-y: auto;   /* 2. 내용이 영역을 벗어나면 세로 스크롤바를 표시합니다. */
+  height: 300px;
+  min-height: 0;      /* 3. flex-grow와 overflow가 올바르게 작동하기 위한 필수 속성입니다. */
+}
+.store-list li { margin-top: 4px; padding: 12px 15px; border: 1px solid var(--el-color-primary); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
 .store-list li span { font-size: 0.8rem; color: var(--el-color-primary); }
 .store-list li:hover { background-color: var(--el-bg-color); border-color: var(--el-color-primary); transform: translateY(-2px); }
 .back-button { width: 100%; margin-top: 15px; background-color: #7f8c8d; }
@@ -670,4 +801,5 @@ button.is-disabled:hover {
   color: var(--el-text-color-regular);
   margin-bottom: 8px; /* 입력창과의 간격 */
 }
+
 </style>

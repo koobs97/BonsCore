@@ -1,7 +1,9 @@
 package com.koo.bonscore;
 
+import com.koo.bonscore.common.api.naver.NaverProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -10,6 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * sdf
  *
  */
+@EnableConfigurationProperties(NaverProperties.class) // naver api
 @EnableAsync // 로깅을 위한 비동기처리 활성화
 @EnableScheduling
 @SpringBootApplication

@@ -32,15 +32,55 @@ ModuleRegistry.registerModules([AllCommunityModule])
 // App
 const app = createApp(App);
 
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// ★           수정 포인트           ★
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+// 1. Pinia 인스턴스를 먼저 생성하고 앱에 등록합니다.
+//    이렇게 해야 아래에서 userStore()를 즉시 사용할 수 있습니다.
+const pinia = createPinia();
+app.use(pinia);
+
+// 2. 라우터를 사용하기 "전"에 로그인 정보를 먼저 복원합니다.
+const savedUserInfo = localStorage.getItem('userInfo');
+if (savedUserInfo) {
+    try {
+        const userInfo = JSON.parse(savedUserInfo);
+        // userStore()가 정상적으로 동작하려면 app.use(pinia)가 먼저 실행되어야 합니다.
+        userStore().setUserInfo(userInfo);
+    } catch (e) {
+        console.error("Failed to parse user info from localStorage", e);
+        localStorage.removeItem('userInfo'); // 잘못된 데이터는 삭제
+    }
+}
+
+// 3. 이제 스토어에 정보가 복원된 상태에서 라우터를 등록합니다.
+//    이렇게 하면 네비게이션 가드가 실행될 때 정확한 로그인 상태를 참조할 수 있습니다.
+app.use(router);
+
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// ★          여기까지 수정           ★
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+// 화면 모드 설정 유지 (이 로직은 순서에 크게 상관없지만, 렌더링 직전에 두는 것이 좋습니다.)
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark') {
+    document.documentElement.classList.add('dark');
+} else {
+    document.documentElement.classList.remove('dark');
+}
+
+
 app.config.globalProperties.$ELEMENT = { zIndex: 5000 };
 // ElementPlus 아이콘을 전역으로 등록
 Object.entries(ElIcons).forEach(([key, component]) => {
     app.component(key, component);
 });
 
+// 나머지 플러그인들을 등록하고 마운트합니다.
 app
-    .use(router)
-    .use(createPinia())
+    // .use(router) // 위로 이동했으므로 여기선 삭제
+    // .use(createPinia()) // 위에서 app.use(pinia)로 대체되었으므로 삭제
     .use(ElementPlus, {
         locale: ko
     })
@@ -50,23 +90,8 @@ app
     .mount('#app')
 
 const footerApp = createApp(TheFooter);
-// 만약 푸터가 Vuex 스토어나 다른 플러그인을 사용한다면 여기에도 등록해줘야 합니다.
-// footerApp.use(store);
 footerApp.mount('#footer-container');
 
-// 새로고침 시 로그인 정보 복원
-const savedUserInfo = localStorage.getItem('userInfo');
-if (savedUserInfo) {
-    const userInfo = JSON.parse(savedUserInfo);
-    userStore().setUserInfo(userInfo);
-}
-
-// 화면 모드 설정 유지
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'dark') {
-    // 앱이 로드되기 전에 html 태그에 'dark' 클래스를 즉시 추가
-    document.documentElement.classList.add('dark');
-} else {
-    // 라이트 모드이거나 설정이 없을 경우 'dark' 클래스를 제거
-    document.documentElement.classList.remove('dark');
-}
+// 아래 로직들은 위로 이동했습니다.
+// // 새로고침 시 로그인 정보 복원
+// // 화면 모드 설정 유지

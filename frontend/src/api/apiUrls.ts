@@ -25,4 +25,7 @@ export enum ApiUrls {
     MASKING = '/api/sample/masking',
     TABLE_TEST = '/api/sample/tableTest',
 
+    //naver api
+    NAVER_SEARCH = '/api/search/naver/blog',
+
 }
