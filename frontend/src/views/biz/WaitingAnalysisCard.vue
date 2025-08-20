@@ -182,7 +182,7 @@
 
 <script setup lang="ts">
 // 스크립트 부분은 수정 없이 그대로 사용합니다.
-import {ref} from 'vue';
+import {reactive, ref} from 'vue';
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
 import {QuestionFilled} from "@element-plus/icons-vue";
@@ -190,7 +190,7 @@ import {QuestionFilled} from "@element-plus/icons-vue";
 const step = ref('search');
 const searchQuery = ref('');
 const foundStores = ref([]) as any;
-const selectedStore = ref(null);
+const selectedStore = ref(null) as any;
 const result = ref(null);
 const scoreDetails = ref([]);
 const progress = ref({
@@ -216,7 +216,7 @@ const timeSlots = ref([
 const searchStores = async () => {
   if (!searchQuery.value) return;
 
-  const result = await Api.post(ApiUrls.NAVER_SEARCH, {query: searchQuery.value});
+  const result = await Api.post(ApiUrls.NAVER_STORE_SEARCH, {query: searchQuery.value});
   console.log(result)
 
   foundStores.value = result.data;
@@ -235,16 +235,52 @@ const selectTimeSlot = (timeValue) => {
   selectedTime.value = timeValue;
 };
 
-const confirmTimeAndAnalyze = () => {
+const confirmTimeAndAnalyze = async () => {
   if (!selectedTime.value) return;
+
   step.value = 'loading';
   startAnalysis();
 }
 
-const startAnalysis = () => {
+/**
+ * 최종 분석에 쓰일 결과물
+ */
+const analysis = reactive({
+  reviewCount: 0
+})
+
+/**
+ * 블로그 건수 조회
+ */
+const countReviews = async () => {
+  console.log(selectedStore.value);
+
+  const param = {
+    name: selectedStore.value.name,
+    simpleAddress: selectedStore.value.simpleAddress,
+    detailAddress: selectedStore.value.simpleAddress,
+  }
+
+  console.log(param)
+
+  const result = await Api.post(ApiUrls.NAVER_BLOG_SEARCH, param);
+  console.log(result)
+
+  analysis.reviewCount = result.data.blogReviewCount;
+
+}
+
+const startAnalysis = async () => {
   Object.keys(progress.value).forEach(k => progress.value[k] = false);
   setTimeout(() => progress.value.weather = true, 300);
-  setTimeout(() => progress.value.reviews = true, 1000);
+
+  // 네이버 블로그 검색 건수 조회
+  setTimeout(() => {
+    countReviews().then(() => {
+      progress.value.reviews = true;
+    });
+  }, 1000);
+
   setTimeout(() => progress.value.sns = true, 1800);
   setTimeout(() => progress.value.map = true, 2500);
   setTimeout(() => {
@@ -266,13 +302,15 @@ const calculateScore = () => {
   details.push({ factor: '시간/요일', ...timeFactor });
   totalScore += timeFactor.score;
 
-  const reviewCount = Math.floor(Math.random() * 2000);
+  const reviewCount = analysis.reviewCount;
+
   let reviewScore = 0;
   if (reviewCount > 1000) reviewScore = 15;
   else if (reviewCount > 500) reviewScore = 10;
   else if (reviewCount > 100) reviewScore = 5;
   if (reviewScore > 0) {
-    details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${reviewCount}개`, score: reviewScore });
+    const fomattedCount = new Intl.NumberFormat().format(analysis.reviewCount);
+    details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${fomattedCount}개`, score: reviewScore });
     totalScore += reviewScore;
   }
 

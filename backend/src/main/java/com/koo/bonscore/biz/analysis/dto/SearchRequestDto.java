@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.api.naver;
+package com.koo.bonscore.biz.analysis.dto;
 
 import lombok.Getter;
 import lombok.Setter;

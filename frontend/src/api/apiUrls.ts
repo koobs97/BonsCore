@@ -26,6 +26,7 @@ export enum ApiUrls {
     TABLE_TEST = '/api/sample/tableTest',
 
     //naver api
-    NAVER_SEARCH = '/api/search/naver/blog',
+    NAVER_STORE_SEARCH = '/api/analysis/stores',
+    NAVER_BLOG_SEARCH = '/api/analysis/details',
 
 }

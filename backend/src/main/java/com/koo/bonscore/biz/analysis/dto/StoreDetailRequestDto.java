@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.api.naver;
+package com.koo.bonscore.biz.analysis.dto;
 
 import lombok.*;
 
@@ -8,8 +8,7 @@ import lombok.*;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class StoreSearchResultDto {
-    private long id;
+public class StoreDetailRequestDto {
     private String name;
     private String simpleAddress;
     private String detailAddress;

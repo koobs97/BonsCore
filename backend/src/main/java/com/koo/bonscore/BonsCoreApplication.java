@@ -1,6 +1,6 @@
 package com.koo.bonscore;
 
-import com.koo.bonscore.common.api.naver.NaverProperties;
+import com.koo.bonscore.common.api.naver.config.NaverProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
