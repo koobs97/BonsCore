@@ -1,3 +1,210 @@
+<script setup lang="ts">
+// 스크립트 부분은 수정 없이 그대로 사용합니다.
+import {reactive, ref} from 'vue';
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import {QuestionFilled} from "@element-plus/icons-vue";
+
+const step = ref('search');
+const searchQuery = ref('');
+const foundStores = ref([]) as any;
+const selectedStore = ref(null) as any;
+const result = ref(null) as any;
+const scoreDetails = ref([]) as any;
+const progress = ref({
+  weather: false,
+  reviews: false,
+  sns: false,
+  map: false
+}) as any;
+
+const numberOfPeople = ref(1);
+
+// ★★★ 방문 시간 선택 관련 ref 추가 ★★★
+const selectedTime = ref(null);
+const timeSlots = ref([
+  { label: '평일 점심 (12-14시)', value: 'weekdayLunch' },
+  { label: '평일 저녁 (18-20시)', value: 'weekdayDinner' },
+  { label: '주말 점심 (12-14시)', value: 'weekendLunch' },
+  { label: '주말 저녁 (18-20시)', value: 'weekendDinner' },
+  { label: '애매한 시간 (15-17시)', value: 'offPeak' },
+  { label: '기타 시간', value: 'etc' },
+]);
+
+const searchStores = async () => {
+  if (!searchQuery.value) return;
+
+  const result = await Api.post(ApiUrls.NAVER_STORE_SEARCH, {query: searchQuery.value});
+  console.log(result)
+
+  foundStores.value = result.data;
+  step.value = 'selectStore';
+};
+
+// ★★★ 지점 선택 함수 수정 ★★★
+const selectStore = (store: any) => {
+  selectedStore.value = store;
+  selectedTime.value = null; // 시간 선택 초기화
+  step.value = 'selectTime'; // 로딩 대신 시간 선택 단계로 이동
+};
+
+// ★★★ 시간 선택 관련 함수들 추가 ★★★
+const selectTimeSlot = (timeValue: any) => {
+  selectedTime.value = timeValue;
+};
+
+const confirmTimeAndAnalyze = async () => {
+  if (!selectedTime.value) return;
+
+  step.value = 'loading';
+  startAnalysis();
+}
+
+/**
+ * 최종 분석에 쓰일 결과물
+ */
+const analysis = reactive({
+  reviewCount: 0
+})
+
+/**
+ * 블로그 건수 조회
+ */
+const countReviews = async () => {
+  console.log(selectedStore.value);
+
+  const param = {
+    name: selectedStore.value.name,
+    simpleAddress: selectedStore.value.simpleAddress,
+    detailAddress: selectedStore.value.simpleAddress,
+  }
+
+  console.log(param)
+
+  const result = await Api.post(ApiUrls.NAVER_BLOG_SEARCH, param);
+  console.log(result)
+
+  analysis.reviewCount = result.data.blogReviewCount;
+
+}
+
+/**
+ * 데이터 분석 flow
+ */
+const startAnalysis = async () => {
+  Object.keys(progress.value).forEach(k => progress.value[k] = false);
+  setTimeout(() => progress.value.weather = true, 300);
+
+  // 네이버 블로그 검색 건수 조회
+  setTimeout(() => {
+    countReviews().then(() => {
+      progress.value.reviews = true;
+    });
+  }, 1000);
+
+  setTimeout(() => progress.value.sns = true, 1800);
+  setTimeout(() => progress.value.map = true, 2500);
+  setTimeout(() => {
+    calculateScore();
+  }, 3000);
+};
+
+const calculateScore = () => {
+  let totalScore = 0;
+  const details = [];
+
+  if (Math.random() < 0.05) {
+    step.value = 'closed';
+    return;
+  }
+
+  const timeFactors = [ { condition: '금요일 저녁 (18-20시)', score: 30 }, { condition: '평일 저녁 (18-20시)', score: 20 }, { condition: '주말 점심 (12-14시)', score: 20 }, { condition: '평일 점심 (12-13시)', score: 15 }, { condition: '애매한 시간 (15-17시)', score: -10 }, ];
+  const timeFactor = timeFactors[Math.floor(Math.random() * timeFactors.length)];
+  details.push({ factor: '시간/요일', ...timeFactor });
+  totalScore += timeFactor.score;
+
+  const reviewCount = analysis.reviewCount;
+
+  let reviewScore = 0;
+  if (reviewCount > 1000) reviewScore = 15;
+  else if (reviewCount > 500) reviewScore = 10;
+  else if (reviewCount > 100) reviewScore = 5;
+  if (reviewScore > 0) {
+    const fomattedCount = new Intl.NumberFormat().format(analysis.reviewCount);
+    details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${fomattedCount}개`, score: reviewScore });
+    totalScore += reviewScore;
+  }
+
+  const rating = (Math.random() * 1.5 + 3.5).toFixed(1) as any;
+  const ratingScore = rating >= 4.2 ? 10 : -5;
+  details.push({ factor: '만족도(별점)', condition: `네이버 별점 ${rating}`, score: ratingScore });
+  totalScore += ratingScore;
+
+  const weatherFactors = [ { condition: '폭우, 폭설, 폭염', score: -15 }, { condition: '맑고 쾌적한 날씨', score: 5 }, { condition: '흐림/구름 많음', score: 0 }, ];
+  const weatherFactor = weatherFactors[Math.floor(Math.random() * weatherFactors.length)];
+  if(weatherFactor.score !== 0) {
+    details.push({ factor: '현재 날씨', ...weatherFactor });
+    totalScore += weatherFactor.score;
+  }
+
+  const mapFactors = [ { condition: '평소보다 매우 붐빔', score: 30 }, { condition: '평소보다 약간 붐빔', score: 15 }, { condition: '평소와 비슷함', score: 0 }, { condition: '한산함', score: -20 }, ];
+  const mapFactor = mapFactors[Math.floor(Math.random() * mapFactors.length)];
+  if(mapFactor.score !== 0) {
+    details.push({ factor: '지도 앱 혼잡도', ...mapFactor });
+    totalScore += mapFactor.score;
+  }
+
+  if (Math.random() > 0.6) {
+    const snsScore = 10;
+    details.push({ factor: '실시간 SNS', condition: '최근 1시간 내 언급', score: snsScore });
+    totalScore += snsScore;
+  }
+
+  scoreDetails.value = details;
+  generateFinalResult(totalScore);
+};
+
+const generateFinalResult = (totalScore: any) => {
+  let waitingIndex = '';
+  let message = '';
+  let emoji = '';
+
+  if (totalScore >= 70) { // 점수 구간 조정
+    waitingIndex = '매우 혼잡';
+    emoji = '🌋';
+    message = '웨이팅이 매우 길 것으로 예상돼요. 원격 줄서기나 다른 가게를 추천해요.';
+  } else if (totalScore >= 50) {
+    waitingIndex = '혼잡';
+    emoji = '🔴';
+    message = '웨이팅이 있을 가능성이 높아요. 방문에 참고하세요.';
+  } else if (totalScore >= 30) {
+    waitingIndex = '보통';
+    emoji = '🟡';
+    message = '붐비기 시작하는 시간이네요. 약간의 대기가 있을 수 있어요.';
+  } else if (totalScore >= 10) {
+    waitingIndex = '여유';
+    emoji = '🟢';
+    message = '아직은 여유로운 편이에요. 지금 방문하면 좋을 것 같아요.';
+  } else {
+    waitingIndex = '한산';
+    emoji = '🔵';
+    message = '매우 한산해요! 기다림 없이 바로 즐길 수 있어요.';
+  }
+
+  result.value = { totalScore, waitingIndex, message, emoji };
+  step.value = 'result';
+};
+
+const reset = () => {
+  step.value = 'search';
+  searchQuery.value = '';
+  foundStores.value = [];
+  selectedStore.value = null;
+  result.value = null;
+  scoreDetails.value = [];
+};
+</script>
+
 <template>
   <div class="estimator-container">
     <div class="card">
@@ -22,15 +229,15 @@
                 <el-popover
                     placement="top"
                     :width="470"
-                trigger="hover"
-                popper-class="search-tip-popover"
+                    trigger="hover"
+                    popper-class="search-tip-popover"
                 >
-                <!-- Popover의 트리거가 되는 아이콘 -->
-                <template #reference>
-                  <el-icon class="info-icon"><QuestionFilled /></el-icon>
-                </template>
+                  <!-- Popover의 트리거가 되는 아이콘 -->
+                  <template #reference>
+                    <el-icon class="info-icon"><QuestionFilled /></el-icon>
+                  </template>
 
-                <!-- ★★★ Popover의 내용물을 ElAlert로 변경 ★★★ -->
+                  <!-- ★★★ Popover의 내용물을 ElAlert로 변경 ★★★ -->
                   <div class="modern-alert modern-alert-info">
                     <div class="modern-alert-icon">
                       <!-- 아이콘 (예: SVG 또는 아이콘 폰트) -->
@@ -172,217 +379,8 @@
         <button class="reset-button" @click="reset">다른 가게 분석하기</button>
       </div>
     </div>
-
-<!--    <footer class="footer">-->
-<!--      <p>본 분석 결과는 참고용이며, 실제 웨이팅 상황과 다를 수 있습니다.</p>-->
-<!--      <p class="copyright">© 2024 AI Waiting Analyzer. All rights reserved.</p>-->
-<!--    </footer>-->
   </div>
 </template>
-
-<script setup lang="ts">
-// 스크립트 부분은 수정 없이 그대로 사용합니다.
-import {reactive, ref} from 'vue';
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
-import {QuestionFilled} from "@element-plus/icons-vue";
-
-const step = ref('search');
-const searchQuery = ref('');
-const foundStores = ref([]) as any;
-const selectedStore = ref(null) as any;
-const result = ref(null);
-const scoreDetails = ref([]);
-const progress = ref({
-  weather: false,
-  reviews: false,
-  sns: false,
-  map: false
-});
-
-const numberOfPeople = ref(1);
-
-// ★★★ 방문 시간 선택 관련 ref 추가 ★★★
-const selectedTime = ref(null);
-const timeSlots = ref([
-  { label: '평일 점심 (12-14시)', value: 'weekdayLunch' },
-  { label: '평일 저녁 (18-20시)', value: 'weekdayDinner' },
-  { label: '주말 점심 (12-14시)', value: 'weekendLunch' },
-  { label: '주말 저녁 (18-20시)', value: 'weekendDinner' },
-  { label: '애매한 시간 (15-17시)', value: 'offPeak' },
-  { label: '기타 시간', value: 'etc' },
-]);
-
-const searchStores = async () => {
-  if (!searchQuery.value) return;
-
-  const result = await Api.post(ApiUrls.NAVER_STORE_SEARCH, {query: searchQuery.value});
-  console.log(result)
-
-  foundStores.value = result.data;
-  step.value = 'selectStore';
-};
-
-// ★★★ 지점 선택 함수 수정 ★★★
-const selectStore = (store: any) => {
-  selectedStore.value = store;
-  selectedTime.value = null; // 시간 선택 초기화
-  step.value = 'selectTime'; // 로딩 대신 시간 선택 단계로 이동
-};
-
-// ★★★ 시간 선택 관련 함수들 추가 ★★★
-const selectTimeSlot = (timeValue) => {
-  selectedTime.value = timeValue;
-};
-
-const confirmTimeAndAnalyze = async () => {
-  if (!selectedTime.value) return;
-
-  step.value = 'loading';
-  startAnalysis();
-}
-
-/**
- * 최종 분석에 쓰일 결과물
- */
-const analysis = reactive({
-  reviewCount: 0
-})
-
-/**
- * 블로그 건수 조회
- */
-const countReviews = async () => {
-  console.log(selectedStore.value);
-
-  const param = {
-    name: selectedStore.value.name,
-    simpleAddress: selectedStore.value.simpleAddress,
-    detailAddress: selectedStore.value.simpleAddress,
-  }
-
-  console.log(param)
-
-  const result = await Api.post(ApiUrls.NAVER_BLOG_SEARCH, param);
-  console.log(result)
-
-  analysis.reviewCount = result.data.blogReviewCount;
-
-}
-
-const startAnalysis = async () => {
-  Object.keys(progress.value).forEach(k => progress.value[k] = false);
-  setTimeout(() => progress.value.weather = true, 300);
-
-  // 네이버 블로그 검색 건수 조회
-  setTimeout(() => {
-    countReviews().then(() => {
-      progress.value.reviews = true;
-    });
-  }, 1000);
-
-  setTimeout(() => progress.value.sns = true, 1800);
-  setTimeout(() => progress.value.map = true, 2500);
-  setTimeout(() => {
-    calculateScore();
-  }, 3000);
-};
-
-const calculateScore = () => {
-  let totalScore = 0;
-  const details = [];
-
-  if (Math.random() < 0.05) {
-    step.value = 'closed';
-    return;
-  }
-
-  const timeFactors = [ { condition: '금요일 저녁 (18-20시)', score: 30 }, { condition: '평일 저녁 (18-20시)', score: 20 }, { condition: '주말 점심 (12-14시)', score: 20 }, { condition: '평일 점심 (12-13시)', score: 15 }, { condition: '애매한 시간 (15-17시)', score: -10 }, ];
-  const timeFactor = timeFactors[Math.floor(Math.random() * timeFactors.length)];
-  details.push({ factor: '시간/요일', ...timeFactor });
-  totalScore += timeFactor.score;
-
-  const reviewCount = analysis.reviewCount;
-
-  let reviewScore = 0;
-  if (reviewCount > 1000) reviewScore = 15;
-  else if (reviewCount > 500) reviewScore = 10;
-  else if (reviewCount > 100) reviewScore = 5;
-  if (reviewScore > 0) {
-    const fomattedCount = new Intl.NumberFormat().format(analysis.reviewCount);
-    details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${fomattedCount}개`, score: reviewScore });
-    totalScore += reviewScore;
-  }
-
-  const rating = (Math.random() * 1.5 + 3.5).toFixed(1);
-  const ratingScore = rating >= 4.2 ? 10 : -5;
-  details.push({ factor: '만족도(별점)', condition: `네이버 별점 ${rating}`, score: ratingScore });
-  totalScore += ratingScore;
-
-  const weatherFactors = [ { condition: '폭우, 폭설, 폭염', score: -15 }, { condition: '맑고 쾌적한 날씨', score: 5 }, { condition: '흐림/구름 많음', score: 0 }, ];
-  const weatherFactor = weatherFactors[Math.floor(Math.random() * weatherFactors.length)];
-  if(weatherFactor.score !== 0) {
-    details.push({ factor: '현재 날씨', ...weatherFactor });
-    totalScore += weatherFactor.score;
-  }
-
-  const mapFactors = [ { condition: '평소보다 매우 붐빔', score: 30 }, { condition: '평소보다 약간 붐빔', score: 15 }, { condition: '평소와 비슷함', score: 0 }, { condition: '한산함', score: -20 }, ];
-  const mapFactor = mapFactors[Math.floor(Math.random() * mapFactors.length)];
-  if(mapFactor.score !== 0) {
-    details.push({ factor: '지도 앱 혼잡도', ...mapFactor });
-    totalScore += mapFactor.score;
-  }
-
-  if (Math.random() > 0.6) {
-    const snsScore = 10;
-    details.push({ factor: '실시간 SNS', condition: '최근 1시간 내 언급', score: snsScore });
-    totalScore += snsScore;
-  }
-
-  scoreDetails.value = details;
-  generateFinalResult(totalScore);
-};
-
-const generateFinalResult = (totalScore) => {
-  let waitingIndex = '';
-  let message = '';
-  let emoji = '';
-
-  if (totalScore >= 70) { // 점수 구간 조정
-    waitingIndex = '매우 혼잡';
-    emoji = '🌋';
-    message = '웨이팅이 매우 길 것으로 예상돼요. 원격 줄서기나 다른 가게를 추천해요.';
-  } else if (totalScore >= 50) {
-    waitingIndex = '혼잡';
-    emoji = '🔴';
-    message = '웨이팅이 있을 가능성이 높아요. 방문에 참고하세요.';
-  } else if (totalScore >= 30) {
-    waitingIndex = '보통';
-    emoji = '🟡';
-    message = '붐비기 시작하는 시간이네요. 약간의 대기가 있을 수 있어요.';
-  } else if (totalScore >= 10) {
-    waitingIndex = '여유';
-    emoji = '🟢';
-    message = '아직은 여유로운 편이에요. 지금 방문하면 좋을 것 같아요.';
-  } else {
-    waitingIndex = '한산';
-    emoji = '🔵';
-    message = '매우 한산해요! 기다림 없이 바로 즐길 수 있어요.';
-  }
-
-  result.value = { totalScore, waitingIndex, message, emoji };
-  step.value = 'result';
-};
-
-const reset = () => {
-  step.value = 'search';
-  searchQuery.value = '';
-  foundStores.value = [];
-  selectedStore.value = null;
-  result.value = null;
-  scoreDetails.value = [];
-};
-</script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
