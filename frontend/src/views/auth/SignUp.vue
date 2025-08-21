@@ -809,6 +809,7 @@ const formatBirthDate = (value: string) => {
         >
           <template #reference>
             <el-form-item label="성별" prop="genderCode" required>
+              <div class="my-radio-group">
               <el-radio-group
                   v-model="state.data.genderCode"
                   @change="() => handleFieldValidation('genderCode')"
@@ -816,6 +817,7 @@ const formatBirthDate = (value: string) => {
                 <el-radio-button label="M">남자</el-radio-button>
                 <el-radio-button label="F">여자</el-radio-button>
               </el-radio-group>
+              </div>
             </el-form-item>
           </template>
         </el-popover>
@@ -864,16 +866,16 @@ const formatBirthDate = (value: string) => {
 </template>
 
 <style>
-.privacy-section-title { font-size: 16px; font-weight: 600; color: #303133; margin: 0 0 16px 0; }
+.privacy-section-title { font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); margin: 0 0 16px 0; }
 .privacy-table .retention-period { font-size: 13px; color: #606266; line-height: 1.5; }
 .privacy-table td .el-tag { display: flex; justify-content: center; align-items: center; margin: 0 auto; }
 .refusal-info-alert { margin-top: 20px; }
 .refusal-info-alert .el-alert__description { font-size: 13px !important; }
-.privacy-agreement-footer .el-checkbox.el-checkbox--large { height: auto; }
-.privacy-agreement-footer .el-checkbox__label { white-space: normal; line-height: 1.5; color: #303133; font-weight: 500; }
+.privacy-agreement-footer .el-checkbox.el-checkbox--large { height: auto }
+.privacy-agreement-footer .el-checkbox__label { white-space: normal; line-height: 1.5; color: var(--el-text-color-primary); font-weight: 500; }
 .privacy-policy-message-box-modern { max-width: 830px; width: 90%; border-radius: 8px; padding: 0; }
 .privacy-policy-message-box-modern .el-message-box__header { padding: 18px 24px; border-bottom: 1px solid #ebeef5; }
-.privacy-policy-message-box-modern .el-message-box__title { font-size: 18px; font-weight: 600; color: #303133; }
+.privacy-policy-message-box-modern .el-message-box__title { font-size: 18px; font-weight: 600; color: var(--el-text-color-primary); }
 .privacy-policy-message-box-modern .el-message-box__content { padding: 0; }
 .privacy-policy-message-box-modern .el-message-box__btns { padding: 10px 24px 18px; }
 .privacy-dialog-content { display: flex; flex-direction: column; max-height: 60vh; }
@@ -883,12 +885,12 @@ const formatBirthDate = (value: string) => {
 .privacy-table thead { background-color: #f5f7fa; font-weight: 600; color: #606266; }
 .privacy-table td { color: #303133; line-height: 1.6; }
 .refusal-info { font-size: 13px; color: #909399; line-height: 1.6; margin: 0; }
-.privacy-agreement-footer { flex-shrink: 0; padding: 16px 24px; background-color: #f5f7fa; border-top: 1px solid #ebeef5; }
+.privacy-agreement-footer { flex-shrink: 0; padding: 16px 24px; background-color: var(--agree-info-color); border-top: 1px solid #ebeef5; }
 .etc-section { margin-bottom: 24px; }
 .etc-section-header { display: flex; align-items: center; margin-bottom: 12px; }
 .etc-icon-wrapper { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 24px; height: 24px; margin-right: 8px; border-radius: 50%; background-color: #eef2ff; }
 .etc-icon { font-size: 14px; color: #4338ca; }
-.etc-section-title { font-size: 16px; font-weight: 600; color: #303133; margin: 0; }
+.etc-section-title { font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); margin: 0; }
 .etc-section-content { font-size: 14px; line-height: 1.7; color: #606266; padding-left: 32px; margin: 0; }
 .etc-list { padding-left: 52px; margin-top: 10px; font-size: 14px; color: #606266; }
 .etc-list li { margin-bottom: 6px; }
@@ -1047,6 +1049,7 @@ const formatBirthDate = (value: string) => {
 }
 .non-outline {
   outline: 0;
+  color: var(--el-color-info) !important;
 }
 .signup-prompt-card :deep(.el-card__body) {
   padding: 8px 8px;
@@ -1076,5 +1079,10 @@ const formatBirthDate = (value: string) => {
 }
 .signup-link {
   color: var(--el-color-primary) !important;
+}
+.my-radio-group :deep(.el-radio-button),
+.my-radio-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  /* 여기에 선택된 버튼 자체의 스타일을 적용합니다. */
+  color: var(--el-bg-color);
 }
 </style>

@@ -543,6 +543,7 @@ b {
 }
 .non-outline {
   outline: 0;
+  color: var(--el-color-info) !important;
 }
 .form-container-with-overlay {
   position: relative; /* 오버레이의 기준점이 됨 */

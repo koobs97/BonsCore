@@ -491,6 +491,7 @@ const checklist = ref([
 }
 .non-outline {
   outline: 0;
+  color: var(--el-color-info) !important;
 }
 .action-button {
   width: 100%;
