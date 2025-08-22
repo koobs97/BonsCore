@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -86,21 +88,91 @@ public class AnalysisService {
     }
 
     public StoreAnalysisResultDto analyzeStoreDetails(StoreDetailRequestDto request) {
-        log.info("가게 상세 분석 서비스 시작: storeName={}", request.getName());
+        log.info("가게 상세 분석 서비스 시작: storeName={}, selectedTime={}", request.getName(), request.getSelectedTime());
 
-        // 가게 이름과 주소를 조합하여 검색 정확도를 높입니다.
+        // 1. 블로그 리뷰 수 조회
         String searchQueryForBlog = request.getSimpleAddress() + " " + request.getName();
         NaverBlogSearchResponseDto blogResponse = naverApiClient.searchBlog(searchQueryForBlog);
-
         int blogCount = (blogResponse != null) ? blogResponse.getTotal() : 0;
 
-        // 향후 이 곳에서 날씨 조회 등 다른 분석 로직을 추가하고 결과를 조합합니다.
+        // 2. ★★★ 시간/요일 기반 점수 계산 ★★★
+        int timeScore = calculateTimeScore(request.getSelectedTime());
 
+        // 3. ★★★ 블로그 리뷰 수 기반 점수 계산 ★★★
+        int blogReviewScore = calculateBlogReviewScore(blogCount);
+
+        // 4. 향후 날씨, SNS, 지도 혼잡도 등 다른 분석 로직 추가...
+
+        // 5. 최종 결과 DTO 빌드
         return StoreAnalysisResultDto.builder()
                 .name(request.getName())
                 .simpleAddress(request.getSimpleAddress())
                 .detailAddress(request.getDetailAddress())
-                .blogReviewCount(blogCount)
+                .blogReviewCount(blogCount) // 원본 블로그 리뷰 수
+                .timeScore(timeScore)           // 계산된 시간 점수
+                .blogReviewScore(blogReviewScore) // 계산된 블로그 점수
                 .build();
+    }
+
+    /**
+     * 시간/요일 기반 점수를 계산하는 메서드
+     * @param selectedTime 프론트에서 받은 시간 (예: "16-18")
+     * @return 시간/요일 점수
+     */
+    private int calculateTimeScore(String selectedTime) {
+        if (selectedTime == null || selectedTime.isEmpty() || !selectedTime.contains("-")) {
+            return 0; // 시간 정보가 없으면 0점 처리
+        }
+
+        try {
+            LocalDate today = LocalDate.now();
+            DayOfWeek dayOfWeek = today.getDayOfWeek();
+
+            // "16-18" -> 16 추출
+            int startHour = Integer.parseInt(selectedTime.split("-")[0]);
+
+            // 금요일 또는 토요일 저녁 (18시 이후)
+            if ((dayOfWeek == DayOfWeek.FRIDAY || dayOfWeek == DayOfWeek.SATURDAY) && startHour >= 18) {
+                return 30;
+            }
+            // 평일 저녁 (18시 이후)
+            if (dayOfWeek.getValue() >= 1 && dayOfWeek.getValue() <= 5 && startHour >= 18) {
+                return 20;
+            }
+            // 주말 점심 (12시 ~ 14시)
+            if ((dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) && startHour >= 12 && startHour < 14) {
+                return 20;
+            }
+            // 평일 점심 (12시 ~ 14시) - Vue에서는 13시까지였지만 12-14 슬롯이므로 14시 미만으로 처리
+            if (dayOfWeek.getValue() >= 1 && dayOfWeek.getValue() <= 5 && startHour >= 12 && startHour < 14) {
+                return 15;
+            }
+            // 애매한 시간 (14시 ~ 17시) - 14-16, 16-18 슬롯이 해당
+            if (startHour >= 14 && startHour < 18) {
+                return -10;
+            }
+
+        } catch (NumberFormatException e) {
+            log.error("시간 파싱 오류: selectedTime={}", selectedTime, e);
+            return 0;
+        }
+
+        return 0; // 그 외 시간은 기본 0점
+    }
+
+    /**
+     * 블로그 리뷰 수에 따른 점수를 계산하는 메서드
+     * @param blogCount 블로그 리뷰 총 개수
+     * @return 블로그 점수
+     */
+    private int calculateBlogReviewScore(int blogCount) {
+        if (blogCount >= 1000) {
+            return 15;
+        } else if (blogCount >= 500) {
+            return 10;
+        } else if (blogCount >= 100) {
+            return 5;
+        }
+        return 0;
     }
 }

@@ -12,4 +12,6 @@ public class StoreDetailRequestDto {
     private String name;
     private String simpleAddress;
     private String detailAddress;
+
+    private String selectedTime;
 }

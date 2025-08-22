@@ -15,6 +15,7 @@ public class StoreAnalysisResultDto {
     private String detailAddress;
 
     // 분석 결과
-    private int blogReviewCount;
-    // private double weatherScore; // 예: 추후 날씨 점수 등 확장 가능
+    private int blogReviewCount; // 기존 블로그 리뷰 수
+    private int timeScore;       // 시간/요일 기반 점수
+    private int blogReviewScore; // 블로그 리뷰 수 기반 점수
 }

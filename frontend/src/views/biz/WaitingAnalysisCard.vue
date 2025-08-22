@@ -23,12 +23,12 @@ const numberOfPeople = ref(1);
 // ★★★ 방문 시간 선택 관련 ref 추가 ★★★
 const selectedTime = ref(null);
 const timeSlots = ref([
-  { label: '평일 점심 (12-14시)', value: 'weekdayLunch' },
-  { label: '평일 저녁 (18-20시)', value: 'weekdayDinner' },
-  { label: '주말 점심 (12-14시)', value: 'weekendLunch' },
-  { label: '주말 저녁 (18-20시)', value: 'weekendDinner' },
-  { label: '애매한 시간 (15-17시)', value: 'offPeak' },
-  { label: '기타 시간', value: 'etc' },
+  { label: '10시 ~ 12시', value: '10-12' },
+  { label: '12시 ~ 14시', value: '12-14' },
+  { label: '14시 ~ 16시', value: '14-16' },
+  { label: '16시 ~ 18시', value: '16-18' },
+  { label: '18시 ~ 20시', value: '18-20' },
+  { label: '20시 ~ 22시', value: '20-22' },
 ]);
 
 const searchStores = async () => {
@@ -51,6 +51,18 @@ const selectStore = (store: any) => {
 // ★★★ 시간 선택 관련 함수들 추가 ★★★
 const selectTimeSlot = (timeValue: any) => {
   selectedTime.value = timeValue;
+};
+
+/**
+ * 현재 시간과 비교하여 이미 지난 시간대인지 확인하는 함수
+ * @param timeValue '10-12'와 같은 형태의 시간 값
+ */
+const isTimeSlotDisabled = (timeValue: string) => {
+  const currentHour = new Date().getHours(); // 현재 시간을 24시간 형식으로 가져옵니다. (예: 오후 2시는 14)
+  const slotEndHour = parseInt(timeValue.split('-')[1]); // 시간 값('10-12')에서 끝나는 시간(12)을 숫자로 추출합니다.
+
+  // 현재 시간이 시간대의 끝나는 시간보다 크거나 같으면, 그 시간대는 이미 지난 것이므로 비활성화합니다.
+  return currentHour >= slotEndHour;
 };
 
 const confirmTimeAndAnalyze = async () => {
@@ -313,6 +325,7 @@ const reset = () => {
               class="time-slot-btn"
               :class="{ active: selectedTime === time.value }"
               @click="selectTimeSlot(time.value)"
+              :disabled="isTimeSlotDisabled(time.value)"
           >
             {{ time.label }}
           </button>
@@ -656,6 +669,19 @@ button.is-disabled:hover {
   border-color: var(--el-text-color-regular);
   box-shadow: 0 4px 10px rgba(108, 92, 231, 0.15);
   transform: translateY(-2px);
+}
+.time-slot-btn:disabled {
+  background-color: var(--el-text-color-regular); /* 비활성화 배경색 */
+  color: var(--el-color-primary-dark-2);           /* 비활성화 텍스트색 */
+  cursor: not-allowed;        /* 커서 모양 변경 */
+  border-color: #e4e7ed;      /* 테두리 색상 변경 */
+  transform: none;            /* hover 효과(transform) 제거 */
+  box-shadow: none;           /* active 효과(box-shadow) 제거 */
+}
+/* 비활성화된 버튼 위에서는 hover 효과도 없애줍니다. */
+.time-slot-btn:disabled:hover {
+  background-color: var(--el-text-color-regular);
+  border-color: #e4e7ed;
 }
 .button-group {
   display: flex;
