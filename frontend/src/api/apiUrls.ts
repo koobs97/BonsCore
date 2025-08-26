@@ -29,4 +29,6 @@ export enum ApiUrls {
     NAVER_STORE_SEARCH = '/api/analysis/stores',
     NAVER_BLOG_SEARCH = '/api/analysis/details',
 
+    WEATHER_SEARCH = '/api/analysis/weather',
+
 }

@@ -100,12 +100,28 @@ const countReviews = async () => {
 
 }
 
+const getWeatherInfo = async () => {
+  const param = {
+    name: selectedStore.value.name,
+    simpleAddress: selectedStore.value.simpleAddress,
+    detailAddress: selectedStore.value.simpleAddress,
+  }
+  const result = await Api.post(ApiUrls.WEATHER_SEARCH, param);
+  console.log(result)
+}
+
 /**
  * 데이터 분석 flow
  */
 const startAnalysis = async () => {
   Object.keys(progress.value).forEach(k => progress.value[k] = false);
-  setTimeout(() => progress.value.weather = true, 300);
+
+  // 날씨 api
+  setTimeout(() => {
+    getWeatherInfo().then(() => {
+      progress.value.weather = true;
+    });
+  }, 1000);
 
   // 네이버 블로그 검색 건수 조회
   setTimeout(() => {
