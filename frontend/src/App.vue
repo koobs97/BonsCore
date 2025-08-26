@@ -26,6 +26,8 @@ const adjustScale = () => {
     appElement.style.transform = `scale(${scale})`;
   }
 
+  document.documentElement.style.setProperty('--app-scale', scale.toString());
+
   // --- ⬇️ 푸터에도 동일한 스케일을 적용하는 코드 추가 ⬇️ ---
   const footerContainer = document.getElementById('footer-container');
   if (footerContainer) {
@@ -58,6 +60,8 @@ onUnmounted(() => {
   if (footerContainer) {
     footerContainer.style.transform = 'scale(1)';
   }
+
+  document.documentElement.style.removeProperty('--app-scale');
   // ---------------------------------------------------------
 });
 
@@ -113,5 +117,15 @@ body {
   /* 중앙 하단을 기준으로 크기가 조절되도록 설정 */
   transform-origin: center bottom;
   /* --------------------------------------------- */
+}
+
+.el-dialog {
+  /*
+    --app-scale 변수를 읽어서 transform 속성에 적용합니다.
+    var() 함수의 두 번째 인자는 변수가 없을 때 사용할 기본값입니다.
+  */
+  transform: scale(var(--app-scale, 1));
+  transform-origin: center center;
+  transition: transform 0.2s ease-out; /* 스케일 변경 시 부드러운 효과 */
 }
 </style>
