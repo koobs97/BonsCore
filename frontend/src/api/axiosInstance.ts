@@ -90,7 +90,6 @@ axiosInstance.interceptors.response.use(
                     ElMessage.error(error.response.data.message);
                 }
 
-                await Api.post(ApiUrls.LOGOUT, {}, true);
                 await router.push('/login');
                 return Promise.reject(refreshError);
             }

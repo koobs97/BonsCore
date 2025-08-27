@@ -129,7 +129,7 @@ const onClickLogin = async (isForced: boolean) => {
     state.isProcessing = true;
     try {
       const res = await Api.post(ApiUrls.LOGIN, { userId : userId.value, password : encryptedPassword, force: isForced });
-      if(res.data.accessToken) {
+      if(res.data.success) {
 
         // 실제로 유저 정보 불러와서 확인 (서버 호출)
         sessionStorage.setItem('accessToken', res.data.accessToken);
