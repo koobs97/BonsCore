@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Setter
 @Getter
 @Component
-@ConfigurationProperties(prefix = "naver.client")
+@ConfigurationProperties(prefix = "api.naver.client")
 public class NaverProperties {
 
     private String id;

@@ -94,13 +94,13 @@ onUnmounted(() => {
 .custom-title {
   font-size: 17px; /* 제목 크기 살짝 줄임 */
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0 0 4px 0; /* 제목과 메시지 사이 간격 줄임 */
 }
 
 .custom-message {
   font-size: 14px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   line-height: 1.5; /* 줄 간격 살짝 줄임 */
   margin: 0;
 }
@@ -110,7 +110,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background-color: #f9fafb; /* 살짝 배경색을 주어 구분 */
+  background-color: var(--el-bg-color-page); /* 살짝 배경색을 주어 구분 */
   padding: 8px 12px;
   border-radius: 8px;
 }
@@ -128,7 +128,7 @@ onUnmounted(() => {
 .countdown-text {
   flex-shrink: 0;
   font-size: 13px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   white-space: nowrap; /* 텍스트가 줄바꿈되지 않도록 */
 }
 
