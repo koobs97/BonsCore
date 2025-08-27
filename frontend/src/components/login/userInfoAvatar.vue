@@ -4,6 +4,7 @@ import { userStore, userState } from '@/store/userStore';
 import { CopyDocument, Female, Male, Setting, UserFilled } from "@element-plus/icons-vue";
 import { ElLoading, ElMessage, ElMessageBox } from "element-plus";
 import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
+import UserEditForm from '@/components/login/UserEditForm.vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import router from "../../../router";
@@ -62,6 +63,26 @@ const custromTrigger = () => {
   buttonRef.value = !buttonRef.value
 }
 
+const editDialogVisible = ref(false);
+
+// 정보 수정 버튼 클릭 시 다이얼로그를 여는 함수
+const openEditDialog = () => {
+  editDialogVisible.value = true;
+};
+
+// 정보 수정이 성공적으로 완료되었을 때 실행될 함수
+const handleUpdateSuccess = () => {
+  // 1. 다이얼로그 닫기
+  editDialogVisible.value = false;
+  // 2. 스토어의 사용자 정보 최신화 (예시: 다시 불러오기)
+  // userStoreObj.fetchUserInfo(); // 스토어에 사용자 정보를 다시 요청하는 액션이 있다면 호출
+  // 또는, 받은 데이터로 직접 업데이트 할 수도 있습니다.
+  console.log('사용자 정보가 업데이트 되었습니다. 상태를 갱신합니다.');
+};
+
+/**
+ * 로그아웃
+ */
 const onClickLogOut = async () => {
   try {
     await ElMessageBox.confirm(
@@ -277,7 +298,13 @@ const copyEmail = (email: string) => {
 
                   </el-descriptions>
                   <div>
-                    <el-button icon="EditPen" style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;">정보수정</el-button>
+                    <el-button
+                        icon="EditPen"
+                        style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
+                        @click="openEditDialog"
+                    >
+                      정보수정
+                    </el-button>
                     <el-button
                         icon="Promotion"
                         style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
@@ -296,6 +323,11 @@ const copyEmail = (email: string) => {
       <el-tag type="info" effect="Light" style="margin-left: 4px; width: 82px;">로그인일시</el-tag>
       <el-tag type="info" effect="Light" style="margin-left: 4px; width: 136px;">{{ state.User.loginTime }}</el-tag>
     </div>
+    <UserEditForm
+        v-model:visible="editDialogVisible"
+        :user-data="state.User"
+        @update-success="handleUpdateSuccess"
+    />
   </el-card>
 </template>
 

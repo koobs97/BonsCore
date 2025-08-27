@@ -556,7 +556,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 /* 개별 탭 아이템(el-tabs__item) 스타일 */
 .main-mode-tabs :deep(.el-tabs__item) {
   font-size: 1rem;
-  height: 48px;
+  height: 44px;
   padding: 0 20px;
   border-top: 3px solid transparent; /* 비활성 탭 상단 테두리 투명 처리 */
 }
@@ -567,6 +567,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   border-bottom-color: transparent; /* 하단 테두리 제거하여 콘텐츠와 연결 */
   /* 위쪽 모서리만 둥글게 하여 카드와 자연스럽게 연결 */
   border-radius: 3px 3px 0 0;
+  margin-bottom: 6px;
 }
 
 .main-mode-tabs :deep(.el-tabs__item:last-child) {
