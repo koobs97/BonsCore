@@ -102,7 +102,6 @@ axiosInstance.interceptors.response.use(
             const redirectToLogin = async () => {
                 if(router.currentRoute.value.path !== '/login') {
                     await router.push("/login");
-                    window.location.reload();
                 }
             };
 

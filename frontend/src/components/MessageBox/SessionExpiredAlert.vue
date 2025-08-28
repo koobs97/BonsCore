@@ -76,6 +76,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px; /* 요소 간의 기본 간격 */
+  width: 400px;
 }
 
 /* 상단 콘텐츠 (아이콘 + 텍스트) */

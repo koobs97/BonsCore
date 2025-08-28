@@ -223,7 +223,7 @@ const copyEmail = (email: string) => {
                   <div style="margin-bottom: 6px;">
                     <el-avatar
                         :size="85"
-                        style="margin: 0 0 0 0;"
+                        style="margin: 0 0 0 0; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
                         src='https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
                     />
                   </div>

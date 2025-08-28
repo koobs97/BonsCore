@@ -62,6 +62,7 @@ onMounted(async () => {
     ElMessageBox.close();
     ElMessage.closeAll();
     console.log("Login page mounted: All previous messages have been cleared.");
+
   }, 0);
 
   const isLoggedIn = userStore().isLoggedIn;
@@ -70,6 +71,7 @@ onMounted(async () => {
     setTimeout(()=>{
       userStore().delUserInfo();
       sessionStorage.clear();
+      localStorage.clear();
     }, 1000);
   }
 

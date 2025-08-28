@@ -32,10 +32,6 @@ ModuleRegistry.registerModules([AllCommunityModule])
 // App
 const app = createApp(App);
 
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★           수정 포인트           ★
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
-
 // 1. Pinia 인스턴스를 먼저 생성하고 앱에 등록합니다.
 //    이렇게 해야 아래에서 userStore()를 즉시 사용할 수 있습니다.
 const pinia = createPinia();

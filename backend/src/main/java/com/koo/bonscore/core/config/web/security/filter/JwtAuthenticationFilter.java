@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
+import java.rmi.server.ExportException;
 
 @Component
 @Order(1)
@@ -58,7 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } else {
                     // 만료되거나 잘못된 토큰인 경우
-                    throw new JwtException("잘못된 인증정보입니다.");
+                    throw new ExportException("잘못된 인증정보입니다.");
                 }
 
             }
