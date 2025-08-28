@@ -3,12 +3,12 @@ package com.koo.bonscore.core.exception.handler;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
-import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
+import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
  * @since 2025-01-13
  */
 
-@ControllerAdvice
+@RestControllerAdvice
 public class ApplicationExceptionHandler {
 
     /**
@@ -48,6 +48,34 @@ public class ApplicationExceptionHandler {
         );
 
         return new ResponseEntity<>(apiResponse, ex.getStatusCode().getHttpStatus());
+    }
+
+    /**
+     * 중복 로그인 / 토큰 관련 필터체인의 에러를 제어
+     *
+     * @param ex        JwtException
+     * @param request   HTTP 요청과 관련된 정보를 제공하는 인터페이스
+     * @return          ResponseEntity<Object>
+     */
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<Object> handleJwtException(JwtException ex, WebRequest request) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),                                                            // timestamp : 발생시각
+                HttpStatus.UNAUTHORIZED.value(),                                                // status: 기본 HTTP 상태 코드 (500)
+                HttpStatus.UNAUTHORIZED.getReasonPhrase(),                                      // error: 기본 HTTP 상태 설명
+                ErrorCode.DUPLICATE_LOGIN.getCode(),                                            // code: 중복 로그인
+                ex.getMessage(),                                                                // message: 예외 메시지
+                request.getDescription(false).replace("uri=", "") // path: 요청 경로
+        );
+
+        ApiResponse<Object> apiResponse = ApiResponse.failure(
+                ErrorCode.UNAUTHORIZED.getCode(),
+                ex.getMessage(),
+                errorResponse
+        );
+
+        return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
     }
 
     /**

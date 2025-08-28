@@ -11,9 +11,8 @@
 
 import axios from 'axios';
 import { ApiUrls } from './apiUrls';
-import { ElLoading, ElMessageBox } from 'element-plus';
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 import router from '../../router';
-import { ElMessage } from 'element-plus'
 import { userStore } from '@/store/userStore';
 import { h } from "vue";
 import type { Router } from 'vue-router';
@@ -65,6 +64,7 @@ axiosInstance.interceptors.response.use(
 
         // 403 - FORBIDDEN
         if (error.response && error.response.status === 403 && !originalRequest._retry) {
+
             originalRequest._retry = true;
 
             // 현재 경로가 publicPaths에 포함되면 토큰 갱신 시도 자체를 건너뜀 =====
@@ -98,11 +98,8 @@ axiosInstance.interceptors.response.use(
         // 401 - UNAUTHORIZED
         if(error.response && error.response.status === 401 && !publicPaths.includes(router.currentRoute.value.path)) {
 
-            // 로그인 페이지로 이동하는 로직
+            // 로그인 페이지로 이동하는 함수 선언
             const redirectToLogin = async () => {
-                await Api.post(ApiUrls.LOGOUT, {}, true);
-                userStore().delUserInfo();
-                sessionStorage.clear();
                 if(router.currentRoute.value.path !== '/login') {
                     await router.push("/login");
                     window.location.reload();
@@ -112,13 +109,30 @@ axiosInstance.interceptors.response.use(
             // 1. SessionExpiredAlert 컴포넌트의 props 타입을 가져옵니다.
             type AlertProps = InstanceType<typeof SessionExpiredAlert>['$props'];
 
-            // 2. props 객체를 타입과 함께 별도의 변수로 선언합니다.
-            const alertProps: AlertProps = {
-                initialSeconds: 10,
-                onComplete: () => {
-                    redirectToLogin();
-                }
-            };
+            let alertProps: any = {};
+
+            // 1-1. 중복 로그인 감지 시
+            if(error.response.data.data.code === 'ER_104') {
+                const customMessage = error.response.data.data.message;
+
+                // 2-1. props 객체를 타입과 함께 별도의 변수로 선언합니다.
+                alertProps = {
+                    initialSeconds: 10,
+                    onComplete: () => {
+                        redirectToLogin();
+                    },
+                    message: customMessage
+                };
+            }
+            else {
+                // 2-2. props 객체를 타입과 함께 별도의 변수로 선언합니다.
+                alertProps = {
+                    initialSeconds: 10,
+                    onComplete: () => {
+                        redirectToLogin();
+                    },
+                };
+            }
 
             // 메시지 박스 호출
             const messageBoxPromise = ElMessageBox.alert(

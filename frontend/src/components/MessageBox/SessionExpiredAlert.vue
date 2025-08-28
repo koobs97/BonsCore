@@ -6,11 +6,13 @@ import { CircleClose } from '@element-plus/icons-vue';
 export interface SessionExpiredAlertProps {
   initialSeconds?: number; // default 값이 있으므로 optional(?)로 지정
   onComplete: () => void; // 함수 타입 명시
+  message?: string; // 메시지
 }
 
 
 const props = withDefaults(defineProps<SessionExpiredAlertProps>(), {
   initialSeconds: 10,
+  message: '안전을 위해 로그아웃됩니다. 다시 로그인해주세요.', // 기본메시지
 });
 
 const { initialSeconds, onComplete } = toRefs(props);
@@ -46,7 +48,7 @@ onUnmounted(() => {
       <div class="text-wrapper">
         <h3 class="custom-title">세션 만료</h3>
         <p class="custom-message">
-          안전을 위해 로그아웃됩니다. 다시 로그인해주세요.
+          {{ props.message }}
         </p>
       </div>
     </div>

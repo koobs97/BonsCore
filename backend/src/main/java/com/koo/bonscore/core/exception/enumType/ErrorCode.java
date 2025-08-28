@@ -20,6 +20,7 @@ public enum ErrorCode {
     EXPIRED_ACCESS_TOKEN("ER_002", "엑세스 토큰이 만료되었습니다."),
     INVALID_ACCESS_TOKEN("ER_003", "엑세스 토큰이 유효하지 않습니다."),
     UNAUTHORIZED("ER_004", "권한이 없습니다."),
+    DUPLICATE_LOGIN("ER_104", "중복 로그인이 감지되어 강제 로그아웃 됩니다."),
 
     // 로그인 관련 에러
     INVALID_CREDENTIALS("ER_005", "잘못된 사용자 이름 또는 비밀번호입니다."),

@@ -10,7 +10,7 @@
  * ========================================
  */
 import { Hide, View } from "@element-plus/icons-vue";
-import { computed, reactive, ref, onMounted, h } from 'vue';
+import { computed, reactive, ref, onMounted, h, nextTick } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -55,6 +55,14 @@ const togglePassword = () => {
 
 // 화면진입 시
 onMounted(async () => {
+
+  // ElMessage clear
+  await nextTick();
+  setTimeout(() => {
+    ElMessageBox.close();
+    ElMessage.closeAll();
+    console.log("Login page mounted: All previous messages have been cleared.");
+  }, 0);
 
   const isLoggedIn = userStore().isLoggedIn;
   if (isLoggedIn) {
