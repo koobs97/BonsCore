@@ -28,7 +28,6 @@ const state = reactive({
 
 onMounted(async () => {
   state.User = userStoreObj.getUserInfo;
-  console.log(state.User)
 
   const match = state.User.loginTime.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/);
   if (match) {

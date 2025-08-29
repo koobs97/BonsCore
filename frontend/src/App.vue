@@ -37,12 +37,6 @@ const adjustScale = () => {
 };
 
 onMounted(() => {
-  if (!userStoreObj.isLoggedIn) {
-    router.push('/login');
-  } else {
-    router.push('/');
-  }
-
   adjustScale();
   window.addEventListener('resize', adjustScale);
 });
