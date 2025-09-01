@@ -100,8 +100,8 @@
             )
        VALUES
             (
-              #{userId}
-            , 'USER'
+              #{userId}                        /* 사용자 ID */
+            , 'USER'                           /* 권한 ID */
             )
     </insert>
 

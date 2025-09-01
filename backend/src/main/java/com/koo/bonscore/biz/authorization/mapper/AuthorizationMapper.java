@@ -2,6 +2,7 @@ package com.koo.bonscore.biz.authorization.mapper;
 
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
+import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
 import org.apache.ibatis.annotations.Mapper;
@@ -48,4 +49,10 @@ public interface AuthorizationMapper {
      * @return
      */
     List<LogResDto> getUserLog(LogReqDto logReqDto);
+
+    /**
+     * 유저 정보 업데이트
+     * @param updateUserDto
+     */
+    void updateUserInfo(UpdateUserDto updateUserDto);
 }

@@ -50,4 +50,17 @@
         ORDER BY A.LOG_ID
     </select>
 
+    <!-- 유저 정보 업데이트 -->
+    <update id="updateUserInfo" parameterType="com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto">
+       UPDATE /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.updateUserInfo */
+              USER_INFO                        /* 유저정보 테이블 */
+          SET USER_NAME     = #{userName}      /* 사용자 이름 */
+            , EMAIL         = #{email}         /* 이메일 */
+            , PHONE_NUMBER  = #{phoneNumber}   /* 사용자 전화번호 */
+            , BIRTH_DATE    = #{birthDate}     /* 사용자 생년월일 */
+            , GENDER_CODE   = #{genderCode}    /* 성별 코드 */
+            , UPDATED_AT    = #{updatedAt}     /* 수정일시 */
+        WHERE USER_ID       = #{userId}        /* 아이디 */
+    </update>
+
 </mapper>

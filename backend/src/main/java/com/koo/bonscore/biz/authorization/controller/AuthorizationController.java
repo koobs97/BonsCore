@@ -3,6 +3,7 @@ package com.koo.bonscore.biz.authorization.controller;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
+import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
 import com.koo.bonscore.biz.authorization.dto.res.ActivityResponseDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
@@ -44,10 +45,7 @@ public class AuthorizationController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 
@@ -58,10 +56,7 @@ public class AuthorizationController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 
@@ -73,10 +68,26 @@ public class AuthorizationController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
+        }
+    }
+
+    /**
+     * 유저 정보 업데이트
+     * @param request UpdateUserDto
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @throws Exception e
+     */
+    @UserActivityLog(activityType = "UPDATE_USER", userIdField = "#request.userId")
+    @PostMapping("/updateUserInfo")
+    public void updateUserInfo(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            authorizationService.updateUserInfo(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
         }
     }
 }

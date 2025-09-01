@@ -810,13 +810,13 @@ const formatBirthDate = (value: string) => {
           <template #reference>
             <el-form-item label="성별" prop="genderCode" required>
               <div class="my-radio-group">
-              <el-radio-group
-                  v-model="state.data.genderCode"
-                  @change="() => handleFieldValidation('genderCode')"
-              >
-                <el-radio-button label="M">남자</el-radio-button>
-                <el-radio-button label="F">여자</el-radio-button>
-              </el-radio-group>
+                <el-radio-group
+                    v-model="state.data.genderCode"
+                    @change="() => handleFieldValidation('genderCode')"
+                >
+                  <el-radio-button label="M">남자</el-radio-button>
+                  <el-radio-button label="F">여자</el-radio-button>
+                </el-radio-group>
               </div>
             </el-form-item>
           </template>

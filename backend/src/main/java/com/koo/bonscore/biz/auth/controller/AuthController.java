@@ -100,10 +100,7 @@ public class AuthController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 
@@ -233,10 +230,7 @@ public class AuthController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 
@@ -256,10 +250,7 @@ public class AuthController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 
@@ -279,10 +270,7 @@ public class AuthController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 
@@ -302,10 +290,7 @@ public class AuthController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 
@@ -324,10 +309,7 @@ public class AuthController {
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());
-            if (e instanceof BsCoreException)
-                throw (BsCoreException) e;
-            else
-                throw new RuntimeException(e);
+            throw (e);
         }
     }
 

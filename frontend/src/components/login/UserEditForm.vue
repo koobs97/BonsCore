@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref, reactive, watch, defineProps, defineEmits } from 'vue';
+import {ref, reactive, watch, defineProps, defineEmits, onMounted, h} from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus'
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 // 아이콘 import 추가
 import { User, Phone, Key, Message, Calendar, RefreshRight } from '@element-plus/icons-vue'
+import ChangePasswordDialog from "@/components/login/ChangePasswordDialog.vue";
+import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
+
+const changePasswordDialogVisible = ref(false);
 
 // --- Props & Emits (기존과 동일) ---
 const props = defineProps({
@@ -24,6 +28,8 @@ const editForm = reactive({
   email: '',
   birthDate: '',
   genderCode: '',
+
+  userEmailCheckStatus: '',
 });
 
 // --- 폼 유효성 검사 규칙 (기존과 동일) ---
@@ -47,50 +53,154 @@ const rules = reactive<FormRules>({
 });
 
 // --- 로직(Logic) ---
-watch(() => props.userData, (newUserData) => {
-  if (newUserData) {
-    editForm.userName = newUserData.userName || '';
-    editForm.phoneNumber = newUserData.phoneNumber || '';
-    editForm.email = newUserData.email || '';
-    editForm.birthDate = newUserData.birthDate || '';
-    editForm.genderCode = newUserData.genderCode || '';
+watch(() => props.visible, (newUserData) => {
+  if (props.visible) {
+    editForm.userName = props.userData.userName || '';
+    editForm.phoneNumber = props.userData.phoneNumber || '';
+    editForm.email = props.userData.email || '';
+    editForm.birthDate = props.userData.birthDate || '';
+    editForm.genderCode = props.userData.genderCode || '';
+
+    formRef.value?.clearValidate();
   }
 }, { immediate: true });
+
+/**
+ * 원본 정보 다시 불러오기
+ */
+const onClickRollBackInfo = () => {
+  editForm.userName = props.userData.userName || '';
+  editForm.phoneNumber = props.userData.phoneNumber || '';
+  editForm.email = props.userData.email || '';
+  editForm.birthDate = props.userData.birthDate || '';
+  editForm.genderCode = props.userData.genderCode || '';
+
+  formRef.value?.clearValidate();
+}
 
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
   await formEl.validate(async (valid) => {
     if (valid) {
       isSubmitting.value = true;
-      try {
-        const payload = {
-          userId: props.userData.userId,
-          userName: editForm.userName,
-          phoneNumber: editForm.phoneNumber.replace(/-/g, ''),
-        };
-        await new Promise(resolve => setTimeout(resolve, 1000)); // API 호출 시뮬레이션
 
-        ElMessage.success('프로필 정보가 성공적으로 업데이트되었습니다.');
-        emit('update-success');
-        closeDialog();
-      } catch (error) {
-        ElMessage.error('정보 업데이트에 실패했습니다.');
-      } finally {
-        isSubmitting.value = false;
+
+      // 이메일 유효성 재검사
+      // 현재 사용중인 이메일과 같으면 return;
+      if(editForm.email === props.userData.email) {
+        editForm.userEmailCheckStatus = 'success';
       }
+      else {
+        const response2 = await Api.post(ApiUrls.CHECK_EMAIL, { email: editForm.email });
+        if (response2.data) {
+          ElMessage({ message: '사용할 수 없는 이메일입니다.', grouping: true, type: 'error' })
+          editForm.userEmailCheckStatus = 'error';
+          return;
+        }
+        else {
+          editForm.userEmailCheckStatus = 'success';
+        }
+      }
+
+      // 이메일이 유효할 때
+      if(editForm.userEmailCheckStatus === 'success') {
+        try {
+
+          await ElMessageBox.confirm(
+              // 1. message 옵션에 h() 함수를 사용하여 커스텀 컴포넌트를 렌더링합니다.
+              h(SignUpConfirm, {
+                // CustomConfirm 컴포넌트에 props 전달
+                title: '회원정보 변경',
+                message: '입력하신 정보로 회원정보를 변경하시겠습니까?',
+              }),
+              // 2. 기본 title은 사용하지 않으므로 빈 문자열로 둡니다.
+              '',
+              {
+                confirmButtonText: '변경하기',
+                cancelButtonText: '취소',
+                // 3. 커스텀 클래스를 추가하여 세부 스타일을 조정할 수 있습니다.
+                customClass: 'custom-message-box',
+                // 4. CustomConfirm 컴포넌트가 자체 아이콘과 UI를 가지므로,
+                //    MessageBox의 기본 UI 요소들은 비활성화합니다.
+                showClose: false, // 오른쪽 위 'X' 닫기 버튼 숨김
+                type: '', // 기본 'warning' 아이콘 숨김
+              }
+          );
+
+          const payload = {
+            userId: props.userData.userId,
+            email : editForm.email,
+            userName: editForm.userName,
+            phoneNumber: editForm.phoneNumber.replace(/-/g, ''),
+            birthDate : editForm.birthDate.replace(/\D/g, ""),
+            genderCode : editForm.genderCode,
+          };
+
+          await Api.post(ApiUrls.UPDATE_USER_INFO, payload);
+
+          ElMessage.success('프로필 정보가 성공적으로 업데이트되었습니다.');
+          emit('update-success');
+          closeDialog();
+        } catch (error) {
+          if (error === 'cancel') {
+            ElMessage.info('정보 업데이트를 취소했습니다.');
+          }
+          else {
+            ElMessage.error('정보 업데이트에 실패했습니다.');
+          }
+        } finally {
+          isSubmitting.value = false;
+        }
+      }
+
     }
   });
 };
 
 const handleChangePassword = () => {
-  ElMessageBox.alert('이곳에서 비밀번호 변경 로직을 담은 새로운 팝업을 띄울 수 있습니다.', '기능 안내', {
-    confirmButtonText: '확인',
-  })
+  changePasswordDialogVisible.value = true; // 비밀번호 변경 다이얼로그 열기
 }
 
 const closeDialog = () => {
   emit('update:visible', false);
 };
+
+const handlePasswordChanged = () => {
+  ElMessage.success('비밀번호가 성공적으로 변경되었습니다.');
+  changePasswordDialogVisible.value = false;
+};
+
+/**
+ * validation 체크
+ * @param fieldName
+ */
+const handleFieldValidation = async (fieldName: any) => {
+
+  // 현재 사용중인 이메일과 같으면 return;
+  if(editForm.email === props.userData.email) {
+    editForm.userEmailCheckStatus = 'success';
+    return;
+  }
+
+  if(fieldName === 'email') {
+    const param = {
+      email: editForm.email
+    }
+    const response = await Api.post(ApiUrls.CHECK_EMAIL, param);
+    if (response.data) {
+      ElMessage({
+        message: '사용할 수 없는 이메일입니다.',
+        grouping: true,
+        type: 'error',
+      })
+      editForm.userEmailCheckStatus = 'error';
+    } else {
+      ElMessage.success('사용 가능한 이메일입니다.');
+      editForm.userEmailCheckStatus = 'success';
+    }
+
+  }
+}
 </script>
 
 <template>
@@ -122,13 +232,14 @@ const closeDialog = () => {
       <div class="form-content">
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
-          <h3 class="form-title">계정 설정</h3>
+          <h3 class="form-title">기본 정보</h3>
           <div style="margin: 0;">
             <el-button
                 type="info"
                 :icon="RefreshRight"
                 round
                 class="refresh-modern-btn"
+                @click="onClickRollBackInfo"
             >
               원본 정보 다시 불러오기
             </el-button>
@@ -146,15 +257,17 @@ const closeDialog = () => {
           <!-- Public Information Section -->
           <h4 class="section-title" />
 
-
-
-
           <el-form-item label="이름" prop="userName">
             <el-input v-model="editForm.userName" :prefix-icon="User" placeholder="사용하실 이름을 입력하세요" />
           </el-form-item>
 
           <el-form-item label="이메일" prop="email">
-            <el-input v-model="editForm.email" :prefix-icon="Message" placeholder="example@email.com" />
+            <el-input
+                v-model="editForm.email"
+                :prefix-icon="Message"
+                placeholder="example@email.com"
+                @blur="() => handleFieldValidation('email')"
+            />
           </el-form-item>
 
           <!-- Contact Information Section -->
@@ -167,12 +280,14 @@ const closeDialog = () => {
           </el-form-item>
 
           <el-form-item label="성별" prop="phoneNumber">
-            <el-radio-group
-                v-model="editForm.genderCode"
-            >
-              <el-radio-button label="M">남자</el-radio-button>
-              <el-radio-button label="F">여자</el-radio-button>
-            </el-radio-group>
+            <div class="my-radio-group">
+                <el-radio-group
+                    v-model="editForm.genderCode"
+                >
+                  <el-radio-button label="M">남자</el-radio-button>
+                  <el-radio-button label="F">여자</el-radio-button>
+                </el-radio-group>
+            </div>
           </el-form-item>
 
           <!-- Security Section -->
@@ -184,16 +299,20 @@ const closeDialog = () => {
             </div>
             <el-button text bg @click="handleChangePassword">변경</el-button>
           </div>
+          <ChangePasswordDialog
+              v-model:visible="changePasswordDialogVisible"
+              :user-info="props.userData"
+              @password-changed="handlePasswordChanged"
+          />
         </el-form>
 
         <!-- Footer -->
         <div class="dialog-footer">
-          <el-button @click="closeDialog" size="large" style="margin-right: 4px;">취소</el-button>
+          <el-button @click="closeDialog">취소</el-button>
           <el-button
               type="primary"
               @click="submitForm(formRef)"
               :loading="isSubmitting"
-              size="large"
           >
             변경하기
           </el-button>
@@ -332,7 +451,7 @@ const closeDialog = () => {
 .my-radio-group :deep(.el-radio-button),
 .my-radio-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
   /* 여기에 선택된 버튼 자체의 스타일을 적용합니다. */
-  color: var(--el-bg-color);
+  color: var(--el-bg-color) !important;
 }
 .el-form-item__error {
   color: var(--el-color-danger); /* Element-UI의 경고 색상 변수 사용 */
@@ -375,10 +494,10 @@ const closeDialog = () => {
   background-color: var(--refresh-modern-color); /* 밝은 회색 톤 */
   color: var(--refresh-modern-text-color); /* 다크 그레이 텍스트 */
   border: 1px solid #e5e7eb; /* 은은한 테두리 */
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  height: 32px;
-  padding: 0 14px; /* 좌우 여백 넉넉하게 → pill 버튼 느낌 */
+  height: 30px;
+  padding: 0 12px; /* 좌우 여백 넉넉하게 → pill 버튼 느낌 */
   transition: all 0.25s ease;
 }
 
