@@ -57,7 +57,7 @@ defineProps({
 
 .message {
   font-size: 14px;
-  color: var(--main-header-background);
+  color: var(--el-text-color-primary);
   margin: 0;
   line-height: 1.5;
 }

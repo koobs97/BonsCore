@@ -38,7 +38,7 @@ const adjustScale = () => {
 
 onMounted(() => {
   adjustScale();
-  window.addEventListener('resize', adjustScale);
+  // window.addEventListener('resize', adjustScale);
 });
 
 onUnmounted(() => {
