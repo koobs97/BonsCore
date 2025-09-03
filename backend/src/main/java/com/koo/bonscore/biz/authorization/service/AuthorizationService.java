@@ -1,5 +1,6 @@
 package com.koo.bonscore.biz.authorization.service;
 
+import com.koo.bonscore.biz.auth.controller.RSAController;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
@@ -35,6 +36,8 @@ import java.util.List;
 public class AuthorizationService {
 
     private final AuthorizationMapper authorizationMapper;
+
+    private final RSAController rsaController;
     private final EncryptionService encryptionService;
     private final BCryptPasswordEncoder passwordEncoder; // SecurityConfig에서 bean 생성
 
@@ -105,5 +108,41 @@ public class AuthorizationService {
                 .build();
 
         authorizationMapper.updateUserInfo(item);
+    }
+
+    /**
+     * 현재 비밀번호 확인
+     * @param request UpdateUserDto
+     * @return Boolean result
+     * @throws Exception ex
+     */
+    public boolean passwordValidate(UpdateUserDto request) throws Exception {
+
+        // 받아온 password
+        String decryptedPassword = rsaController.decrypt(request.getPassword());
+
+        // userId의 해싱된 passwd get
+        String getHasedPassword = authorizationMapper.getPassword(request);
+
+        // 비밀번호 비교는 matches 함수 사용
+        return passwordEncoder.matches(decryptedPassword, getHasedPassword);
+    }
+
+    /**
+     * 비밀번호 업데이트
+     *
+     * @param request UpdateUserDto
+     * @throws Exception e
+     */
+    public void updatePassword(UpdateUserDto request) throws Exception {
+
+        UpdateUserDto item = UpdateUserDto.builder()
+                .userId(request.getUserId())
+                .password(passwordEncoder.encode(rsaController.decrypt(request.getPassword())))
+                .passwordUpdated(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")))
+                .updatedAt(LocalDateTime.now())
+                .build();
+        
+        authorizationMapper.updatePassword(item);
     }
 }

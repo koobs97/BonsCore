@@ -90,4 +90,45 @@ public class AuthorizationController {
             throw (e);
         }
     }
+
+    /**
+     * 현재 비밀번호 확인
+     *
+     * @param request UpdateUserDto
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @return Boolean result
+     * @throws Exception e
+     */
+    @UserActivityLog(activityType = "VALIDATE_PASSWORD", userIdField = "#request.userId")
+    @PostMapping("/validatePassword")
+    public boolean validatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            return authorizationService.passwordValidate(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
+
+    /**
+     * 비밀번호 업데이트
+     * 
+     * @param request UpdateUserDto
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @throws Exception e
+     */
+    @UserActivityLog(activityType = "UPDATE_PASSWORD_AF_LOGIN", userIdField = "#request.userId")
+    @PostMapping("/updatePassword")
+    public void updatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            authorizationService.updatePassword(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
 }

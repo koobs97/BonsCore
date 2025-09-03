@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 public class UpdateUserDto {
     private String userId;
     private String password;
+    private String passwordUpdated;
     private String userName;
     private String email;
     private String emailHash;

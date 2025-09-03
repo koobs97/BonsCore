@@ -55,4 +55,17 @@ public interface AuthorizationMapper {
      * @param updateUserDto
      */
     void updateUserInfo(UpdateUserDto updateUserDto);
+
+    /**
+     * 비밀번호 변경을 위해 현재 비밀번호 조회
+     * @param updateUserDto UpdateUserDto
+     * @return Password
+     */
+    String getPassword(UpdateUserDto updateUserDto);
+
+    /**
+     * 비밀번호 변경
+     * @param updateUserDto UpdateUserDto
+     */
+    void updatePassword(UpdateUserDto updateUserDto);
 }

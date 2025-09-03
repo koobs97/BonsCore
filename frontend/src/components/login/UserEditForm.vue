@@ -166,7 +166,7 @@ const closeDialog = () => {
 };
 
 const handlePasswordChanged = () => {
-  ElMessage.success('비밀번호가 성공적으로 변경되었습니다.');
+  // ElMessage.success('비밀번호가 성공적으로 변경되었습니다.');
   changePasswordDialogVisible.value = false;
 };
 

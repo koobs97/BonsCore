@@ -53,14 +53,33 @@
     <!-- 유저 정보 업데이트 -->
     <update id="updateUserInfo" parameterType="com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto">
        UPDATE /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.updateUserInfo */
-              USER_INFO                        /* 유저정보 테이블 */
-          SET USER_NAME     = #{userName}      /* 사용자 이름 */
-            , EMAIL         = #{email}         /* 이메일 */
-            , PHONE_NUMBER  = #{phoneNumber}   /* 사용자 전화번호 */
-            , BIRTH_DATE    = #{birthDate}     /* 사용자 생년월일 */
-            , GENDER_CODE   = #{genderCode}    /* 성별 코드 */
-            , UPDATED_AT    = #{updatedAt}     /* 수정일시 */
-        WHERE USER_ID       = #{userId}        /* 아이디 */
+              USER_INFO                             /* 유저정보 테이블 */
+          SET USER_NAME     = #{userName}           /* 사용자 이름 */
+            , EMAIL         = #{email}              /* 이메일 */
+            , PHONE_NUMBER  = #{phoneNumber}        /* 사용자 전화번호 */
+            , BIRTH_DATE    = #{birthDate}          /* 사용자 생년월일 */
+            , GENDER_CODE   = #{genderCode}         /* 성별 코드 */
+            , UPDATED_AT    = #{updatedAt}          /* 수정일시 */
+        WHERE USER_ID       = #{userId}             /* 아이디 */
+    </update>
+
+    <!-- 현재 비밀번호 비교를 위해 해싱된 패스워드 조회 -->
+    <select id="getPassword" resultType="String" parameterType="com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto">
+       SELECT /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.getPassword */
+              PASSWORD_HASH                         /* 비밀번호 해시 */
+         FROM USER_INFO                             /* 유저정보 테이블 */
+        WHERE USER_ID = #{userId}                   /* 사용자 ID */
+        ORDER BY USER_ID DESC
+    </select>
+
+    <!-- 비밀번호 변경 -->
+    <update id="updatePassword" parameterType="com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto">
+       UPDATE /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.updatePassword */
+              USER_INFO                             /* 유저정보 테이블 */
+          SET PASSWORD_HASH    = #{password}        /* 비밀번호 */
+            , PASSWORD_UPDATED = #{passwordUpdated} /* 비밀번호 업데이트 일시 */
+            , UPDATED_AT       = #{updatedAt}       /* 수정일시 */
+        WHERE USER_ID          = #{userId}          /* 아이디 */
     </update>
 
 </mapper>

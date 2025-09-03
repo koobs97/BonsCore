@@ -323,6 +323,7 @@ public class AuthService {
         UserInfoSearchDto updateInput = UserInfoSearchDto.builder()
                 .userId(userId)
                 .password(passwordEncoder.encode(rsaController.decrypt(newPassword)))
+                .passwordUpdated(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")))
                 .updatedAt(LocalDateTime.now())
                 .build();
 

@@ -442,7 +442,7 @@ const checklist = ref([
 .find-form .el-form-item { margin-bottom: 18px; }
 .find-form :deep(.el-form-item__label) {
   font-size: 14px;
-  color: #475669;
+  color: var(--el-color-primary);
   padding-bottom: 6px;
   line-height: normal;
   width: 100%;

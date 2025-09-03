@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { ElMessage } from 'element-plus';
+import { useRouter } from 'vue-router';
 import type { FormInstance, FormRules } from 'element-plus';
-import { Lock, CircleClose } from '@element-plus/icons-vue'; // 필요한 아이콘 추가
+import { Lock, CircleClose, TopRight } from '@element-plus/icons-vue';
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
+import { Common } from "@/common/common";
+
+const router = useRouter();
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
@@ -15,6 +21,7 @@ const isSubmitting = ref(false);
 
 const passwordForm = reactive({
   currentPassword: '',
+  confirmCurrentPassword: '',
   newPassword: '',
   confirmNewPassword: '',
 });
@@ -25,7 +32,7 @@ const validatePass = (rule: any, value: string, callback: any) => {
   } else {
     if (passwordForm.confirmNewPassword !== '') {
       if (!formRef.value) return;
-      formRef.value.validateField('confirmNewPassword', () => null);
+      formRef.value.validateField('confirmNewPassword');
     }
     callback();
   }
@@ -56,29 +63,71 @@ const rules = reactive<FormRules>({
   ],
 });
 
+/**
+ * validation 체크
+ * @param fieldName
+ */
+const handleFieldValidation = async (fieldName: any) => {
+  if(fieldName === 'password') {
+
+    const encryptedPassword = await Common.encryptPassword(passwordForm.currentPassword);
+    const param = {
+      userId: props.userInfo.userId,
+      password: encryptedPassword,
+    }
+    const response = await Api.post(ApiUrls.VALIDATE_PASSWORD, param);
+    if (!response.data) {
+      ElMessage({
+        message: '비밀번호가 일치하지 않습니다.',
+        grouping: true,
+        type: 'error',
+      })
+      passwordForm.confirmCurrentPassword = 'error';
+    } else {
+      ElMessage.success('비밀번호가 일치합니다.');
+      passwordForm.confirmCurrentPassword = 'success';
+    }
+
+  }
+}
+
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
   await formEl.validate(async (valid) => {
     if (valid) {
       isSubmitting.value = true;
       try {
-        // 실제 비밀번호 변경 API 호출
-        // const response = await Api.post(ApiUrls.changePassword, {
-        //   userId: props.userId,
-        //   currentPassword: passwordForm.currentPassword,
-        //   newPassword: passwordForm.newPassword,
-        // });
 
-        await new Promise(resolve => setTimeout(resolve, 1500)); // API 호출 시뮬레이션
+        // 현재 비밀번호 확인 재호출
+        await handleFieldValidation('password');
+
+        if(passwordForm.confirmCurrentPassword == 'error') {
+          return;
+        }
+
+        await Common.customConfirm(
+              '비밀번호 변경'
+            , '비밀번호를 변경하시겠습니까?'
+            , '확인'
+            , '취소')
+
+        // 실제 비밀번호 변경 API 호출
+        await Api.post(ApiUrls.UPDATE_PASSWORD_AF_LOGIN, {
+          userId: props.userInfo.userId,
+          password: await Common.encryptPassword(passwordForm.currentPassword),
+        });
 
         ElMessage.success('비밀번호가 성공적으로 변경되었습니다!');
         emit('password-changed'); // 비밀번호 변경 성공 이벤트 발생
         closeDialog();
-      } catch (error: any) {
-        // 에러 처리: API 응답에 따라 구체적인 메시지 표시
-        const errorMessage = error.response?.data?.message || '비밀번호 변경에 실패했습니다.';
-        ElMessage.error(errorMessage);
-        console.error('Password change error:', error);
+
+      } catch (error) {
+        if (error === 'cancel') {
+          ElMessage.info('비밀번호 변경을 취소했습니다.');
+        }
+        else {
+          ElMessage.error('비밀번호 변경에 실패했습니다.');
+        }
       } finally {
         isSubmitting.value = false;
       }
@@ -91,6 +140,10 @@ const closeDialog = () => {
   formRef.value?.resetFields();
   emit('update:visible', false);
 };
+
+const goToFindPassword = () => {
+  router.push('/FindPassword');
+}
 </script>
 
 <template>
@@ -104,10 +157,13 @@ const closeDialog = () => {
       class="change-password-dialog"
       top="30vh"
   >
-    <div class="dialog-header">
-      <h3 class="dialog-title">비밀번호 변경</h3>
-      <el-button :icon="CircleClose" text @click="closeDialog" class="close-btn" />
-    </div>
+    <el-card shadow="never">
+      <div class="dialog-header">
+        <el-text class="dialog-title">비밀번호 변경</el-text>
+        <el-button :icon="CircleClose" text @click="closeDialog" class="close-btn" />
+      </div>
+    </el-card>
+
 
     <div class="dialog-body">
       <el-form
@@ -124,8 +180,23 @@ const closeDialog = () => {
               show-password
               :prefix-icon="Lock"
               placeholder="현재 비밀번호를 입력하세요"
+              @blur="() => handleFieldValidation('password')"
           />
         </el-form-item>
+
+        <div class="forgot-password-wrapper">
+          <el-button
+              link
+              size="small"
+              class="forgot-password-btn"
+              @click="goToFindPassword"
+          >
+            비밀번호가 기억나지 않으신다면?
+            <el-button size="small" style="width: 8px; height: 24px; margin-left: 4px;" :icon="TopRight">
+
+            </el-button>
+          </el-button>
+        </div>
 
         <el-form-item label="새 비밀번호" prop="newPassword">
           <el-input
@@ -163,6 +234,15 @@ const closeDialog = () => {
     </template>
   </el-dialog>
 </template>
+<style>
+.change-password-dialog {
+  padding: 24px !important;
+}
+.el-card__body {
+  padding: 10px 10px 10px 14px;
+  border-bottom: 1px solid var(--el-border-color-light);
+}
+</style>
 
 <style scoped>
 /* Dialog Header Customization */
@@ -198,7 +278,7 @@ const closeDialog = () => {
 
 .dialog-title {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
@@ -219,7 +299,8 @@ const closeDialog = () => {
 }
 
 .el-form-item {
-  margin-bottom: 22px;
+  margin-top: 22px;
+  margin-bottom: 4px;
 }
 
 .dialog-footer {
@@ -261,4 +342,27 @@ const closeDialog = () => {
   position: absolute;
   top: 100%;
 }
+
+.forgot-password-wrapper {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.forgot-password-btn {
+  font-size: 12px;
+  color: var(--el-text-color-primary); /* 메인 포인트 색 */
+  padding: 0;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.forgot-password-btn:hover {
+  color: var(--el-text-color-primary);
+  text-decoration: underline;
+}
+
+.el-card {
+  border: none; /* 카드 자체의 테두리 제거 */
+  padding: 0 !important; /* 카드 내부 패딩 제거 */
+}
+
 </style>
