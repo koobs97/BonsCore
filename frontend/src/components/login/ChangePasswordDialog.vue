@@ -157,7 +157,7 @@ const goToFindPassword = () => {
       class="change-password-dialog"
       top="30vh"
   >
-    <el-card shadow="never">
+    <el-card shadow="never" class="custom-el-card">
       <div class="dialog-header">
         <el-text class="dialog-title">비밀번호 변경</el-text>
         <el-button :icon="CircleClose" text @click="closeDialog" class="close-btn" />
@@ -237,10 +237,6 @@ const goToFindPassword = () => {
 <style>
 .change-password-dialog {
   padding: 24px !important;
-}
-.el-card__body {
-  padding: 10px 10px 10px 14px;
-  border-bottom: 1px solid var(--el-border-color-light);
 }
 </style>
 
@@ -364,5 +360,8 @@ const goToFindPassword = () => {
   border: none; /* 카드 자체의 테두리 제거 */
   padding: 0 !important; /* 카드 내부 패딩 제거 */
 }
-
+.custom-el-card :deep(.el-card__body) {
+  padding: 10px 10px 10px 14px !important;
+  border-bottom: 1px solid var(--el-border-color-light);
+}
 </style>
