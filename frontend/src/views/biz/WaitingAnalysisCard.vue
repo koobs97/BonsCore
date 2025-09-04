@@ -432,13 +432,13 @@ const reset = () => {
   display: flex;
   align-items: flex-start;
   padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
 }
 
 .modern-alert-info {
-  background-color: #F0F7FF; /* 부드러운 파란색 계열 */
-  border-left: 4px solid #5096FF;
+  background-color: var(--black-white-color); /* 부드러운 파란색 계열 */
+  border-left: 5px solid var(--el-overlay-color-light);
 }
 
 .modern-alert-icon {

@@ -360,6 +360,9 @@ const goToFindPassword = () => {
   border: none; /* 카드 자체의 테두리 제거 */
   padding: 0 !important; /* 카드 내부 패딩 제거 */
 }
+.custom-el-card {
+  background-color: var(--el-fill-color-lighter);
+}
 .custom-el-card :deep(.el-card__body) {
   padding: 10px 10px 10px 14px !important;
   border-bottom: 1px solid var(--el-border-color-light);

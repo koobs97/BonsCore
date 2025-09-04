@@ -99,6 +99,8 @@
   --el-message-border-color: var(--el-color-error-light-8);
   --el-message-text-color: var(--el-color-error);
 
+  --black-white-color: white;
+
   --popover-error: #e53e3e;
 
   --main-header-background: #f4f7f9;
@@ -129,6 +131,8 @@
 html.dark {
   --el-color-primary: #ffffff !important;
   --el-overlay-color-light: #c0c4cc;
+
+  --black-white-color: black;
 
   --main-header-background: #606266;
   --main-header-text-color1: #ddd;
