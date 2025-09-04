@@ -1,10 +1,10 @@
-package com.koo.bonscore.common.api.weather.service;
+package com.koo.bonscore.common.api.kma.weather.service;
 
 
-import com.koo.bonscore.common.api.weather.config.GpsTransfer;
-import com.koo.bonscore.common.api.weather.dto.KakaoApiDto;
-import com.koo.bonscore.common.api.weather.dto.KmaApiDto;
-import com.koo.bonscore.common.api.weather.dto.WeatherResponseDto;
+import com.koo.bonscore.common.api.kma.weather.config.GpsTransfer;
+import com.koo.bonscore.common.api.kma.weather.dto.KakaoApiDto;
+import com.koo.bonscore.common.api.kma.weather.dto.KmaApiDto;
+import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,14 +14,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor

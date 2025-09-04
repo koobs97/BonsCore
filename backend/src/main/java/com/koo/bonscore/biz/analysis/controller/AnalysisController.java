@@ -5,10 +5,13 @@ import com.koo.bonscore.biz.analysis.dto.StoreDetailRequestDto;
 import com.koo.bonscore.biz.analysis.service.AnalysisService;
 import com.koo.bonscore.biz.analysis.dto.SearchRequestDto;
 import com.koo.bonscore.biz.analysis.dto.SimpleStoreInfoDto;
-import com.koo.bonscore.common.api.weather.dto.WeatherResponseDto;
-import com.koo.bonscore.common.api.weather.service.WeatherService;
+import com.koo.bonscore.common.api.kma.holiday.dto.res.HolidayResponseDto;
+import com.koo.bonscore.common.api.kma.holiday.service.HolidayService;
+import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
+import com.koo.bonscore.common.api.kma.weather.service.WeatherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,8 +26,8 @@ import java.util.List;
 public class AnalysisController {
 
     private final AnalysisService analysisService;
-
     private final WeatherService weatherService;
+    private final HolidayService holidayService;
 
     /**
      * 1단계: 초기 가게 목록 검색 API (기존 기능)
@@ -52,5 +55,13 @@ public class AnalysisController {
     @PostMapping("/weather")
     public WeatherResponseDto getTodayWeather(@RequestBody StoreDetailRequestDto request) {
         return weatherService.getTodayWeather(request.getSimpleAddress());
+    }
+
+    /**
+     * 4단계: 오늘 공휴일 여부 확인 API
+     */
+    @PostMapping("/holiday-status")
+    public HolidayResponseDto getTodayHolidayInfo() {
+        return holidayService.getTodayHolidayInfo();
     }
 }

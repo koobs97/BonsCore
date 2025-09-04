@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // 스크립트 부분은 수정 없이 그대로 사용합니다.
-import {reactive, ref} from 'vue';
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
-import {QuestionFilled} from "@element-plus/icons-vue";
+import { reactive, ref } from 'vue';
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
+import { QuestionFilled } from "@element-plus/icons-vue";
 
 const step = ref('search');
 const searchQuery = ref('');
@@ -14,14 +14,14 @@ const scoreDetails = ref([]) as any;
 const progress = ref({
   weather: false,
   reviews: false,
+  holiday: false,
   sns: false,
   map: false
 }) as any;
 
 const numberOfPeople = ref(1);
 
-// ★★★ 방문 시간 선택 관련 ref 추가 ★★★
-const selectedTime = ref(null);
+const selectedTime = ref() as any;
 const timeSlots = ref([
   { label: '10시 ~ 12시', value: '10-12' },
   { label: '12시 ~ 14시', value: '12-14' },
@@ -110,6 +110,11 @@ const getWeatherInfo = async () => {
   console.log(result)
 }
 
+const getHolidayInfo = async () => {
+  const response = await Api.post(ApiUrls.HOLIDAY_INFO, {});
+  console.log(response)
+}
+
 /**
  * 데이터 분석 flow
  */
@@ -129,6 +134,15 @@ const startAnalysis = async () => {
       progress.value.reviews = true;
     });
   }, 1000);
+
+  // 공휴일 정보
+  setTimeout(() => {
+    getHolidayInfo().then(() => {
+      progress.value.holiday = true;
+    });
+  }, 1000);
+
+
 
   setTimeout(() => progress.value.sns = true, 1800);
   setTimeout(() => progress.value.map = true, 2500);
@@ -334,6 +348,12 @@ const reset = () => {
           />
         </div>
         <h2 class="step-title">방문 예정 시간을 선택해주세요.</h2>
+        <button
+            class="skip-time-btn"
+            @click="selectedTime = 'now'; confirmTimeAndAnalyze()"
+        >
+          <span>⚡️ 시간 미정 (현재 시점 분석)</span>
+        </button>
         <div class="time-slots">
           <button
               v-for="time in timeSlots"
@@ -457,13 +477,13 @@ const reset = () => {
 .modern-alert-title {
   margin: 0;
   font-weight: 600;
-  color: #333;
+  color: var(--main-header-text-color2);
   font-size: 16px;
 }
 
 .modern-alert-description {
   margin: 4px 0 0;
-  color: #555;
+  color: var(--text-color3);
   font-size: 14px;
 }
 
@@ -540,7 +560,7 @@ const reset = () => {
 }
 
 /* ElInput(size="large")에 맞춰 버튼 높이 조정 */
-.search-button-large {
+.search-button {
   height: 40px;
   padding: 0 18px;
 }
@@ -641,8 +661,6 @@ button.is-disabled:hover {
   list-style: none;
   padding: 0;
   margin: 12px 0 0 0; /* 위쪽 제목과의 간격을 margin-top으로 조정 */
-
-  /* ★★★★★★★★★★★ 핵심 수정사항 ★★★★★★★★★★★ */
   flex-grow: 1;       /* 1. 부모(.card-body)의 남은 세로 공간을 모두 차지합니다. */
   overflow-y: auto;   /* 2. 내용이 영역을 벗어나면 세로 스크롤바를 표시합니다. */
   height: 300px;
@@ -657,47 +675,80 @@ button.is-disabled:hover {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  margin: auto 0;
+  margin: 16px 0; /* '시간 미정' 버튼과 하단 버튼 그룹 사이의 여백 확보 */
   flex-grow: 1;
   align-content: center;
-  color: var(--el-color-primary)
 }
+
 .time-slot-btn {
-  padding: 15px 10px;
+  padding: 14px 10px;
   font-size: 0.9rem;
   font-weight: 500;
-  background-color: var(--el-border-color);
-  color: var(--el-color-primary);
-  border: 1px solid var(--border-color);
+  /* 기본 상태: 은은한 배경색과 일반 텍스트 색상 */
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  /* 레이아웃 깨짐 방지를 위한 투명 테두리 */
+  border: 2px solid transparent;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
-.time-slot-btn:hover {
-  border-color: var(--el-color-primary-light-3);
-  background-color: var(--el-border-color-extra-light);
-  transform: translateY(-2px);
-}
-.time-slot-btn.active {
-  background-color: var(--el-bg-color);
+
+.time-slot-btn:hover:not(:disabled) {
+  /* 마우스 오버: 테마 색상을 활용하여 상호작용 피드백 제공 */
+  border-color: var(--el-color-primary-light-5);
+  background-color: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
-  font-weight: 700;
-  border-color: var(--el-text-color-regular);
-  box-shadow: 0 4px 10px rgba(108, 92, 231, 0.15);
   transform: translateY(-2px);
 }
+
+.time-slot-btn.active {
+  /* 활성 상태: 주 색상으로 명확하게 선택 표시 */
+  background-color: var(--el-color-primary);
+  color: var(--el-bg-color); /* 배경색과 대비되는 텍스트 색상 */
+  border-color: var(--el-color-primary);
+  font-weight: 700;
+  box-shadow: var(--el-box-shadow-light); /* 입체감을 위한 그림자 */
+  transform: translateY(-2px);
+}
+
 .time-slot-btn:disabled {
-  background-color: var(--el-text-color-regular); /* 비활성화 배경색 */
-  color: var(--el-color-primary-dark-2);           /* 비활성화 텍스트색 */
-  cursor: not-allowed;        /* 커서 모양 변경 */
-  border-color: #e4e7ed;      /* 테두리 색상 변경 */
-  transform: none;            /* hover 효과(transform) 제거 */
-  box-shadow: none;           /* active 효과(box-shadow) 제거 */
+  /* 비활성 상태: 테마의 비활성 변수 사용 */
+  background-color: var(--el-disabled-bg-color);
+  color: var(--el-disabled-text-color);
+  border-color: transparent;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.8; /* 비활성화된 느낌을 강조 */
 }
 /* 비활성화된 버튼 위에서는 hover 효과도 없애줍니다. */
 .time-slot-btn:disabled:hover {
-  background-color: var(--el-text-color-regular);
-  border-color: #e4e7ed;
+  background-color: var(--el-disabled-bg-color);
+  border-color: var(--el-disabled-bg-color);
+}
+.skip-time-btn {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px; /* 시간 선택 슬롯과의 간격 */
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--el-color-primary);
+  background-color: transparent;
+  border: 1px dashed var(--el-color-primary-light-5);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* 아이콘과 텍스트 사이 간격 */
+}
+
+.skip-time-btn:hover {
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-3);
+  color: var(--el-color-primary-light-3);
 }
 .button-group {
   display: flex;

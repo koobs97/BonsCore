@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.api.weather.dto;
+package com.koo.bonscore.common.api.kma.weather.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

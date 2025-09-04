@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.api.weather.config;
+package com.koo.bonscore.common.api.kma.weather.config;
 
 import lombok.Getter;
 import lombok.Setter;

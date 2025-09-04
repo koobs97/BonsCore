@@ -107,6 +107,8 @@
   --main-header-text-color1: #777;
   --main-header-text-color2: #333;
 
+  --text-color3: #555;
+
   --primary-color: #6c5ce7;
   --primary-color-light: #f8f6ff;
   --bg-color: #f4f7f9;
@@ -137,6 +139,8 @@ html.dark {
   --main-header-background: #606266;
   --main-header-text-color1: #ddd;
   --main-header-text-color2: #eee;
+
+  --text-color3: #c0c4cc;
 
   --primary-color-light: var(--el-border-color);
   --border-color-light: #ffffff;

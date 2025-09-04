@@ -78,7 +78,7 @@ const handleFieldValidation = async (fieldName: any) => {
     const response = await Api.post(ApiUrls.VALIDATE_PASSWORD, param);
     if (!response.data) {
       ElMessage({
-        message: '비밀번호가 일치하지 않습니다.',
+        message: '현재 비밀번호가 일치하지 않습니다.',
         grouping: true,
         type: 'error',
       })
@@ -155,7 +155,7 @@ const goToFindPassword = () => {
       :close-on-click-modal="false"
       append-to-body
       class="change-password-dialog"
-      top="30vh"
+      top="25vh"
   >
     <el-card shadow="never" class="custom-el-card">
       <div class="dialog-header">

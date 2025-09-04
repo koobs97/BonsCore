@@ -30,6 +30,7 @@ export enum ApiUrls {
     NAVER_BLOG_SEARCH = '/api/analysis/details',
 
     WEATHER_SEARCH = '/api/analysis/weather',
+    HOLIDAY_INFO = '/api/analysis/holiday-status',
 
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
     VALIDATE_PASSWORD = '/api/authorization/validatePassword',
