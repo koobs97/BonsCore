@@ -207,11 +207,7 @@ const copyToClipboard = async () => {
         <el-tooltip content="테마 변경" placement="bottom">
           <el-button class="custom-image-button" :icon="isDarkMode ? Moon : Sunny" @click="toggleTheme"/>
         </el-tooltip>
-<!--        <el-tooltip content="깃허브 바로가기" placement="bottom">-->
-<!--          <el-button class="custom-image-button" @click="goToGitHub">-->
-<!--            <img class="theme-sensitive" src="@/assets/images/github_icon.png" alt="custom icon"/>-->
-<!--          </el-button>-->
-<!--        </el-tooltip>-->
+
         <el-popover :width="410" trigger="click">
           <template #reference>
             <el-button class="custom-image-button">
@@ -219,7 +215,13 @@ const copyToClipboard = async () => {
             </el-button>
           </template>
           <el-tabs v-model="activeName">
-            <el-tab-pane label="GitHub" name="default" />
+            <el-tab-pane name="default">
+              <template #label>
+                <span style="font-size: 14px; font-weight: 600;">
+                      GitHub
+                    </span>
+              </template>
+            </el-tab-pane>
           </el-tabs>
           <div style="display: flex; align-items: center;">
             <el-input readonly v-model="githubUrl">
