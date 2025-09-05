@@ -9,6 +9,8 @@ import com.koo.bonscore.common.api.kma.holiday.dto.res.HolidayResponseDto;
 import com.koo.bonscore.common.api.kma.holiday.service.HolidayService;
 import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
 import com.koo.bonscore.common.api.kma.weather.service.WeatherService;
+import com.koo.bonscore.common.api.naver.NaverDataLabService;
+import com.koo.bonscore.common.api.naver.dto.datalab.DataLabResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,7 @@ public class AnalysisController {
     private final AnalysisService analysisService;
     private final WeatherService weatherService;
     private final HolidayService holidayService;
+    private final NaverDataLabService naverDataLabService;
 
     /**
      * 1단계: 초기 가게 목록 검색 API (기존 기능)
@@ -64,4 +67,14 @@ public class AnalysisController {
     public HolidayResponseDto getTodayHolidayInfo() {
         return holidayService.getTodayHolidayInfo();
     }
+
+    /**
+     * 5단계: 네이버 데이터랩 검색 트렌드 조회 API
+     */
+    @PostMapping("/search-trend")
+    public DataLabResponseDto getSearchTrend(@RequestBody SearchRequestDto request) {
+        log.info("네이버 데이터랩 검색 트렌드 조회 요청: query=[{}]", request.getQuery());
+        return naverDataLabService.getSearchTrend(request.getQuery());
+    }
+
 }

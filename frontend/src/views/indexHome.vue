@@ -2,13 +2,17 @@
 import { ref, shallowRef, onMounted, defineAsyncComponent, computed, watch } from 'vue';
 import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
-  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Box, ArrowDown,
+  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Link, ArrowDown, CopyDocument,
 } from '@element-plus/icons-vue';
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 import { userStore } from '@/store/userStore';
 import { useRouter } from 'vue-router';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
+import {ElMessage} from "element-plus";
+
+const activeName = ref('default')
+const githubUrl = ref('https://github.com/koobs97/BonsCore/tree/main');
 
 // router, user
 const router = useRouter();
@@ -165,6 +169,22 @@ watch(isDarkMode, (newVal) => {
 const goToGitHub = () => {
   window.open('https://github.com/koobs97/BonsCore/tree/main', '_blank');
 }
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(githubUrl.value);
+    ElMessage({
+      message: 'URL이 클립보드에 복사되었습니다.',
+      type: 'success',
+      duration: 2000,
+    });
+  } catch (err) {
+    console.error('클립보드 복사 실패:', err);
+    ElMessage({
+      message: '복사에 실패했습니다.',
+      type: 'error',
+    });
+  }
+};
 </script>
 
 <template>
@@ -187,11 +207,36 @@ const goToGitHub = () => {
         <el-tooltip content="테마 변경" placement="bottom">
           <el-button class="custom-image-button" :icon="isDarkMode ? Moon : Sunny" @click="toggleTheme"/>
         </el-tooltip>
-        <el-tooltip content="깃허브 바로가기" placement="bottom">
-          <el-button class="custom-image-button" @click="goToGitHub">
-            <img class="theme-sensitive" src="@/assets/images/github_icon.png" alt="custom icon"/>
-          </el-button>
-        </el-tooltip>
+<!--        <el-tooltip content="깃허브 바로가기" placement="bottom">-->
+<!--          <el-button class="custom-image-button" @click="goToGitHub">-->
+<!--            <img class="theme-sensitive" src="@/assets/images/github_icon.png" alt="custom icon"/>-->
+<!--          </el-button>-->
+<!--        </el-tooltip>-->
+        <el-popover :width="410" trigger="click">
+          <template #reference>
+            <el-button class="custom-image-button">
+              <img class="theme-sensitive" src="@/assets/images/github_icon.png" alt="custom icon"/>
+            </el-button>
+          </template>
+          <el-tabs v-model="activeName">
+            <el-tab-pane label="GitHub" name="default" />
+          </el-tabs>
+          <div style="display: flex; align-items: center;">
+            <el-input readonly v-model="githubUrl">
+            </el-input>
+            <el-button link @click="copyToClipboard" style="outline: none;">
+              <el-icon style="font-size: 18px; margin-left: 8px;"><CopyDocument /></el-icon>
+            </el-button>
+            <el-button link style="font-size: 18px; margin-left: 8px; outline: none;" :icon="Link" @click="goToGitHub" />
+          </div>
+          <el-divider style="margin: 12px 0 16px 0;" />
+          <div style="display: flex;align-items: center;">
+            <el-icon style="font-size: 14px;"><CopyDocument /></el-icon>
+            <el-text style="font-size: 12px; margin-left: 4px;">주소복사</el-text>
+            <el-icon style="font-size: 14px; margin-left: 12px;"><Link /></el-icon>
+            <el-text style="font-size: 12px; margin-left: 4px;">바로가기</el-text>
+          </div>
+        </el-popover>
       </div>
     </el-header>
 

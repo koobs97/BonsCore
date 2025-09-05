@@ -107,12 +107,20 @@ const getWeatherInfo = async () => {
     detailAddress: selectedStore.value.simpleAddress,
   }
   const result = await Api.post(ApiUrls.WEATHER_SEARCH, param);
-  console.log(result)
+  console.log(result);
 }
 
 const getHolidayInfo = async () => {
   const response = await Api.post(ApiUrls.HOLIDAY_INFO, {});
-  console.log(response)
+  console.log(response);
+}
+
+const getDataTrend = async () => {
+  const payload = {
+    query: selectedStore.value.name
+  }
+  const response = await Api.post(ApiUrls.SEARCH_TREND, payload);
+  console.log(response);
 }
 
 /**
@@ -142,9 +150,13 @@ const startAnalysis = async () => {
     });
   }, 1000);
 
+  // 데이터랩 조회
+  setTimeout(() => {
+    getDataTrend().then(() => {
+      progress.value.sns = true;
+    });
+  }, 1000);
 
-
-  setTimeout(() => progress.value.sns = true, 1800);
   setTimeout(() => progress.value.map = true, 2500);
   setTimeout(() => {
     calculateScore();
@@ -380,6 +392,7 @@ const reset = () => {
         <div class="progress-list">
           <p :class="{ done: progress.weather }">기상청 날씨 정보 수집</p>
           <p :class="{ done: progress.reviews }">네이버 리뷰 및 인지도 분석</p>
+          <p :class="{ done: progress.holiday }">공휴일 정보 확인</p>
           <p :class="{ done: progress.sns }">실시간 SNS 언급량 확인</p>
           <p :class="{ done: progress.map }">지도 앱 혼잡도 데이터 크롤링</p>
         </div>

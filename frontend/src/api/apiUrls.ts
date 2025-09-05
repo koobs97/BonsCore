@@ -31,6 +31,7 @@ export enum ApiUrls {
 
     WEATHER_SEARCH = '/api/analysis/weather',
     HOLIDAY_INFO = '/api/analysis/holiday-status',
+    SEARCH_TREND = '/api/analysis/search-trend',
 
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
     VALIDATE_PASSWORD = '/api/authorization/validatePassword',
