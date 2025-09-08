@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 스크립트 부분은 수정 없이 그대로 사용합니다.
+
 import { reactive, ref } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
@@ -41,14 +41,14 @@ const searchStores = async () => {
   step.value = 'selectStore';
 };
 
-// ★★★ 지점 선택 함수 수정 ★★★
+// 지점 선택 함수
 const selectStore = (store: any) => {
   selectedStore.value = store;
   selectedTime.value = null; // 시간 선택 초기화
   step.value = 'selectTime'; // 로딩 대신 시간 선택 단계로 이동
 };
 
-// ★★★ 시간 선택 관련 함수들 추가 ★★★
+// 시간 선택 관련 함수
 const selectTimeSlot = (timeValue: any) => {
   selectedTime.value = timeValue;
 };
@@ -65,11 +65,14 @@ const isTimeSlotDisabled = (timeValue: string) => {
   return currentHour >= slotEndHour;
 };
 
+/**
+ * 분석 시작
+ */
 const confirmTimeAndAnalyze = async () => {
   if (!selectedTime.value) return;
 
   step.value = 'loading';
-  startAnalysis();
+  await startAnalysis();
 }
 
 /**
@@ -100,6 +103,9 @@ const countReviews = async () => {
 
 }
 
+/**
+ * 날씨 정보 조회
+ */
 const getWeatherInfo = async () => {
   const param = {
     name: selectedStore.value.name,
@@ -110,11 +116,17 @@ const getWeatherInfo = async () => {
   console.log(result);
 }
 
+/**
+ * 휴일 정보 조회
+ */
 const getHolidayInfo = async () => {
   const response = await Api.post(ApiUrls.HOLIDAY_INFO, {});
   console.log(response);
 }
 
+/**
+ * 데이터랩 검색 추이 조회
+ */
 const getDataTrend = async () => {
   const payload = {
     query: selectedStore.value.name
@@ -796,10 +808,6 @@ button.is-disabled:hover {
   font-size: 0.7rem; /* 저작권 폰트는 약간 작게 */
   opacity: 0.8;
 }
-
-/* =============================================================== */
-/* ============= [핵심] 결과 화면 & 상세 분석 영역 개선 ============= */
-/* =============================================================== */
 
 /* 전체 결과 화면 레이아웃 */
 .result-state {
