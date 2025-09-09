@@ -5,6 +5,8 @@ import com.koo.bonscore.biz.analysis.dto.StoreDetailRequestDto;
 import com.koo.bonscore.biz.analysis.service.AnalysisService;
 import com.koo.bonscore.biz.analysis.dto.SearchRequestDto;
 import com.koo.bonscore.biz.analysis.dto.SimpleStoreInfoDto;
+import com.koo.bonscore.common.api.google.dto.StoreHoursResponseDto;
+import com.koo.bonscore.common.api.google.service.GooglePlacesService;
 import com.koo.bonscore.common.api.kma.holiday.dto.res.HolidayResponseDto;
 import com.koo.bonscore.common.api.kma.holiday.service.HolidayService;
 import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -31,6 +34,7 @@ public class AnalysisController {
     private final WeatherService weatherService;
     private final HolidayService holidayService;
     private final NaverDataLabService naverDataLabService;
+    private final GooglePlacesService googlePlacesService;
 
     /**
      * 1단계: 초기 가게 목록 검색 API (기존 기능)
@@ -75,6 +79,11 @@ public class AnalysisController {
     public DataLabResponseDto getSearchTrend(@RequestBody SearchRequestDto request) {
         log.info("네이버 데이터랩 검색 트렌드 조회 요청: query=[{}]", request.getQuery());
         return naverDataLabService.getSearchTrend(request.getQuery());
+    }
+
+    @PostMapping("/openingInfo")
+    public StoreHoursResponseDto getStoreOpeningHours(@RequestBody StoreDetailRequestDto request) {
+        return googlePlacesService.getStoreOpeningHours(request.getName(), request.getSimpleAddress());
     }
 
 }

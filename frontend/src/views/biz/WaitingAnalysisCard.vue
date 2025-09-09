@@ -16,6 +16,7 @@ const progress = ref({
   reviews: false,
   holiday: false,
   sns: false,
+  opening: false,
   map: false
 }) as any;
 
@@ -79,7 +80,8 @@ const confirmTimeAndAnalyze = async () => {
  * 최종 분석에 쓰일 결과물
  */
 const analysis = reactive({
-  reviewCount: 0
+  reviewCount: 0,
+  openingInfo: null as any,
 })
 
 /**
@@ -107,12 +109,12 @@ const countReviews = async () => {
  * 날씨 정보 조회
  */
 const getWeatherInfo = async () => {
-  const param = {
+  const payload = {
     name: selectedStore.value.name,
     simpleAddress: selectedStore.value.simpleAddress,
     detailAddress: selectedStore.value.simpleAddress,
   }
-  const result = await Api.post(ApiUrls.WEATHER_SEARCH, param);
+  const result = await Api.post(ApiUrls.WEATHER_SEARCH, payload);
   console.log(result);
 }
 
@@ -136,53 +138,61 @@ const getDataTrend = async () => {
 }
 
 /**
+ * 가게 영업 정보 조회
+ */
+const getOpeningInfo = async () => {
+  const payload = {
+    name: selectedStore.value.name,
+    simpleAddress: selectedStore.value.simpleAddress,
+    detailAddress: selectedStore.value.simpleAddress,
+  }
+  try {
+    const result = await Api.post(ApiUrls.OPENING_INFO, payload);
+    console.log(result.data)
+    return result.data; // API 응답 데이터를 반환
+  } catch (error) {
+    console.error("영업 정보 조회 실패:", error);
+    return null; // 실패 시 null 반환
+  }
+}
+
+/**
  * 데이터 분석 flow
  */
 const startAnalysis = async () => {
+  // 1. 프로그레스 초기화
   Object.keys(progress.value).forEach(k => progress.value[k] = false);
 
-  // 날씨 api
-  setTimeout(() => {
-    getWeatherInfo().then(() => {
-      progress.value.weather = true;
-    });
-  }, 1000);
+  // 2. 가장 먼저 가게 영업 정보 조회
+  const openingInfo = await getOpeningInfo();
+  analysis.openingInfo = openingInfo; // 결과 저장
+  progress.value.map = true; // 영업 정보 확인 완료 표시 (기존 map 프로그레스를 재활용)
 
-  // 네이버 블로그 검색 건수 조회
-  setTimeout(() => {
-    countReviews().then(() => {
-      progress.value.reviews = true;
-    });
-  }, 1000);
+  // 3. 휴무일인지 체크
+  if (!openingInfo || !openingInfo.open) {
+    // API 호출에 실패했거나, 'open'이 false이면 휴무 처리
+    step.value = 'closed';
+    return; // 분석 중단
+  }
 
-  // 공휴일 정보
-  setTimeout(() => {
-    getHolidayInfo().then(() => {
-      progress.value.holiday = true;
-    });
-  }, 1000);
+  // 4. 영업 중일 경우, 나머지 데이터 병렬로 수집
+  await Promise.all([
+    getWeatherInfo().then(() => { progress.value.weather = true; }),
+    countReviews().then(() => { progress.value.reviews = true; }),
+    getHolidayInfo().then(() => { progress.value.holiday = true; }),
+    getDataTrend().then(() => { progress.value.sns = true; }),
+  ]);
 
-  // 데이터랩 조회
-  setTimeout(() => {
-    getDataTrend().then(() => {
-      progress.value.sns = true;
-    });
-  }, 1000);
-
-  setTimeout(() => progress.value.map = true, 2500);
+  // 5. 모든 데이터 수집 후 점수 계산
+  // 약간의 지연을 주어 로딩 애니메이션이 보이도록 함
   setTimeout(() => {
     calculateScore();
-  }, 3000);
+  }, 500);
 };
 
 const calculateScore = () => {
   let totalScore = 0;
   const details = [];
-
-  if (Math.random() < 0.05) {
-    step.value = 'closed';
-    return;
-  }
 
   const timeFactors = [ { condition: '금요일 저녁 (18-20시)', score: 30 }, { condition: '평일 저녁 (18-20시)', score: 20 }, { condition: '주말 점심 (12-14시)', score: 20 }, { condition: '평일 점심 (12-13시)', score: 15 }, { condition: '애매한 시간 (15-17시)', score: -10 }, ];
   const timeFactor = timeFactors[Math.floor(Math.random() * timeFactors.length)];
@@ -450,6 +460,21 @@ const reset = () => {
         <span class="result-emoji">💤</span>
         <h2 class="result-index">오늘은 휴무일입니다</h2>
         <p class="result-message">선택하신 {{ selectedStore.name }}은(는) 오늘 영업하지 않아요.</p>
+
+        <!-- ★★★ 휴무일 화면에 가게 영업 정보 표시 (새로 추가) ★★★ -->
+        <div v-if="analysis.openingInfo && analysis.openingInfo.weekdayText" class="opening-hours-closed">
+          <h3 class="details-title">가게 영업 정보</h3>
+          <ul class="hours-list-closed">
+            <li
+                v-for="(text, index) in analysis.openingInfo.weekdayText"
+                :key="index"
+                :class="{ 'is-today': (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) === index }"
+            >
+              {{ text }}
+            </li>
+          </ul>
+        </div>
+
         <button class="reset-button" @click="reset">다른 가게 분석하기</button>
       </div>
     </div>
@@ -477,7 +502,7 @@ const reset = () => {
   display: flex;
   align-items: flex-start;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -598,7 +623,7 @@ input[type="text"] {
   padding: 12px;
   /* border-color를 조금 더 진한 색으로 변경하여 항상 보이게 함 */
   border: 2px solid #ccc;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
 }
@@ -660,7 +685,7 @@ button {
   background-color: var(--el-color-primary);
   color: var(--el-bg-color);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -691,7 +716,7 @@ button.is-disabled:hover {
   height: 300px;
   min-height: 0;      /* 3. flex-grow와 overflow가 올바르게 작동하기 위한 필수 속성입니다. */
 }
-.store-list li { margin-top: 4px; padding: 12px 15px; border: 1px solid var(--el-color-primary); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+.store-list li { margin-top: 4px; padding: 12px 15px; border: 1px solid var(--el-color-primary); border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, transform 0.2s; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
 .store-list li span { font-size: 0.8rem; color: var(--el-color-primary); }
 .store-list li:hover { background-color: var(--el-bg-color); border-color: var(--el-color-primary); transform: translateY(-2px); }
 .back-button { width: 100%; margin-top: 15px; background-color: #7f8c8d; }
@@ -714,7 +739,7 @@ button.is-disabled:hover {
   color: var(--el-text-color-regular);
   /* 레이아웃 깨짐 방지를 위한 투명 테두리 */
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
@@ -761,7 +786,7 @@ button.is-disabled:hover {
   color: var(--el-color-primary);
   background-color: transparent;
   border: 1px dashed var(--el-color-primary-light-5);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -796,7 +821,7 @@ button.is-disabled:hover {
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(108, 92, 231, 0.2); border-top-color: var(--el-color-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 15px auto 15px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-message { color: var(--el-color-primary); font-size: 0.9rem; margin-bottom: 20px; }
-.progress-list { text-align: left; background-color: #fafafa; padding: 10px 15px; border-radius: 8px; }
+.progress-list { text-align: left; background-color: #fafafa; padding: 10px 15px; border-radius: 6px; }
 .progress-list p { margin: 8px 0; font-size: 0.85rem; color: var(--light-text-color); transition: all 0.5s ease; }
 .progress-list p.done { color: var(--text-color); font-weight: 500; }
 .progress-list p.done::after { content: ' ✓'; color: var(--green); }
@@ -924,7 +949,7 @@ button.is-disabled:hover {
   padding: 10px 12px;
   margin-bottom: 12px;
   background-color: var(--primary-color-light);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border-color-light);
 }
 .total-score .factor { font-size: 0.9rem; color: var(--el-color-primary); font-weight: 700; }
@@ -952,4 +977,45 @@ button.is-disabled:hover {
   margin-bottom: 8px; /* 입력창과의 간격 */
 }
 
+.opening-hours-closed {
+  width: 100%;
+  max-width: 400px; /* 너무 넓어지지 않도록 제한 */
+  margin: 25px auto 16px;
+}
+
+/* 결과 화면의 details-title 스타일을 재활용하거나 새로 정의 */
+.opening-hours-closed .details-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--el-text-color-secondary); /* 중앙 정렬된 화면에 맞게 톤 다운 */
+}
+
+.hours-list-closed {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  overflow: hidden; /* 자식 요소의 radius를 부모에 맞춤 */
+  text-align: left; /* 부모의 text-align: center를 무시하고 좌측 정렬 */
+}
+
+.hours-list-closed li {
+  padding: 8px 15px;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  font-size: 0.8rem;
+  color: var(--el-text-color-regular);
+}
+
+.hours-list-closed li:last-child {
+  border-bottom: none;
+}
+
+/* 오늘 요일 하이라이트 스타일 (휴무일이므로 경고/주의 톤으로) */
+.hours-list-closed li.is-today {
+  background-color: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2);
+  font-weight: 700;
+}
 </style>
