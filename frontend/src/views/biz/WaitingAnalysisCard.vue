@@ -17,7 +17,6 @@ const progress = ref({
   holiday: false,
   sns: false,
   opening: false,
-  map: false
 }) as any;
 
 const numberOfPeople = ref(1);
@@ -35,10 +34,10 @@ const timeSlots = ref([
 const searchStores = async () => {
   if (!searchQuery.value) return;
 
-  const result = await Api.post(ApiUrls.NAVER_STORE_SEARCH, {query: searchQuery.value});
-  console.log(result)
+  const response = await Api.post(ApiUrls.NAVER_STORE_SEARCH, {query: searchQuery.value});
+  console.log('가게정보: ', response)
 
-  foundStores.value = result.data;
+  foundStores.value = response.data;
   step.value = 'selectStore';
 };
 
@@ -82,27 +81,31 @@ const confirmTimeAndAnalyze = async () => {
 const analysis = reactive({
   reviewCount: 0,
   openingInfo: null as any,
+  weatherInfo: null as any,
+  trendInfo: null as any,
+  holidayInfo: null as any,
 })
+
+const notAvailableInfo = reactive({
+  emoji: '',
+  title: '',
+  message: '',
+});
 
 /**
  * 블로그 건수 조회
  */
 const countReviews = async () => {
-  console.log(selectedStore.value);
-
-  const param = {
+  const payload = {
     name: selectedStore.value.name,
     simpleAddress: selectedStore.value.simpleAddress,
     detailAddress: selectedStore.value.simpleAddress,
   }
 
-  console.log(param)
+  const response = await Api.post(ApiUrls.NAVER_BLOG_SEARCH, payload);
+  console.log("블로그 건수:", response.data);
 
-  const result = await Api.post(ApiUrls.NAVER_BLOG_SEARCH, param);
-  console.log(result)
-
-  analysis.reviewCount = result.data.blogReviewCount;
-
+  analysis.reviewCount = response.data.blogReviewCount;
 }
 
 /**
@@ -114,16 +117,36 @@ const getWeatherInfo = async () => {
     simpleAddress: selectedStore.value.simpleAddress,
     detailAddress: selectedStore.value.simpleAddress,
   }
-  const result = await Api.post(ApiUrls.WEATHER_SEARCH, payload);
-  console.log(result);
+  try {
+    const result = await Api.post(ApiUrls.WEATHER_SEARCH, payload);
+    analysis.weatherInfo = result.data;
+    console.log("날씨 정보:", result.data);
+  } catch (error) {
+    console.error("날씨 정보 조회 실패:", error);
+    analysis.weatherInfo = null;
+  }
 }
 
 /**
  * 휴일 정보 조회
  */
 const getHolidayInfo = async () => {
-  const response = await Api.post(ApiUrls.HOLIDAY_INFO, {});
-  console.log(response);
+  try {
+    const response = await Api.post(ApiUrls.HOLIDAY_INFO, {});
+    analysis.holidayInfo = response.data; // API 결과를 analysis 객체에 저장
+    console.log("휴일 정보:", response.data);
+  } catch (error) {
+    console.error("휴일 정보 조회 실패:", error);
+    // API 실패 시, 클라이언트의 현재 날짜를 기반으로 비상용 데이터 생성
+    const today = new Date();
+    const dayIndex = today.getDay(); // 0:일, 1:월, ..., 6:토
+    const dayMap = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+    analysis.holidayInfo = {
+      holidayOrWeekend: dayIndex === 0 || dayIndex === 6,
+      holidayType: dayIndex === 0 || dayIndex === 6 ? "주말" : "평일",
+      todayDayOfWeek: dayMap[dayIndex]
+    };
+  }
 }
 
 /**
@@ -133,8 +156,16 @@ const getDataTrend = async () => {
   const payload = {
     query: selectedStore.value.name
   }
-  const response = await Api.post(ApiUrls.SEARCH_TREND, payload);
-  console.log(response);
+  try {
+    const response = await Api.post(ApiUrls.SEARCH_TREND, payload);
+    if (response.data && response.data.results && response.data.results.length > 0) {
+      analysis.trendInfo = response.data.results[0].data;
+      console.log("데이터랩 검색 추이:", analysis.trendInfo);
+    }
+  } catch (error) {
+    console.error("데이터랩 검색 추이 조회 실패:", error);
+    analysis.trendInfo = null;
+  }
 }
 
 /**
@@ -147,14 +178,136 @@ const getOpeningInfo = async () => {
     detailAddress: selectedStore.value.simpleAddress,
   }
   try {
-    const result = await Api.post(ApiUrls.OPENING_INFO, payload);
-    console.log(result.data)
-    return result.data; // API 응답 데이터를 반환
+    const response = await Api.post(ApiUrls.OPENING_INFO, payload);
+    console.log('영업 정보 조회:', response.data)
+    return response.data; // API 응답 데이터를 반환
   } catch (error) {
     console.error("영업 정보 조회 실패:", error);
     return null; // 실패 시 null 반환
   }
 }
+
+/**
+ * 영업시간 파싱 및 현재 상태 판별 헬퍼 함수
+ */
+const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: string) => {
+  if (!openingInfo || !openingInfo.weekdayText) {
+    return { status: 'UNKNOWN', message: '영업 정보 확인 불가' };
+  }
+
+  const now = new Date();
+  const dayIndex = now.getDay();
+  const todayIndex = (dayIndex === 0) ? 6 : dayIndex - 1;
+  const todayHoursText = openingInfo.weekdayText[todayIndex];
+
+  if (!todayHoursText || typeof todayHoursText !== 'string') {
+    return { status: 'UNKNOWN', message: '오늘의 영업 정보를 가져올 수 없습니다.' };
+  }
+
+  if (todayHoursText.includes('휴무일')) {
+    return { status: 'CLOSED_TODAY', message: '오늘은 정기 휴무일입니다.' };
+  }
+
+  const colonIndex = todayHoursText.indexOf(':'); // 콜론의 위치를 찾습니다.
+
+  if (colonIndex === -1 || todayHoursText.includes('정보 없음')) {
+    return { status: 'UNKNOWN', message: '오늘의 영업 정보를 확인할 수 없습니다.' };
+  }
+
+  const timeInfoString = todayHoursText.substring(colonIndex + 1).trim();
+
+  if (!timeInfoString) {
+    return { status: 'UNKNOWN', message: '영업 시간 정보를 찾을 수 없습니다.' };
+  }
+
+  const hourBlocks = timeInfoString.split(',').map(s => s.trim());
+
+  const parseTimeWithContext = (timeStr: string, contextPrefix: string | null) => {
+    const timeRegex = /(오전|오후)?\s*(\d{1,2}):(\d{2})/;
+    const match = timeStr.match(timeRegex);
+    if (!match) return null;
+
+    let [, prefix, hourStr, minuteStr] = match;
+    let hours = parseInt(hourStr, 10);
+    const minutes = parseInt(minuteStr, 10);
+
+    prefix = prefix || contextPrefix;
+
+    if (prefix === '오후' && hours !== 12) hours += 12;
+    else if (prefix === '오전' && hours === 12) hours = 0;
+
+    return hours * 60 + minutes;
+  };
+
+  const operatingPeriods: { start: number; end: number; startText: string; endText: string }[] = [];
+
+  for (const block of hourBlocks) {
+    const parts = block.split('~').map(p => p.trim());
+    if (parts.length !== 2) continue;
+
+    const [startStr, endStr] = parts;
+    const startPrefixMatch = startStr.match(/(오전|오후)/);
+    const startContext = startPrefixMatch ? startPrefixMatch[0] : "오전";
+
+    const startTime = parseTimeWithContext(startStr, null);
+    const endTime = parseTimeWithContext(endStr, startContext);
+
+    if (startTime !== null && endTime !== null) {
+      let correctedEndTime = endTime;
+      if (endTime < startTime) {
+        correctedEndTime += 24 * 60;
+      }
+      operatingPeriods.push({
+        start: startTime,
+        end: correctedEndTime,
+        startText: startStr,
+        endText: endStr,
+      });
+    }
+  }
+
+  if (operatingPeriods.length === 0) {
+    return { status: 'UNKNOWN', message: '영업 시간 형식을 분석할 수 없습니다.' };
+  }
+
+  let targetTimeInMinutes: number;
+  if (selectedTimeValue === 'now') {
+    targetTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+  } else {
+    const startHour = parseInt(selectedTimeValue.split('-')[0], 10);
+    targetTimeInMinutes = startHour * 60;
+  }
+
+  const firstOpeningTime = operatingPeriods[0].start;
+  const lastClosingTime = operatingPeriods[operatingPeriods.length - 1].end;
+
+  let adjustedTargetTime = targetTimeInMinutes;
+  if (lastClosingTime >= 24 * 60 && targetTimeInMinutes < firstOpeningTime) {
+    adjustedTargetTime += 24 * 60;
+  }
+
+  if (adjustedTargetTime < firstOpeningTime) {
+    return { status: 'BEFORE_OPENING', message: `선택하신 시간은 영업 시작 전입니다. (${operatingPeriods[0].startText} 시작)` };
+  }
+
+  if (adjustedTargetTime >= lastClosingTime) {
+    return { status: 'AFTER_CLOSING', message: '선택하신 시간에는 이미 영업이 종료됩니다.' };
+  }
+
+  for (const period of operatingPeriods) {
+    if (adjustedTargetTime >= period.start && adjustedTargetTime < period.end) {
+      return { status: 'OPERATIONAL', message: '영업 중' };
+    }
+  }
+
+  for (let i = 0; i < operatingPeriods.length - 1; i++) {
+    if (adjustedTargetTime >= operatingPeriods[i].end && adjustedTargetTime < operatingPeriods[i + 1].start) {
+      return { status: 'BREAK_TIME', message: `선택하신 시간은 브레이크 타임입니다 (${operatingPeriods[i].endText} ~ ${operatingPeriods[i+1].startText})` };
+    }
+  }
+
+  return { status: 'UNKNOWN', message: '선택하신 시간의 운영 상태를 확인할 수 없습니다.' };
+};
 
 /**
  * 데이터 분석 flow
@@ -163,25 +316,60 @@ const startAnalysis = async () => {
   // 1. 프로그레스 초기화
   Object.keys(progress.value).forEach(k => progress.value[k] = false);
 
-  // 2. 가장 먼저 가게 영업 정보 조회
-  const openingInfo = await getOpeningInfo();
-  analysis.openingInfo = openingInfo; // 결과 저장
-  progress.value.map = true; // 영업 정보 확인 완료 표시 (기존 map 프로그레스를 재활용)
+  const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-  // 3. 휴무일인지 체크
-  if (!openingInfo || !openingInfo.open) {
-    // API 호출에 실패했거나, 'open'이 false이면 휴무 처리
-    step.value = 'closed';
-    return; // 분석 중단
+  const openingInfo = await getOpeningInfo();
+  analysis.openingInfo = openingInfo;
+  await delay(300);
+  progress.value.opening = true;
+
+  // 헬퍼 함수를 호출하여 현재의 정확한 상태를 파악
+  const currentState = checkBusinessStateForSelectedTime(openingInfo, selectedTime.value);
+
+  // 'OPERATIONAL' 상태가 아니면, 분석을 중단하고 상태에 맞는 메시지를 표시
+  if (currentState.status !== 'OPERATIONAL') {
+    switch (currentState.status) {
+      case 'CLOSED_TODAY':
+        notAvailableInfo.emoji = '💤';
+        notAvailableInfo.title = '오늘은 휴무일입니다';
+        break;
+      case 'BREAK_TIME':
+        notAvailableInfo.emoji = '☕';
+        notAvailableInfo.title = '브레이크 타임입니다';
+        break;
+      case 'BEFORE_OPENING':
+        notAvailableInfo.emoji = '⏳';
+        notAvailableInfo.title = '영업 시작 전입니다';
+        break;
+      case 'AFTER_CLOSING':
+        notAvailableInfo.emoji = '🌙';
+        notAvailableInfo.title = '영업이 종료되었습니다';
+        break;
+      default: // 'UNKNOWN' 포함
+        notAvailableInfo.emoji = '⚠️';
+        notAvailableInfo.title = '운영 상태 확인 불가';
+    }
+    notAvailableInfo.message = currentState.message;
+    step.value = 'notAvailable'; // 통합 '운영 안 함' 상태로 전환
+    return;
   }
 
-  // 4. 영업 중일 경우, 나머지 데이터 병렬로 수집
-  await Promise.all([
-    getWeatherInfo().then(() => { progress.value.weather = true; }),
-    countReviews().then(() => { progress.value.reviews = true; }),
-    getHolidayInfo().then(() => { progress.value.holiday = true; }),
-    getDataTrend().then(() => { progress.value.sns = true; }),
-  ]);
+  // 4. 나머지 데이터 순차적으로 수집
+  await getWeatherInfo();
+  await delay(300);
+  progress.value.weather = true;
+
+  await countReviews();
+  await delay(300);
+  progress.value.reviews = true;
+
+  await getHolidayInfo();
+  await delay(300);
+  progress.value.holiday = true;
+
+  await getDataTrend();
+  await delay(300);
+  progress.value.sns = true;
 
   // 5. 모든 데이터 수집 후 점수 계산
   // 약간의 지연을 주어 로딩 애니메이션이 보이도록 함
@@ -194,46 +382,197 @@ const calculateScore = () => {
   let totalScore = 0;
   const details = [];
 
-  const timeFactors = [ { condition: '금요일 저녁 (18-20시)', score: 30 }, { condition: '평일 저녁 (18-20시)', score: 20 }, { condition: '주말 점심 (12-14시)', score: 20 }, { condition: '평일 점심 (12-13시)', score: 15 }, { condition: '애매한 시간 (15-17시)', score: -10 }, ];
-  const timeFactor = timeFactors[Math.floor(Math.random() * timeFactors.length)];
-  details.push({ factor: '시간/요일', ...timeFactor });
-  totalScore += timeFactor.score;
+  // 시간/요일 점수 계산 (사용자 선택 및 실제 데이터 기반)
+  if (analysis.holidayInfo) {
+    // 영문 요일을 한글로 변환하기 위한 맵
+    const dayMap: { [key: string]: string } = {
+      MONDAY: '월요일', TUESDAY: '화요일', WEDNESDAY: '수요일',
+      THURSDAY: '목요일', FRIDAY: '금요일', SATURDAY: '토요일', SUNDAY: '일요일'
+    };
 
-  const reviewCount = analysis.reviewCount;
+    const { holidayOrWeekend, todayDayOfWeek } = analysis.holidayInfo;
+    const dayInKorean = dayMap[todayDayOfWeek] || todayDayOfWeek;
 
-  let reviewScore = 0;
-  if (reviewCount > 1000) reviewScore = 15;
-  else if (reviewCount > 500) reviewScore = 10;
-  else if (reviewCount > 100) reviewScore = 5;
-  if (reviewScore > 0) {
-    const fomattedCount = new Intl.NumberFormat().format(analysis.reviewCount);
-    details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${fomattedCount}개`, score: reviewScore });
-    totalScore += reviewScore;
+    let timeScore = 0;
+    let timeDescription = '';
+    let targetHour: number;
+
+    // 사용자가 '시간 미정'을 눌렀으면 현재 시간, 아니면 선택한 시간대의 시작 시간
+    if (selectedTime.value === 'now') {
+      targetHour = new Date().getHours();
+    } else {
+      targetHour = parseInt(selectedTime.value.split('-')[0], 10);
+    }
+
+    // 시간대에 따른 기본 점수 및 설명 설정
+    if (targetHour >= 10 && targetHour < 12) { timeDescription = '오전'; timeScore = 5; }
+    else if (targetHour >= 12 && targetHour < 14) { timeDescription = '점심 피크'; timeScore = 15; }
+    else if (targetHour >= 14 && targetHour < 17) { timeDescription = '애매한 오후'; timeScore = -10; }
+    else if (targetHour >= 17 && targetHour < 21) { timeDescription = '저녁 피크'; timeScore = 20; }
+    else { timeDescription = '늦은 저녁'; timeScore = 10; }
+
+    // 주말/공휴일 가중치 적용
+    if (holidayOrWeekend) {
+      // 피크 시간대에는 더 큰 가점 부여
+      if (timeDescription.includes('피크')) {
+        timeScore += 15;
+      } else {
+        timeScore += 10;
+      }
+    }
+
+    // 금요일 저녁 특별 가중치 (공휴일이 아닌 평일 금요일)
+    if (!holidayOrWeekend && todayDayOfWeek === 'FRIDAY' && timeDescription === '저녁 피크') {
+      timeScore += 5;
+    }
+
+    // 결과 화면에 표시될 최종 텍스트 생성
+    let finalCondition = `${dayInKorean} ${timeDescription}`;
+    if (holidayOrWeekend && !['토요일', '일요일'].includes(dayInKorean)) {
+      finalCondition = `공휴일 ${timeDescription}`; // 평일인데 공휴일인 경우
+    }
+    // 사용자가 특정 시간대를 선택했다면 괄호로 표시
+    if (selectedTime.value !== 'now') {
+      const selectedSlot = timeSlots.value.find(slot => slot.value === selectedTime.value);
+      if (selectedSlot) finalCondition += ` (${selectedSlot.label})`;
+    }
+
+    details.push({ factor: '시간/요일', condition: finalCondition, score: timeScore });
+    totalScore += timeScore;
   }
 
-  const rating = (Math.random() * 1.5 + 3.5).toFixed(1) as any;
-  const ratingScore = rating >= 4.2 ? 10 : -5;
-  details.push({ factor: '만족도(별점)', condition: `네이버 별점 ${rating}`, score: ratingScore });
-  totalScore += ratingScore;
+  // 방문 인원수 점수
+  if (numberOfPeople.value > 1) { // 3명 이상일 때만 점수 계산 및 표시
+    let peopleScore = 0;
+    let peopleCondition = `${numberOfPeople.value}명 방문`;
 
-  const weatherFactors = [ { condition: '폭우, 폭설, 폭염', score: -15 }, { condition: '맑고 쾌적한 날씨', score: 5 }, { condition: '흐림/구름 많음', score: 0 }, ];
-  const weatherFactor = weatherFactors[Math.floor(Math.random() * weatherFactors.length)];
-  if(weatherFactor.score !== 0) {
-    details.push({ factor: '현재 날씨', ...weatherFactor });
-    totalScore += weatherFactor.score;
+    if (numberOfPeople.value >= 5) {
+      peopleScore = 15;
+      peopleCondition += ' (단체)';
+    } else { // 3-4명인 경우
+      peopleScore = 5;
+    }
+
+    details.push({
+      factor: '방문 인원',
+      condition: peopleCondition,
+      score: peopleScore
+    });
+    totalScore += peopleScore;
   }
 
-  const mapFactors = [ { condition: '평소보다 매우 붐빔', score: 30 }, { condition: '평소보다 약간 붐빔', score: 15 }, { condition: '평소와 비슷함', score: 0 }, { condition: '한산함', score: -20 }, ];
-  const mapFactor = mapFactors[Math.floor(Math.random() * mapFactors.length)];
-  if(mapFactor.score !== 0) {
-    details.push({ factor: '지도 앱 혼잡도', ...mapFactor });
-    totalScore += mapFactor.score;
+  // 인지도(리뷰 수) 점수
+  if (analysis.reviewCount) {
+    let reviewScore = 0;
+    if (analysis.reviewCount > 1000) reviewScore = 15;
+    else if (analysis.reviewCount > 500) reviewScore = 10;
+    else if (analysis.reviewCount > 100) reviewScore = 5;
+    if (reviewScore > 0) {
+      const formattedCount = new Intl.NumberFormat().format(analysis.reviewCount);
+      details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${formattedCount}개`, score: reviewScore });
+      totalScore += reviewScore;
+    }
   }
 
-  if (Math.random() > 0.6) {
-    const snsScore = 10;
-    details.push({ factor: '실시간 SNS', condition: '최근 1시간 내 언급', score: snsScore });
-    totalScore += snsScore;
+  // 날씨 점수
+  if (analysis.weatherInfo) {
+    const weather = analysis.weatherInfo;
+    const temp = parseInt(weather.temperature, 10);
+    let weatherCondition = '';
+    let weatherScore = 0;
+
+    // 우선 순위: 강수 > 기온(폭염/한파) > 하늘 상태
+    if (weather.precipitation && weather.precipitation !== '없음') {
+      weatherCondition = `${weather.precipitation}, ${temp}°C`;
+      if (weather.precipitation.includes('비') || weather.precipitation.includes('소나기')) {
+        weatherScore = -15; // 비가 오면 외출을 꺼리므로 큰 감점
+      } else if (weather.precipitation.includes('눈')) {
+        weatherScore = -10; // 눈도 감점 요인
+      }
+    } else if (temp >= 30) {
+      weatherCondition = `폭염 ${temp}°C`;
+      weatherScore = -15; // 매우 더운 날씨
+    } else if (temp <= 0) {
+      weatherCondition = `한파 ${temp}°C`;
+      weatherScore = -10; // 매우 추운 날씨
+    } else if (weather.sky === '맑음') {
+      weatherCondition = `맑음, ${temp}°C`;
+      weatherScore = 10;  // 맑고 쾌적한 날씨는 큰 가점
+    } else if (weather.sky === '흐림') {
+      weatherCondition = `흐림, ${temp}°C`;
+      weatherScore = -5;  // 흐린 날은 약간의 감점
+    } else if (weather.sky === '구름많음') {
+      weatherCondition = `구름많음, ${temp}°C`;
+      weatherScore = 0;   // 구름 많은 날은 중립
+    }
+
+    // 점수에 영향이 있는 경우에만 상세 내역에 추가
+    if (weatherScore !== 0) {
+      details.push({
+        factor: '현재 날씨',
+        condition: weatherCondition,
+        score: weatherScore,
+      });
+      totalScore += weatherScore;
+    }
+  }
+
+  // 검색 트렌드 점수
+  if (analysis.trendInfo && analysis.trendInfo.length >= 2) {
+    const trendData = [...analysis.trendInfo]; // 원본 수정을 피하기 위해 배열 복사
+    const now = new Date();9000450
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // getMonth()는 0부터 시작
+    const currentDate = now.getDate();
+
+    // 마지막 데이터가 현재 진행 중인 달인지 확인
+    const latestData = trendData[trendData.length - 1];
+    const [latestYear, latestMonth] = latestData.period.split('-').map(Number);
+
+    let latestRatio = latestData.ratio;
+
+    // 현재 진행 중인 달의 데이터라면 월말 기준으로 예측하여 보정
+    if (latestYear === currentYear && latestMonth === currentMonth && currentDate > 1) {
+      // 해당 월의 총 일수 구하기
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+      // 일일 평균 ratio 계산
+      const dailyAverageRatio = latestData.ratio / currentDate;
+      // 월말 예측 ratio 계산
+      const projectedRatio = dailyAverageRatio * daysInMonth;
+
+      // 보정된 값으로 업데이트 (최대값은 100을 넘지 않도록)
+      latestRatio = Math.min(projectedRatio, 100);
+      console.log(`데이터랩 보정: ${latestData.ratio.toFixed(2)} -> ${latestRatio.toFixed(2)} (예측)`);
+    }
+
+    const previousRatio = trendData[trendData.length - 2].ratio;
+    const change = latestRatio - previousRatio;
+
+    let trendCondition = '';
+    let trendScore = 0;
+
+    // 보정된 값을 기준으로 점수 계산
+    if (change > 20) {
+      trendScore = 15;
+      trendCondition = '최근 검색량 급상승';
+    } else if (latestRatio > 85) {
+      trendScore = 10;
+      trendCondition = '최고 수준의 관심도';
+    } else if (change > 5) {
+      trendScore = 8;
+      trendCondition = '관심도 상승 추세';
+    } else if (change < -10) {
+      trendScore = -5;
+      trendCondition = '관심도 하락 추세';
+    } else {
+      trendScore = 5;
+      trendCondition = '꾸준한 관심도 유지';
+    }
+
+    if (trendScore !== 0) {
+      details.push({ factor: '검색 트렌드', condition: trendCondition, score: trendScore });
+      totalScore += trendScore;
+    }
   }
 
   scoreDetails.value = details;
@@ -278,6 +617,8 @@ const reset = () => {
   selectedStore.value = null;
   result.value = null;
   scoreDetails.value = [];
+  analysis.trendInfo = null;
+  analysis.holidayInfo = null;
 };
 </script>
 
@@ -412,11 +753,11 @@ const reset = () => {
         <h2 class="step-title">{{ selectedStore.name }} 분석 중...</h2>
         <p class="loading-message">잠시만 기다려주세요. 실시간 데이터를 수집하고 있습니다.</p>
         <div class="progress-list">
+          <p :class="{ done: progress.opening }">가게 운영 상태 확인</p>
           <p :class="{ done: progress.weather }">기상청 날씨 정보 수집</p>
           <p :class="{ done: progress.reviews }">네이버 리뷰 및 인지도 분석</p>
           <p :class="{ done: progress.holiday }">공휴일 정보 확인</p>
-          <p :class="{ done: progress.sns }">실시간 SNS 언급량 확인</p>
-          <p :class="{ done: progress.map }">지도 앱 혼잡도 데이터 크롤링</p>
+          <p :class="{ done: progress.sns }">네이버 데이터랩 언급량 확인</p>
         </div>
       </div>
 
@@ -456,12 +797,12 @@ const reset = () => {
       </div>
 
       <!-- 휴무일 예외 처리 -->
-      <div v-if="step === 'closed'" class="card-body closed-state">
-        <span class="result-emoji">💤</span>
-        <h2 class="result-index">오늘은 휴무일입니다</h2>
-        <p class="result-message">선택하신 {{ selectedStore.name }}은(는) 오늘 영업하지 않아요.</p>
+      <div v-if="step === 'notAvailable'" class="card-body not-available-state">
+        <span class="result-emoji">{{ notAvailableInfo.emoji }}</span>
+        <h2 class="result-index">{{ notAvailableInfo.title }}</h2>
+        <p class="result-message">{{ notAvailableInfo.message }}</p>
 
-        <!-- ★★★ 휴무일 화면에 가게 영업 정보 표시 (새로 추가) ★★★ -->
+        <!-- 영업시간 정보는 모든 '운영 안 함' 상태에서 유용하므로 그대로 유지 -->
         <div v-if="analysis.openingInfo && analysis.openingInfo.weekdayText" class="opening-hours-closed">
           <h3 class="details-title">가게 영업 정보</h3>
           <ul class="hours-list-closed">

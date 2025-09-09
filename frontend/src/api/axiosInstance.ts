@@ -96,7 +96,7 @@ axiosInstance.interceptors.response.use(
 
         }
         // 401 - UNAUTHORIZED
-        if(error.response && error.response.status === 401 && !publicPaths.includes(router.currentRoute.value.path)) {
+        else if(error.response && error.response.status === 401 && !publicPaths.includes(router.currentRoute.value.path)) {
 
             // 로그인 페이지로 이동하는 함수 선언
             const redirectToLogin = async () => {
@@ -161,11 +161,10 @@ axiosInstance.interceptors.response.use(
 
             return false;
         }
-
-        // 다른 상태 코드 처리 가능
-        // if (status === 401) { ... }
-
-        return Promise.reject(error);
+        // 401, 403 에러가 아닌 경우 post에서 처리하도록 던짐
+        else {
+            return Promise.reject(error);
+        }
     }
 );
 
@@ -199,14 +198,13 @@ export class Api {
         } catch (error: any) {
             if(loadingOption) loading.close();
 
-            // 에러 내용 출력
-            console.error('❗API Error Response -> {}', error);
-            console.error('❗API Error Response -> {}', error.response.data);
+            console.log(error)
 
             // 에러 response message 출력Error
             if(error.response.data.message) {
                 ElMessage.error(error.response.data.message);
             }
+
             // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
             else if (error.response.data?.includes('CORS')) {
                 ElMessage.error("서버와 연결할 수 없습니다");
