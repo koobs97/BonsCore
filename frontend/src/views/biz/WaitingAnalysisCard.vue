@@ -3,7 +3,10 @@
 import { reactive, ref } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import { QuestionFilled } from "@element-plus/icons-vue";
+import { QuestionFilled, InfoFilled } from "@element-plus/icons-vue";
+
+import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
+import naverApiLogo from "@/assets/images/naver-api-logo.png";
 
 const step = ref('search');
 const searchQuery = ref('');
@@ -437,7 +440,15 @@ const calculateScore = () => {
       if (selectedSlot) finalCondition += ` (${selectedSlot.label})`;
     }
 
-    details.push({ factor: '시간/요일', condition: finalCondition, score: timeScore });
+    details.push({
+      factor: '시간/요일',
+      condition: finalCondition,
+      score: timeScore,
+      apiInfo: {
+        name: '대한민국 공공데이터포털 (특일 정보)',
+        logo: publicDataPortalLogo,
+      }
+    });
     totalScore += timeScore;
   }
 
@@ -469,7 +480,17 @@ const calculateScore = () => {
     else if (analysis.reviewCount > 100) reviewScore = 5;
     if (reviewScore > 0) {
       const formattedCount = new Intl.NumberFormat().format(analysis.reviewCount);
-      details.push({ factor: '인지도(리뷰 수)', condition: `리뷰 ${formattedCount}개`, score: reviewScore });
+
+      details.push({
+        factor: '인지도(리뷰 수)',
+        condition: `리뷰 ${formattedCount}개`,
+        score: reviewScore,
+        apiInfo: {
+          name: '네이버 Developer API',
+          logo: naverApiLogo,
+        }
+      });
+
       totalScore += reviewScore;
     }
   }
@@ -777,11 +798,38 @@ const reset = () => {
           <h3 class="details-title">상세 점수 분석</h3>
           <ul class="details-list">
             <li v-for="(detail, index) in scoreDetails" :key="index">
-              <span class="factor">{{ detail.factor }}</span>
+              <!-- 요인 이름과 정보 아이콘을 함께 묶음 -->
+              <div class="factor-container">
+                <!-- ★★★ 1. Popover를 앞으로 이동하고 속성 변경 ★★★ -->
+                <el-popover
+                    v-if="detail.apiInfo"
+                    placement="left"
+                    :width="320"
+                    trigger="click"
+                    popper-class="api-info-popover"
+                >
+                  <!-- Popover를 트리거할 아이콘 -->
+                  <template #reference>
+                    <el-icon class="info-icon-detail"><InfoFilled /></el-icon>
+                  </template>
+                  <!-- Popover 내용 -->
+                  <div class="api-info-content">
+                    <img :src="detail.apiInfo.logo" class="api-logo" alt="API Logo" />
+                    <div class="api-text-content">
+                      <p class="api-name">{{ detail.apiInfo.name }}</p>
+                      <p class="api-description">{{ detail.apiInfo.description }}</p>
+                    </div>
+                  </div>
+                </el-popover>
+
+                <!-- 팩터 텍스트는 Popover 뒤로 이동 -->
+                <span class="factor">{{ detail.factor }}</span>
+              </div>
+
               <span class="condition">{{ detail.condition }}</span>
               <span class="score" :class="{ positive: detail.score > 0, negative: detail.score < 0 }">
-                {{ detail.score > 0 ? '+' : '' }}{{ detail.score }}
-              </span>
+        {{ detail.score > 0 ? '+' : '' }}{{ detail.score }}
+      </span>
             </li>
           </ul>
         </div>
@@ -1358,5 +1406,58 @@ button.is-disabled:hover {
   background-color: var(--el-color-warning-light-9);
   color: var(--el-color-warning-dark-2);
   font-weight: 700;
+}
+
+.api-info-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.api-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.api-text-content p {
+  margin: 0;
+}
+.api-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  margin-bottom: 4px;
+}
+.info-icon-detail {
+  cursor: pointer;
+  color: var(--el-color-warning); /* Element Plus의 경고색 변수 사용 */
+  font-size: 15px;
+  transition: all 0.2s ease;
+  /* 클릭 유도를 위해 살짝 떠오르는 효과 추가 */
+  vertical-align: middle;
+  margin-right: 3px;
+}
+.info-icon-detail:hover {
+  color: var(--el-color-warning-light-3);
+  transform: scale(1.15); /* 마우스를 올렸을 때 아이콘 확대 */
+}
+:global(.el-popper.api-info-popover) {
+  /* 기존 스타일 */
+  padding: 8px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--el-box-shadow-light) !important;
+
+  /* ★★★ 원하는 높이 값을 여기에 추가 ★★★ */
+  height: 38px;
+
+  /*
+    팁: 고정 높이를 설정하면 내부 컨텐츠의 수직 정렬을 위해
+    display: flex 와 align-items: center 를 함께 사용하는 것이 좋습니다.
+    이렇게 하면 높이가 고정되어도 내용물이 항상 중앙에 위치합니다.
+  */
+  display: flex;
+  align-items: center;
 }
 </style>
