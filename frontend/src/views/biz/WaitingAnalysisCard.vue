@@ -7,6 +7,7 @@ import { QuestionFilled, InfoFilled } from "@element-plus/icons-vue";
 
 import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
 import naverApiLogo from "@/assets/images/naver-api-logo.png";
+import googleApiLogo from "@/assets/images/google_cloud_logo.png";
 
 const step = ref('search');
 const searchQuery = ref('');
@@ -445,7 +446,7 @@ const calculateScore = () => {
       condition: finalCondition,
       score: timeScore,
       apiInfo: {
-        name: '대한민국 공공데이터포털 (특일 정보)',
+        name: '공공데이터포털 (특일 정보)',
         logo: publicDataPortalLogo,
       }
     });
@@ -486,7 +487,7 @@ const calculateScore = () => {
         condition: `리뷰 ${formattedCount}개`,
         score: reviewScore,
         apiInfo: {
-          name: '네이버 Developer API',
+          name: '네이버 Developers API',
           logo: naverApiLogo,
         }
       });
@@ -533,6 +534,10 @@ const calculateScore = () => {
         factor: '현재 날씨',
         condition: weatherCondition,
         score: weatherScore,
+        apiInfo: {
+          name: '공공데이터포털 (기상청_단기예보)',
+          logo: publicDataPortalLogo,
+        }
       });
       totalScore += weatherScore;
     }
@@ -616,7 +621,7 @@ const generateFinalResult = (totalScore: any) => {
   } else if (totalScore >= 30) {
     waitingIndex = '보통';
     emoji = '🟡';
-    message = '붐비기 시작하는 시간이네요. 약간의 대기가 있을 수 있어요.';
+    message = '약간의 대기가 있을 수 있어요.';
   } else if (totalScore >= 10) {
     waitingIndex = '여유';
     emoji = '🟢';
@@ -630,6 +635,41 @@ const generateFinalResult = (totalScore: any) => {
   result.value = { totalScore, waitingIndex, message, emoji };
   step.value = 'result';
 };
+
+const calculatePopoverWidth = (apiInfo: any): number => {
+  // apiInfo 객체나 name 속성이 없으면 기본 너비 200을 반환합니다.
+  if (!apiInfo || !apiInfo.name) {
+    return 200;
+  }
+
+  // 1. Popover 내부 레이아웃의 고정 값들을 정의합니다.
+  const internalPadding = 16;  // Popover 자체의 좌우 패딩 합 (padding: 8px * 2)
+  const logoWidth = 24;        // 로고 이미지(.api-logo)의 너비
+  const gap = 12;              // 로고와 텍스트 사이의 간격(gap)
+
+  // 2. 텍스트의 너비를 추정합니다.
+  const text = apiInfo.name as string;
+  let estimatedTextWidth = 0;
+
+  // 글자 종류에 따라 너비를 다르게 계산하여 정확도를 높입니다.
+  for (const char of text) {
+    // 한글 범위(가-힣)에 해당하는 경우
+    if (char.match(/[\uac00-\ud7af]/)) {
+      estimatedTextWidth += 14; // 한글은 14px로 계산
+    } else if (char.match(/[A-Z]/)) {
+      estimatedTextWidth += 9; // 대문자는 9px로 계산
+    } else {
+      estimatedTextWidth += 8;  // 영문 소문자, 숫자, 공백, 특수문자는 8px로 계산
+    }
+  }
+
+  // 3. 모든 요소의 너비를 합산하여 최종 너비를 계산합니다.
+  const calculatedWidth = internalPadding + logoWidth + gap + estimatedTextWidth;
+
+  // 4. 계산된 너비에 약간의 여유분(10px)을 더하고, 10단위로 올림하여 깔끔한 값으로 만듭니다.
+  return Math.ceil((calculatedWidth + 10) / 10) * 10;
+};
+
 
 const reset = () => {
   step.value = 'search';
@@ -800,11 +840,10 @@ const reset = () => {
             <li v-for="(detail, index) in scoreDetails" :key="index">
               <!-- 요인 이름과 정보 아이콘을 함께 묶음 -->
               <div class="factor-container">
-                <!-- ★★★ 1. Popover를 앞으로 이동하고 속성 변경 ★★★ -->
                 <el-popover
                     v-if="detail.apiInfo"
                     placement="left"
-                    :width="320"
+                    :width="calculatePopoverWidth(detail.apiInfo)"
                     trigger="click"
                     popper-class="api-info-popover"
                 >
@@ -852,7 +891,24 @@ const reset = () => {
 
         <!-- 영업시간 정보는 모든 '운영 안 함' 상태에서 유용하므로 그대로 유지 -->
         <div v-if="analysis.openingInfo && analysis.openingInfo.weekdayText" class="opening-hours-closed">
-          <h3 class="details-title">가게 영업 정보</h3>
+          <h3 class="details-title">
+            가게 영업 정보
+            <el-popover
+                placement="right-end"
+                :width="180"
+                popper-class="api-info-popover"
+            >
+              <template #reference>
+                <el-icon class="info-icon-detail"><InfoFilled /></el-icon>
+              </template>
+              <div class="api-info-content">
+                <img :src="googleApiLogo" class="api-logo" alt="API Logo" />
+                <div class="api-text-content">
+                  <p class="api-name">Google Cloud API</p>
+                </div>
+              </div>
+            </el-popover>
+          </h3>
           <ul class="hours-list-closed">
             <li
                 v-for="(text, index) in analysis.openingInfo.weekdayText"
