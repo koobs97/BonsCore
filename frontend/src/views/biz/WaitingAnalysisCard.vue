@@ -8,6 +8,7 @@ import { QuestionFilled, InfoFilled } from "@element-plus/icons-vue";
 import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
 import naverApiLogo from "@/assets/images/naver-api-logo.png";
 import googleApiLogo from "@/assets/images/google_cloud_logo.png";
+import naverDataLabLogo from "@/assets/images/naver-datalab-icon.png";
 
 const step = ref('search');
 const searchQuery = ref('');
@@ -546,7 +547,7 @@ const calculateScore = () => {
   // 검색 트렌드 점수
   if (analysis.trendInfo && analysis.trendInfo.length >= 2) {
     const trendData = [...analysis.trendInfo]; // 원본 수정을 피하기 위해 배열 복사
-    const now = new Date();9000450
+    const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1; // getMonth()는 0부터 시작
     const currentDate = now.getDate();
@@ -596,7 +597,12 @@ const calculateScore = () => {
     }
 
     if (trendScore !== 0) {
-      details.push({ factor: '검색 트렌드', condition: trendCondition, score: trendScore });
+      details.push({ factor: '검색 트렌드', condition: trendCondition, score: trendScore,
+        apiInfo: {
+          name: '네이버 DataLab',
+          logo: naverDataLabLogo,
+        }
+      });
       totalScore += trendScore;
     }
   }
