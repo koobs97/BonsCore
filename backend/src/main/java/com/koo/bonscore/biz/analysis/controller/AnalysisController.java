@@ -9,6 +9,8 @@ import com.koo.bonscore.common.api.google.dto.StoreHoursResponseDto;
 import com.koo.bonscore.common.api.google.service.GooglePlacesService;
 import com.koo.bonscore.common.api.kma.holiday.dto.res.HolidayResponseDto;
 import com.koo.bonscore.common.api.kma.holiday.service.HolidayService;
+import com.koo.bonscore.common.api.kma.subway.SubwayAnalysisService;
+import com.koo.bonscore.common.api.kma.subway.SubwayCongestionDto;
 import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
 import com.koo.bonscore.common.api.kma.weather.service.WeatherService;
 import com.koo.bonscore.common.api.naver.NaverDataLabService;
@@ -35,6 +37,7 @@ public class AnalysisController {
     private final HolidayService holidayService;
     private final NaverDataLabService naverDataLabService;
     private final GooglePlacesService googlePlacesService;
+    private final SubwayAnalysisService subwayAnalysisService;
 
     /**
      * 1단계: 초기 가게 목록 검색 API (기존 기능)
@@ -84,6 +87,12 @@ public class AnalysisController {
     @PostMapping("/openingInfo")
     public StoreHoursResponseDto getStoreOpeningHours(@RequestBody StoreDetailRequestDto request) {
         return googlePlacesService.getStoreOpeningHours(request.getName(), request.getSimpleAddress());
+    }
+
+    @PostMapping("/subway-congestion")
+    public SubwayCongestionDto getSubwayCongestion(@RequestBody StoreDetailRequestDto request) {
+        log.info("지하철 혼잡도 분석 요청 수신: address=[{}]", request.getSimpleAddress());
+        return subwayAnalysisService.analyzeSubwayCongestion(request);
     }
 
 }

@@ -19,6 +19,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,7 +41,11 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
+
+    // 이 필드에 @Qualifier를 추가합니다.
+    @Qualifier("handlerExceptionResolver")
     private final HandlerExceptionResolver handlerExceptionResolver;
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     /**

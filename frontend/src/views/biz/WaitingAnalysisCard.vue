@@ -17,11 +17,12 @@ const selectedStore = ref(null) as any;
 const result = ref(null) as any;
 const scoreDetails = ref([]) as any;
 const progress = ref({
+  opening: false,
   weather: false,
   reviews: false,
   holiday: false,
   sns: false,
-  opening: false,
+  subway: false,
 }) as any;
 
 const numberOfPeople = ref(1);
@@ -314,6 +315,25 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
   return { status: 'UNKNOWN', message: '선택하신 시간의 운영 상태를 확인할 수 없습니다.' };
 };
 
+const getSubwayCongestion = async () => {
+  const payload = {
+    name: selectedStore.value.name,
+    simpleAddress: selectedStore.value.simpleAddress,
+    detailAddress: selectedStore.value.simpleAddress,
+    selectedTime: selectedTime.value === 'now'
+        ? `${new Date().getHours()}-${new Date().getHours() + 2}` // 현재 시간 기준 시간대 생성
+        : selectedTime.value,
+  };
+  try {
+    const response = await Api.post(ApiUrls.SUBWAY_CONGESTION, payload);
+    analysis.subwayInfo = response.data;
+    console.log("지하철 혼잡도 정보:", response.data);
+  } catch (error) {
+    console.error("지하철 혼잡도 조회 실패:", error);
+    analysis.subwayInfo = { available: false }; // 실패 시 데이터 없음 상태로 저장
+  }
+};
+
 /**
  * 데이터 분석 flow
  */
@@ -375,6 +395,10 @@ const startAnalysis = async () => {
   await getDataTrend();
   await delay(300);
   progress.value.sns = true;
+
+  await getSubwayCongestion();
+  await delay(300);
+  progress.value.subway = true;
 
   // 5. 모든 데이터 수집 후 점수 계산
   // 약간의 지연을 주어 로딩 애니메이션이 보이도록 함
@@ -607,6 +631,22 @@ const calculateScore = () => {
     }
   }
 
+  // 지하철 혼잡도 점수
+  if (analysis.subwayInfo && analysis.subwayInfo.available) {
+    const subway = analysis.subwayInfo;
+    details.push({
+      factor: '주변 지하철 혼잡도',
+      condition: `${subway.stationName} ${subway.congestionLevel}`,
+      score: subway.score,
+      apiInfo: {
+        name: '서울 열린데이터 광장',
+        logo: publicDataPortalLogo, // 공공데이터포털 로고 재사용
+        description: '가게 주변 지하철역의 시간대별 승하차 인원을 분석합니다.'
+      }
+    });
+    totalScore += subway.score;
+  }
+
   scoreDetails.value = details;
   generateFinalResult(totalScore);
 };
@@ -825,6 +865,7 @@ const reset = () => {
           <p :class="{ done: progress.reviews }">네이버 리뷰 및 인지도 분석</p>
           <p :class="{ done: progress.holiday }">공휴일 정보 확인</p>
           <p :class="{ done: progress.sns }">네이버 데이터랩 언급량 확인</p>
+          <p :class="{ done: progress.subway }">주변 지하철 혼잡도 분석</p>
         </div>
       </div>
 

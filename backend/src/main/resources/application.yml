@@ -3,8 +3,6 @@ spring:
     name: BonsCore
   banner:
     location: templates/banner/banner.txt
-  main:
-    allow-bean-definition-overriding: true
   mail:
     host: smtp.gmail.com
     port: 587
@@ -47,6 +45,10 @@ api:
   kakao:
     url: "https://dapi.kakao.com/v2/local/search/address.json"
     key: ${KAKAO_SERVICE_KEY}
+    category-url: "https://dapi.kakao.com/v2/local/search/category.json"
+  seoul:
+    key: ${SEOUL_DATA_API_KEY}
+    subway-url: "http://openapi.seoul.go.kr:8088"
   google:
     key: ${GOOGLE_KEY}
 
