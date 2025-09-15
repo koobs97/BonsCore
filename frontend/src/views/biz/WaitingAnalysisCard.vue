@@ -9,6 +9,7 @@ import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
 import naverApiLogo from "@/assets/images/naver-api-logo.png";
 import googleApiLogo from "@/assets/images/google_cloud_logo.png";
 import naverDataLabLogo from "@/assets/images/naver-datalab-icon.png";
+import kakaoApiLogo from "@/assets/images/kakao-api-logo.png"
 
 const step = ref('search');
 const searchQuery = ref('');
@@ -22,7 +23,7 @@ const progress = ref({
   reviews: false,
   holiday: false,
   sns: false,
-  subway: false,
+  surround: false,
 }) as any;
 
 const numberOfPeople = ref(1);
@@ -90,6 +91,7 @@ const analysis = reactive({
   weatherInfo: null as any,
   trendInfo: null as any,
   holidayInfo: null as any,
+  surroundingInfo: null as any,
 })
 
 const notAvailableInfo = reactive({
@@ -315,22 +317,21 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
   return { status: 'UNKNOWN', message: '선택하신 시간의 운영 상태를 확인할 수 없습니다.' };
 };
 
-const getSubwayCongestion = async () => {
+/**
+ * 주변 상권 정보 조회
+ */
+const getSurroundingData = async () => {
   const payload = {
     name: selectedStore.value.name,
     simpleAddress: selectedStore.value.simpleAddress,
-    detailAddress: selectedStore.value.simpleAddress,
-    selectedTime: selectedTime.value === 'now'
-        ? `${new Date().getHours()}-${new Date().getHours() + 2}` // 현재 시간 기준 시간대 생성
-        : selectedTime.value,
-  };
+  }
   try {
-    const response = await Api.post(ApiUrls.SUBWAY_CONGESTION, payload);
-    analysis.subwayInfo = response.data;
-    console.log("지하철 혼잡도 정보:", response.data);
+    const response = await Api.post(ApiUrls.SURROUNDING_INFO, payload);
+    analysis.surroundingInfo = response.data;
+    console.log("주변 상권 정보:", response.data);
   } catch (error) {
-    console.error("지하철 혼잡도 조회 실패:", error);
-    analysis.subwayInfo = { available: false }; // 실패 시 데이터 없음 상태로 저장
+    console.error("주변 상권 정보 조회 실패:", error);
+    analysis.surroundingInfo = null; // 실패 시 null 처리
   }
 };
 
@@ -396,9 +397,9 @@ const startAnalysis = async () => {
   await delay(300);
   progress.value.sns = true;
 
-  await getSubwayCongestion();
+  await getSurroundingData();
   await delay(300);
-  progress.value.subway = true;
+  progress.value.surround = true;
 
   // 5. 모든 데이터 수집 후 점수 계산
   // 약간의 지연을 주어 로딩 애니메이션이 보이도록 함
@@ -438,7 +439,7 @@ const calculateScore = () => {
     else if (targetHour >= 12 && targetHour < 14) { timeDescription = '점심 피크'; timeScore = 15; }
     else if (targetHour >= 14 && targetHour < 17) { timeDescription = '애매한 오후'; timeScore = -10; }
     else if (targetHour >= 17 && targetHour < 21) { timeDescription = '저녁 피크'; timeScore = 20; }
-    else { timeDescription = '늦은 저녁'; timeScore = 10; }
+    else { timeDescription = '늦은 저녁'; timeScore = -10; }
 
     // 주말/공휴일 가중치 적용
     if (holidayOrWeekend) {
@@ -631,20 +632,68 @@ const calculateScore = () => {
     }
   }
 
-  // 지하철 혼잡도 점수
-  if (analysis.subwayInfo && analysis.subwayInfo.available) {
-    const subway = analysis.subwayInfo;
-    details.push({
-      factor: '주변 지하철 혼잡도',
-      condition: `${subway.stationName} ${subway.congestionLevel}`,
-      score: subway.score,
-      apiInfo: {
-        name: '서울 열린데이터 광장',
-        logo: publicDataPortalLogo, // 공공데이터포털 로고 재사용
-        description: '가게 주변 지하철역의 시간대별 승하차 인원을 분석합니다.'
-      }
-    });
-    totalScore += subway.score;
+  // 주변 상권 점수 계산
+  if (analysis.surroundingInfo) {
+    const { hotPlaceCount, competitorCount, subwayStationCount, universityCount, officeBuildingCount } = analysis.surroundingInfo;
+
+    let surroundingScore = 0;
+    const conditions = [];
+
+    // 1. 핫플레이스 가산점
+    if (hotPlaceCount > 50) {
+      surroundingScore += 15;
+    } else if (hotPlaceCount > 20) {
+      surroundingScore += 10;
+    } else if (hotPlaceCount > 5) {
+      surroundingScore += 5;
+    }
+    if (hotPlaceCount > 5) conditions.push(`주변 핫플레이스(${hotPlaceCount}곳)`);
+
+
+    // 2. 경쟁 가게 감점
+    if (competitorCount > 10) {
+      surroundingScore -= 10;
+    } else if (competitorCount > 5) {
+      surroundingScore -= 5;
+    }
+    // 감점 요인은 상세 내역에 굳이 표시하지 않을 수 있음 (사용자 경험 고려)
+    // 혹은 '선택지가 다양함' 과 같이 긍정적으로 표현할 수 있음
+
+    // 3. 상권 특성 가산점 (가장 큰 점수 하나만 적용)
+    let areaTypeScore = 0;
+    let areaType = '';
+
+    if (subwayStationCount > 0) {
+      areaTypeScore = 15;
+      areaType = '역세권';
+    }
+    if (universityCount > 0 && areaTypeScore < 10) {
+      areaTypeScore = 10;
+      areaType = '대학가';
+    }
+    if (officeBuildingCount > 5 && areaTypeScore < 10) {
+      areaTypeScore = 10;
+      areaType = '오피스 상권';
+    }
+
+    if (areaType) {
+      surroundingScore += areaTypeScore;
+      conditions.unshift(areaType); // 상권 타입을 가장 앞에 추가
+    }
+
+    // 점수 변동이 있을 경우에만 상세 내역에 추가
+    if (surroundingScore !== 0) {
+      details.push({
+        factor: '주변 상권',
+        condition: conditions.join(', ') || '보통 수준의 상권',
+        score: surroundingScore,
+        apiInfo: {
+          name: '카카오 Developers API',
+          logo: kakaoApiLogo, // 카카오 로고 이미지 변수 필요
+        }
+      });
+      totalScore += surroundingScore;
+    }
   }
 
   scoreDetails.value = details;
@@ -865,7 +914,7 @@ const reset = () => {
           <p :class="{ done: progress.reviews }">네이버 리뷰 및 인지도 분석</p>
           <p :class="{ done: progress.holiday }">공휴일 정보 확인</p>
           <p :class="{ done: progress.sns }">네이버 데이터랩 언급량 확인</p>
-          <p :class="{ done: progress.subway }">주변 지하철 혼잡도 분석</p>
+          <p :class="{ done: progress.surround }">주변 상권정보 조회</p>
         </div>
       </div>
 

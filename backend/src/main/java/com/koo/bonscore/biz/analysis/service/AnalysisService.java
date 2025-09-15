@@ -2,6 +2,9 @@ package com.koo.bonscore.biz.analysis.service;
 
 import com.koo.bonscore.biz.analysis.dto.StoreAnalysisResultDto;
 import com.koo.bonscore.biz.analysis.dto.StoreDetailRequestDto;
+import com.koo.bonscore.common.api.kakao.dto.KakaoMapResponse;
+import com.koo.bonscore.common.api.kakao.dto.SurroundingDataDto;
+import com.koo.bonscore.common.api.kakao.service.KakaoMapService;
 import com.koo.bonscore.common.api.naver.NaverApiClient;
 import com.koo.bonscore.common.api.naver.dto.NaverApiResponseDto;
 import com.koo.bonscore.biz.analysis.dto.SimpleStoreInfoDto;
@@ -29,6 +32,7 @@ public class AnalysisService {
 
     private final NaverApiClient naverApiClient;
     // private final WeatherApiClient weatherApiClient; // 예: 날씨 API 클라이언트 추가
+    private final KakaoMapService kakaoMapService;
 
     // HTML 태그 제거용 정규표현식
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]*>");
@@ -174,5 +178,67 @@ public class AnalysisService {
             return 5;
         }
         return 0;
+    }
+
+    /**
+     * 주변 상권 데이터를 수집하여 DTO로 반환하는 메서드
+     */
+    public SurroundingDataDto getSurroundingData(StoreDetailRequestDto request) {
+        // 1. 요청된 가게의 좌표 및 카테고리 정보 가져오기
+        KakaoMapResponse.Document storeInfo = kakaoMapService.searchAndGetFirst(request.getName());
+        if (storeInfo == null) {
+            log.warn("가게 좌표 정보를 찾을 수 없습니다: {}", request.getName());
+            // 데이터가 없으면 모든 카운트를 0으로 설정하여 반환
+            return SurroundingDataDto.builder().build();
+        }
+
+        String longitude = storeInfo.getX();
+        String latitude = storeInfo.getY();
+        String storeCategoryCode = storeInfo.getCategoryGroupCode();
+        int radius = 500; // 분석 반경 (500m)
+
+        // 2. 주변 '핫플레이스' 데이터 수집 (음식점, 카페, 영화관)
+        int hotPlaceCount = 0;
+        List<String> hotPlaceCategories = Arrays.asList("FD6", "CE7", "CT1");
+        for (String categoryCode : hotPlaceCategories) {
+            KakaoMapResponse response = kakaoMapService.searchByCategory(categoryCode, longitude, latitude, radius);
+            if (response != null) {
+                hotPlaceCount += response.getMeta().getTotalCount();
+            }
+        }
+        log.info("[{}] 주변 핫플레이스 수: {}", request.getName(), hotPlaceCount);
+
+        // 3. 주변 '경쟁 가게' 데이터 수집
+        int competitorCount = 0;
+        if (storeCategoryCode != null && !storeCategoryCode.isEmpty()) {
+            KakaoMapResponse response = kakaoMapService.searchByCategory(storeCategoryCode, longitude, latitude, radius);
+            if (response != null) {
+                // 검색 결과에는 자기 자신도 포함되므로 1을 빼줌
+                competitorCount = Math.max(0, response.getMeta().getTotalCount() - 1);
+            }
+        }
+        log.info("[{}] 주변 경쟁 가게 수: {}", request.getName(), competitorCount);
+
+        // 4. 주변 '주요 시설' 데이터 수집 (역, 대학, 오피스)
+        KakaoMapResponse subwayResponse = kakaoMapService.searchByCategory("SW8", longitude, latitude, radius);
+        int subwayStationCount = (subwayResponse != null) ? subwayResponse.getMeta().getTotalCount() : 0;
+
+        KakaoMapResponse schoolResponse = kakaoMapService.searchByCategory("SC4", longitude, latitude, radius);
+        int universityCount = (schoolResponse != null) ? schoolResponse.getMeta().getTotalCount() : 0;
+
+        // 오피스 빌딩은 '빌딩' 키워드로 검색하여 개수 파악
+        KakaoMapResponse officeResponse = kakaoMapService.searchByKeyword("빌딩", longitude, latitude, radius);
+        int officeBuildingCount = (officeResponse != null) ? officeResponse.getMeta().getTotalCount() : 0;
+
+        log.info("[{}] 주변 시설: 지하철역({}), 대학교({}), 오피스빌딩({})", request.getName(), subwayStationCount, universityCount, officeBuildingCount);
+
+        // 5. 수집된 데이터를 DTO에 담아 반환
+        return SurroundingDataDto.builder()
+                .hotPlaceCount(hotPlaceCount)
+                .competitorCount(competitorCount)
+                .subwayStationCount(subwayStationCount)
+                .universityCount(universityCount)
+                .officeBuildingCount(officeBuildingCount)
+                .build();
     }
 }

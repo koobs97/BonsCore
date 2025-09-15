@@ -33,7 +33,7 @@ export enum ApiUrls {
     HOLIDAY_INFO = '/api/analysis/holiday-status',
     SEARCH_TREND = '/api/analysis/search-trend',
     OPENING_INFO = '/api/analysis/openingInfo',
-    SUBWAY_CONGESTION = '/api/analysis/subway-congestion',
+    SURROUNDING_INFO = '/api/analysis/surroundings',
 
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
     VALIDATE_PASSWORD = '/api/authorization/validatePassword',

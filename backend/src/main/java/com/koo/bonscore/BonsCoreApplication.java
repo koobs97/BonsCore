@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * sdf
  *
  */
-@EnableConfigurationProperties(NaverProperties.class) // naver api
 @EnableAsync // 로깅을 위한 비동기처리 활성화
 @EnableScheduling
 @SpringBootApplication

@@ -7,22 +7,19 @@ import com.koo.bonscore.biz.analysis.dto.SearchRequestDto;
 import com.koo.bonscore.biz.analysis.dto.SimpleStoreInfoDto;
 import com.koo.bonscore.common.api.google.dto.StoreHoursResponseDto;
 import com.koo.bonscore.common.api.google.service.GooglePlacesService;
+import com.koo.bonscore.common.api.kakao.dto.SurroundingDataDto;
 import com.koo.bonscore.common.api.kma.holiday.dto.res.HolidayResponseDto;
 import com.koo.bonscore.common.api.kma.holiday.service.HolidayService;
-import com.koo.bonscore.common.api.kma.subway.SubwayAnalysisService;
-import com.koo.bonscore.common.api.kma.subway.SubwayCongestionDto;
 import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
 import com.koo.bonscore.common.api.kma.weather.service.WeatherService;
 import com.koo.bonscore.common.api.naver.NaverDataLabService;
 import com.koo.bonscore.common.api.naver.dto.datalab.DataLabResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -37,7 +34,6 @@ public class AnalysisController {
     private final HolidayService holidayService;
     private final NaverDataLabService naverDataLabService;
     private final GooglePlacesService googlePlacesService;
-    private final SubwayAnalysisService subwayAnalysisService;
 
     /**
      * 1단계: 초기 가게 목록 검색 API (기존 기능)
@@ -89,10 +85,9 @@ public class AnalysisController {
         return googlePlacesService.getStoreOpeningHours(request.getName(), request.getSimpleAddress());
     }
 
-    @PostMapping("/subway-congestion")
-    public SubwayCongestionDto getSubwayCongestion(@RequestBody StoreDetailRequestDto request) {
-        log.info("지하철 혼잡도 분석 요청 수신: address=[{}]", request.getSimpleAddress());
-        return subwayAnalysisService.analyzeSubwayCongestion(request);
+    @PostMapping("/surroundings")
+    public SurroundingDataDto getSurroundingData(@RequestBody StoreDetailRequestDto request) {
+        log.info("주변 상권 데이터 조회 요청: storeName=[{}]", request.getName());
+        return analysisService.getSurroundingData(request);
     }
-
 }
