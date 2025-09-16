@@ -7,7 +7,9 @@ import com.koo.bonscore.biz.analysis.dto.SearchRequestDto;
 import com.koo.bonscore.biz.analysis.dto.SimpleStoreInfoDto;
 import com.koo.bonscore.common.api.google.dto.StoreHoursResponseDto;
 import com.koo.bonscore.common.api.google.service.GooglePlacesService;
-import com.koo.bonscore.common.api.kakao.dto.SurroundingDataDto;
+import com.koo.bonscore.common.api.kakao.recomend.dto.RecommendedStoreDto;
+import com.koo.bonscore.common.api.kakao.recomend.service.StoreRecommendationService;
+import com.koo.bonscore.common.api.kakao.surround.dto.SurroundingDataDto;
 import com.koo.bonscore.common.api.kma.holiday.dto.res.HolidayResponseDto;
 import com.koo.bonscore.common.api.kma.holiday.service.HolidayService;
 import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
@@ -16,6 +18,7 @@ import com.koo.bonscore.common.api.naver.NaverDataLabService;
 import com.koo.bonscore.common.api.naver.dto.datalab.DataLabResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,11 +32,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AnalysisController {
 
+    private final StoreRecommendationService storeRecommendationService;
+
     private final AnalysisService analysisService;
     private final WeatherService weatherService;
     private final HolidayService holidayService;
     private final NaverDataLabService naverDataLabService;
     private final GooglePlacesService googlePlacesService;
+
+    @PostMapping("/random-recommendations")
+    public List<RecommendedStoreDto> getRandomRecommendations() {
+        return storeRecommendationService.getRecommendedStores();
+    }
 
     /**
      * 1단계: 초기 가게 목록 검색 API (기존 기능)

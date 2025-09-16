@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.api.kakao.dto;
+package com.koo.bonscore.common.api.kakao.surround.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -40,5 +40,11 @@ public class KakaoMapResponse {
 
         @JsonProperty("y") // latitude
         private String y;
+
+        @JsonProperty("address_name")
+        private String addressName;
+
+        @JsonProperty("place_url")
+        private String placeUrl;
     }
 }

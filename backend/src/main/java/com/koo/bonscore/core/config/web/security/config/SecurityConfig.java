@@ -2,7 +2,7 @@ package com.koo.bonscore.core.config.web.security.config;
 
 import com.koo.bonscore.core.config.web.security.filter.JwtAuthenticationFilter;
 import com.koo.bonscore.core.config.web.security.filter.RedirectValidationFilter;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +19,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.HandlerExceptionResolver;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,17 +35,29 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity // 오토와이어링할 수 없습니다. 'HttpSecurity' 타입의 bean을 찾을 수 없습니다. 해결
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
-
-    // 이 필드에 @Qualifier를 추가합니다.
-    @Qualifier("handlerExceptionResolver")
     private final HandlerExceptionResolver handlerExceptionResolver;
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    /**
+     * 생성자
+     * @param jwtTokenProvider
+     * @param loginSessionManager
+     * @param handlerExceptionResolver
+     * @param jwtAuthenticationFilter
+     */
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider,
+                          LoginSessionManager loginSessionManager,
+                          @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver, // <-- 여기에 직접 @Qualifier 추가
+                          JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.loginSessionManager = loginSessionManager;
+        this.handlerExceptionResolver = handlerExceptionResolver;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     /**
      * 운영환경별 허용 url 분리

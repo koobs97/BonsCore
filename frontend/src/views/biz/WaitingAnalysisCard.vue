@@ -1,9 +1,9 @@
 <script setup lang="ts">
 
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import { QuestionFilled, InfoFilled } from "@element-plus/icons-vue";
+import { QuestionFilled, InfoFilled, Refresh } from "@element-plus/icons-vue";
 
 import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
 import naverApiLogo from "@/assets/images/naver-api-logo.png";
@@ -25,6 +25,52 @@ const progress = ref({
   sns: false,
   surround: false,
 }) as any;
+
+// 추천 가게 관련 상태 변수
+const recommendedStores = ref([]) as any;
+const isRecommendationLoading = ref(true);
+
+// 추천 가게 목록을 불러오는 함수
+const fetchRecommendedStores = async () => {
+  isRecommendationLoading.value = true;
+  try {
+    const response = await Api.post(ApiUrls.RANDOM_RECOMMENDATIONS, {});
+    recommendedStores.value = response.data;
+  } catch (error) {
+    console.error("추천 가게를 불러오는 데 실패했습니다:", error);
+    recommendedStores.value = []; // 실패 시 목록 비우기
+  } finally {
+    isRecommendationLoading.value = false;
+  }
+};
+
+// 추천 가게를 선택했을 때의 동작을 정의하는 함수
+const selectRecommendedStore = (storeName: string) => {
+  searchQuery.value = storeName; // 검색어에 가게 이름 채우기
+  searchStores(); // 기존 검색 함수 실행
+};
+
+const myArchiveStores = ref<any[]>([]);
+const isArchiveLoading = ref(true);
+
+const fetchMyArchiveStores = () => {
+  isArchiveLoading.value = true;
+  setTimeout(() => {
+    myArchiveStores.value = [
+      { id: 1, name: '런던 베이글 뮤지엄', category: '베이커리', visitDate: '2023-10-26' },
+      { id: 2, name: '카멜 커피', category: '카페', visitDate: '2023-09-15' },
+      { id: 3, name: '다운타우너 안국', category: '수제버거', visitDate: '2023-08-01' },
+      { id: 4, name: '고든램지 버거', category: '수제버거', visitDate: '2023-11-05' },
+      { id: 5, name: '진작', category: '일식', visitDate: '2023-07-22' },
+    ].sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()); // 최신 방문일 순으로 정렬
+    isArchiveLoading.value = false;
+  }, 1200); // 추천 가게보다 약간 늦게 로딩되도록 시간 조절
+};
+
+onMounted(() => {
+  fetchRecommendedStores();
+  fetchMyArchiveStores();
+});
 
 const numberOfPeople = ref(1);
 
@@ -775,6 +821,8 @@ const reset = () => {
   scoreDetails.value = [];
   analysis.trendInfo = null;
   analysis.holidayInfo = null;
+  fetchRecommendedStores();
+  fetchMyArchiveStores();
 };
 </script>
 
@@ -842,15 +890,63 @@ const reset = () => {
         <!-- 아래 정보 섹션은 그대로 유지 -->
         <div class="info-section">
           <div class="info-block">
-            <h3 class="info-title">이런 가게는 어때요? ✨</h3>
-            <ul class="example-list">
-              <li>#런던베이글뮤지엄</li>
-              <li>#카멜커피</li>
-              <li>#다운타우너</li>
-              <li>#노티드도넛</li>
+            <div class="info-title-wrapper">
+              <h3 class="info-title">✨ 이런 가게는 어때요?</h3>
+              <el-button
+                  :icon="Refresh"
+                  circle
+                  size="small"
+                  @click="fetchRecommendedStores"
+                  :loading="isRecommendationLoading"
+                  class="refresh-btn"
+              />
+            </div>
+
+            <!-- 로딩 중일 때 스켈레톤 UI 표시 -->
+            <div v-if="isRecommendationLoading" class="recommend-list skeleton">
+              <div class="skeleton-item" v-for="i in 6" :key="i"></div>
+            </div>
+
+            <!-- 로딩 완료 후 목록 표시 -->
+            <ul v-else class="recommend-list">
+              <li
+                  v-for="store in recommendedStores"
+                  :key="store.name"
+                  @click="selectRecommendedStore(store.name)"
+              >
+                <span class="store-name">{{ store.name }}</span>
+                <span class="store-category">{{ store.category.split(' > ').pop() }}</span>
+              </li>
             </ul>
           </div>
         </div>
+
+        <!-- My Archive 섹션 시작 -->
+        <div class="info-block">
+          <div class="info-title-wrapper">
+            <h3 class="info-title">🗂️ My Archive</h3>
+          </div>
+
+          <el-skeleton :rows="3" animated v-if="isArchiveLoading" class="archive-skeleton" />
+
+          <div v-else class="archive-list">
+            <div
+                v-for="store in myArchiveStores"
+                :key="store.id"
+                class="archive-list-item"
+                @click="selectRecommendedStore(store.name)"
+            >
+              <div class="item-info">
+                <span class="item-name">{{ store.name }}</span>
+                <span class="item-category">{{ store.category }}</span>
+              </div>
+              <span class="item-date">{{ store.visitDate }}</span>
+            </div>
+            <el-empty v-if="myArchiveStores.length === 0" description="아카이브가 비었어요" :image-size="60" />
+          </div>
+        </div>
+        <!-- My Archive 섹션 끝 -->
+
       </div>
 
       <!-- 2. 지점 선택 단계 -->
@@ -1182,45 +1278,145 @@ input[type="text"]:focus {
   border-top: 1px solid var(--border-color);
   margin-top: 20px;
 }
-
 .info-block {
-  margin-top: 20px;
+  margin-top: 24px;
   text-align: center;
 }
-
+.info-title-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 .info-title {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--el-color-primary);
-  margin: 0 0 8px 0;
-}
-
-.info-text {
-  font-size: 0.85rem;
-  color: var(--light-text-color);
   margin: 0;
-  line-height: 1.5;
+}
+.refresh-btn {
+  /* 1. 버튼의 기본 스타일을 모두 제거합니다 */
+  background: none;
+  border: none;
+  padding: 4px; /* 클릭 영역을 위해 최소한의 패딩 유지 */
+  margin: 0;
+  height: auto; /* Element UI의 고정 높이 제거 */
+
+  /* 2. 아이콘 색상을 주변 텍스트와 비슷하게 맞춰 이질감을 줄입니다 */
+  color: var(--el-text-color-secondary);
+
+  /* 3. 부드러운 전환 효과 */
+  transition: all 0.3s ease;
 }
 
-.example-list {
+.refresh-btn:hover {
+  /* 4. 마우스를 올렸을 때만 색상과 회전 효과로 상호작용을 유도합니다 */
+  color: var(--el-color-primary); /* 메인 색상으로 강조 */
+  transform: rotate(180deg) scale(1.1); /* 회전하며 약간 커지는 효과 */
+  background-color: var(--el-fill-color-light); /* 아주 연한 배경색으로 클릭 영역 표시 */
+}
+.recommend-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 2열 그리드 */
+  gap: 10px;
+}
+.recommend-list li {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  border: 1px solid var(--el-border-color-lighter);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   justify-content: center;
-  gap: 8px;
+}
+.recommend-list li:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow-lighter);
+  border-color: var(--el-color-primary-light-5);
+}
+.store-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.store-category {
+  font-size: 0.75rem;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
+/* 로딩 스켈레톤 스타일 */
+.recommend-list.skeleton {
+  gap: 10px;
+}
+.skeleton-item {
+  height: 56px; /* li 아이템의 높이와 유사하게 설정 */
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
-.example-list li {
-  background-color: var(--el-border-color-extra-light);
-  color: var(--el-color-primary);
-  padding: 6px 12px;
-  border-radius: 15px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: default; /* 클릭 기능이 없으므로 기본 커서로 */
+.archive-skeleton {
+  padding: 0 10px;
 }
+.archive-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: 165px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+.archive-list::-webkit-scrollbar { width: 4px; }
+.archive-list::-webkit-scrollbar-thumb { background-color: var(--el-border-color-lighter); border-radius: 2px; }
+
+.archive-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+}
+.archive-list-item:last-child {
+  border-bottom: none;
+}
+.archive-list-item:hover {
+  background-color: var(--el-fill-color-light);
+}
+.item-info { display: flex; flex-direction: column; gap: 1px; }
+.item-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--el-text-color-primary);
+}
+.item-category, .item-date {
+  font-size: 0.7rem;
+  color: var(--el-text-color-secondary);
+}
+
 button {
   padding: 12px 18px;
   background-color: var(--el-color-primary);
@@ -1238,7 +1434,6 @@ button:hover {
   background-color: var(--el-color-primary-light-3);
 }
 
-/* ★★★ :disabled 대신 클래스로 제어 ★★★ */
 button.is-disabled {
   background-color: #b5b5b5;
   cursor: not-allowed;

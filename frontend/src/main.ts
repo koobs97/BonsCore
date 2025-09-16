@@ -38,7 +38,7 @@ const pinia = createPinia();
 app.use(pinia);
 
 // 2. 라우터를 사용하기 "전"에 로그인 정보를 먼저 복원합니다.
-const savedUserInfo = localStorage.getItem('userInfo');
+const savedUserInfo = sessionStorage.getItem('userInfo');
 if (savedUserInfo) {
     try {
         const userInfo = JSON.parse(savedUserInfo);
@@ -46,7 +46,7 @@ if (savedUserInfo) {
         userStore().setUserInfo(userInfo);
     } catch (e) {
         console.error("Failed to parse user info from localStorage", e);
-        localStorage.removeItem('userInfo'); // 잘못된 데이터는 삭제
+        sessionStorage.removeItem('userInfo'); // 잘못된 데이터는 삭제
     }
 }
 

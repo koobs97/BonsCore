@@ -1,6 +1,6 @@
-package com.koo.bonscore.common.api.kakao.service;
+package com.koo.bonscore.common.api.kakao.surround.service;
 
-import com.koo.bonscore.common.api.kakao.dto.KakaoMapResponse;
+import com.koo.bonscore.common.api.kakao.surround.dto.KakaoMapResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,9 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.net.URI;
 
 @Slf4j
 @Service

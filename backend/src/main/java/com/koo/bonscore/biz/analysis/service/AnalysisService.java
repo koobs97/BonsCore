@@ -2,9 +2,9 @@ package com.koo.bonscore.biz.analysis.service;
 
 import com.koo.bonscore.biz.analysis.dto.StoreAnalysisResultDto;
 import com.koo.bonscore.biz.analysis.dto.StoreDetailRequestDto;
-import com.koo.bonscore.common.api.kakao.dto.KakaoMapResponse;
-import com.koo.bonscore.common.api.kakao.dto.SurroundingDataDto;
-import com.koo.bonscore.common.api.kakao.service.KakaoMapService;
+import com.koo.bonscore.common.api.kakao.surround.dto.KakaoMapResponse;
+import com.koo.bonscore.common.api.kakao.surround.dto.SurroundingDataDto;
+import com.koo.bonscore.common.api.kakao.surround.service.KakaoMapService;
 import com.koo.bonscore.common.api.naver.NaverApiClient;
 import com.koo.bonscore.common.api.naver.dto.NaverApiResponseDto;
 import com.koo.bonscore.biz.analysis.dto.SimpleStoreInfoDto;

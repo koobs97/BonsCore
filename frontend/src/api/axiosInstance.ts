@@ -197,18 +197,22 @@ export class Api {
             return returnData
         } catch (error: any) {
             if(loadingOption) loading.close();
+            
+            // 401, 403 에러는 인터셉터에서 처리
+            if(error.response.status !== 401 && error.response.status !== 403) {
+                // 에러 response message 출력Error
+                if(error.response.data.message) {
+                    ElMessage.error(error.response.data.message);
+                }
 
-            console.log(error)
-
-            // 에러 response message 출력Error
-            if(error.response.data.message) {
-                ElMessage.error(error.response.data.message);
+                // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
+                else if (error.response.data?.includes('CORS')) {
+                    ElMessage.error("서버와 연결할 수 없습니다");
+                }
             }
-
-            // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
-            else if (error.response.data?.includes('CORS')) {
-                ElMessage.error("서버와 연결할 수 없습니다");
-            }
+            
+            // 에러로그
+            console.error(error);
 
             throw(error);
         }

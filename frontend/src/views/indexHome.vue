@@ -43,9 +43,17 @@ const iconMap = {
 };
 
 // 메뉴 트리 변환 함수 (기존과 동일)
-const buildMenuTree = (flatMenus, parentId = null) => {
+const buildMenuTree = (flatMenus, parentId) => {
+  // parentId가 명시적으로 주어지지 않은 초기 호출 시, null 또는 ''인 것을 찾음
+  const isRootCall = parentId === undefined;
+
   return flatMenus
-      .filter(menu => menu.parentMenuId === parentId)
+      .filter(menu => {
+        if (isRootCall) {
+          return menu.parentMenuId === null || menu.parentMenuId === '';
+        }
+        return menu.parentMenuId === parentId;
+      })
       .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
       .map(menu => {
         const children = buildMenuTree(flatMenus, menu.menuId);
@@ -56,6 +64,8 @@ const buildMenuTree = (flatMenus, parentId = null) => {
           url: menu.menuUrl || '',
           icon: iconMap[menu.menuName] || iconMap['기본아이콘'],
           description: `메뉴: ${menu.menuName}`,
+          // isVisible 속성도 함께 전달하여 활용 가능
+          isVisible: menu.isVisible === 'Y',
           children: children.length > 0 ? children : undefined,
         };
       });
@@ -103,27 +113,41 @@ onMounted(async () => {
 
     const user = userStoreObj.getUserInfo;
     const response = await Api.post(ApiUrls.GET_MENUS, { userId: user.userId });
+
+    // isVisible이 'Y'인 메뉴만 먼저 필터링
+    const visibleMenus = (response.data || []).filter(menu => menu.isVisible === 'Y');
+
+    // isVisible이 'N'인 루트 메뉴(컨테이너 역할)들을 찾음
     const allMenus = response.data || [];
     const menuTree = buildMenuTree(allMenus);
 
-    const adminRootMenus = menuTree.filter(menu => menu.name === '시스템 관리');
-    const regularUserMenus = menuTree.filter(menu => menu.name !== '시스템 관리');
+    // 2. 생성된 트리에서 '서비스'와 '시스템 관리' 루트를 찾습니다.
+    const serviceRoot = menuTree.find(menu => menu.name === '서비스');
+    const adminRoot = menuTree.find(menu => menu.name === '시스템 관리');
 
-    // [수정] 관리자 메뉴를 드롭다운 아이템으로 설정
+    // 3. 각 루트의 '자식' 메뉴들 중 isVisible이 true인 것만 화면에 표시할 메뉴로 할당합니다.
+    if (serviceRoot && serviceRoot.children) {
+      userMenuItems.value = serviceRoot.children.filter(child => child.isVisible);
+    }
+
     if (user.roleId === 'ADMIN') {
       isAdmin.value = true;
-      if (adminRootMenus[0]?.children) {
-        adminDropdownItems.value = adminRootMenus[0].children;
+      if (adminRoot && adminRoot.children) {
+        adminDropdownItems.value = adminRoot.children.filter(child => child.isVisible);
       }
     }
 
-    userMenuItems.value = regularUserMenus;
-    // 첫 진입 시 활성화할 탭 설정
-    if (regularUserMenus.length > 0 && regularUserMenus[0].url) {
-      activeUserMenuUrl.value = regularUserMenus[0].url;
+    console.log(userMenuItems.value.length)
+    console.log(userMenuItems.value[0].url)
+
+    // 첫 진입 시 활성화할 탭 설정 (이전 답변의 로직과 거의 동일)
+    if (userMenuItems.value.length > 0 && userMenuItems.value[0].url) {
       activeMainTab.value = 'user';
+      activeUserMenuUrl.value = userMenuItems.value[0].url;
     } else if (isAdmin.value && adminDropdownItems.value.length > 0) {
-      activeMainTab.value = adminDropdownItems.value[0].url;
+      activeMainTab.value = adminDropdownItems.value[0].url; // 관리자 탭은 URL을 바로 name으로 사용
+    } else {
+      activeMainTab.value = 'no-service';
     }
 
     // 페이지 진입 시 저장된 테마를 읽고 적용
@@ -185,6 +209,7 @@ const copyToClipboard = async () => {
     });
   }
 };
+
 </script>
 
 <template>
@@ -244,13 +269,8 @@ const copyToClipboard = async () => {
 
     <div class="content-layout-wrapper">
       <div class="main-content-area">
-        <!-- 정보 래퍼 (기존과 동일) -->
+        <!-- 정보 래퍼 -->
         <div class="info-wrapper">
-<!--            <img src="@/assets/images/spring-icon.svg" class="banner-icon" alt="Spring Boot Icon">-->
-<!--            <div class="banner-text">-->
-<!--              <span class="banner-title">스프링부트 기반 개인 프로젝트</span>-->
-<!--            </div>-->
-
             <div style="display: flex; align-items: center; gap: 20px; padding: 24px; border-radius: 4px;
 background:
 linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(255, 255, 255, 0.9) 70%), /* 은은한 그라데이션 */
@@ -267,17 +287,13 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
                 <p style="margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 0.85rem; color: var(--main-header-text-color1);">Powered by Spring Boot, Vue 3</p>
               </div>
             </div>
-
-
           <UserInfoAvatar/>
         </div>
 
             <el-skeleton :rows="10" animated v-if="isLoading"/>
             <el-tabs v-model="activeMainTab" class="main-mode-tabs" v-else>
 
-              <!-- ======================= [수정된 사용자 탭] ======================= -->
               <el-tab-pane name="user">
-                <!-- 1. #label 슬롯을 사용하여 탭의 제목을 <el-dropdown>으로 교체 -->
                 <template #label>
                   <el-dropdown trigger="hover" @command="handleUserMenuSelect">
                     <span class="el-dropdown-link">
@@ -304,7 +320,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
                   <!-- 3. 선택된 메뉴에 따라 동적으로 컴포넌트를 렌더링 -->
                   <div class="user-content-container">
                     <keep-alive>
-                      <component :is="currentUserComponent" v-if="currentUserComponent"/>
+                      <component :is="currentUserComponent" :key="activeUserMenuUrl"/>
                     </keep-alive>
 
                     <!-- 4. 컴포넌트를 찾지 못했을 경우의 폴백 UI -->
@@ -324,7 +340,6 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
                   <p>사용 가능한 서비스 메뉴가 없습니다.</p>
                 </div>
               </el-tab-pane>
-              <!-- ================================================================ -->
 
 
               <!-- 관리자 탭 (기존과 동일) -->
@@ -637,48 +652,130 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   height: 2px; /* 원래 막대와 동일한 높이 */
   background-color: var(--el-color-primary); /* 원래 막대와 동일한 색상 */
 }
-/* 드롭다운 메뉴 전체적인 디자인 */
-:deep(.el-dropdown__menu) {
-  /* 그림자로 입체감 부여 */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-radius: 8px; /* 부드러운 곡선 */
-  border: 1px solid #e4e7ed;
-  padding: 6px; /* 내부 여백 */
-  background-color: #ffffff;
+/* 드롭다운 메뉴가 나타나는 전체 컨테이너(Popper)의 기본 스타일을 초기화합니다. */
+:deep(.el-popper.is-light) {
+  margin-top: 8px !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+:deep(.el-popper.is-light .el-popper__arrow::before) {
+  display: none;
 }
 
-/* 드롭다운 메뉴의 각 아이템 */
+
+/* 드롭다운 메뉴 자체를 하나의 세련된 '카드'로 디자인합니다. */
+:deep(.el-dropdown__menu) {
+  /* [NEW] 스크롤이 필요할 수 있도록 최대 높이와 오버플로우 설정 */
+  max-height: 300px; /* 원하는 최대 높이로 조절 가능 */
+  overflow-y: auto;
+  overflow-x: hidden; /* 가로 스크롤은 항상 숨김 */
+
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  padding: 8px;
+  background-color: var(--el-bg-color-overlay);
+
+  /* --- [NEW] 모던 스크롤바 스타일 (Chrome, Safari, Edge 등) --- */
+  &::-webkit-scrollbar {
+    width: 6px; /* 스크롤바 너비 */
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent; /* 트랙 배경은 투명하게 */
+    margin: 8px 0; /* 위아래 여백을 주어 메뉴 패딩과 맞춤 */
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--el-border-color-lighter); /* 스크롤바 핸들 색상 */
+    border-radius: 10px; /* 둥글게 처리 */
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--el-border-color); /* 호버 시 더 진하게 */
+  }
+
+  /* --- [NEW] 모던 스크롤바 스타일 (Firefox) --- */
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color-lighter) transparent;
+}
+
+
+/* 드롭다운 메뉴의 각 아이템 스타일 */
 :deep(.el-dropdown-menu__item) {
-  font-family: 'Noto Sans KR', sans-serif; /* 가독성 좋은 폰트 적용 */
+  position: relative; /* [NEW] 왼쪽 인디케이터를 위한 position 설정 */
+  display: flex;
+  align-items: center;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
   font-size: 14px;
   font-weight: 500;
-  color: #606266;
-  border-radius: 6px; /* 아이템에도 부드러운 곡선 적용 */
-  padding: 0 12px;
-  height: 38px;
-  line-height: 38px;
-  transition: all 0.2s ease; /* 부드러운 전환 효과 */
+  color: var(--el-text-color-regular);
+  border-radius: 8px;
+  padding: 0 12px 0 20px; /* [수정] 왼쪽 인디케이터 공간 확보를 위해 padding-left 증가 */
+  height: 42px;
+  line-height: 42px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-/* 마우스를 올렸을 때(hover) 아이템 스타일 */
-:deep(.el-dropdown-menu__item:hover) {
-  background-color: #f5f7fa; /* 은은한 배경색 변경 */
-  color: var(--el-color-primary); /* 테마 색상으로 텍스트 색상 변경 */
+
+/* [NEW] 왼쪽 호버 인디케이터 라인 스타일 (가상 요소 ::before 사용) */
+:deep(.el-dropdown-menu__item::before) {
+  content: "";
+  position: absolute;
+  left: 8px; /* 왼쪽 여백 */
+  top: 50%;
+  height: 50%; /* 아이템 높이의 절반 크기 */
+  width: 3px; /* 라인 두께 */
+  background-color: var(--el-color-primary);
+  border-radius: 2px;
+  /* 초기 상태: 숨김 (크기를 0으로) */
+  transform: translateY(-50%) scaleY(0);
+  opacity: 0;
+  /* 부드러운 애니메이션 효과 */
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease;
 }
+
+
+/* 마우스를 올렸을 때(hover) 또는 키보드로 포커스됐을 때의 아이템 스타일 */
+:deep(.el-dropdown-menu__item:not(.is-disabled):hover),
+:deep(.el-dropdown-menu__item:not(.is-disabled):focus-visible) {
+  outline: none;
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  /* 기존의 오른쪽 이동 효과는 제거하거나, 값을 줄여서 사용 (선택) */
+  /* transform: translateX(5px); */
+}
+
+
+/* 아이템 호버/포커스 시, 왼쪽 인디케이터 라인을 나타나게 함 */
+:deep(.el-dropdown-menu__item:not(.is-disabled):hover::before),
+:deep(.el-dropdown-menu__item:not(.is-disabled):focus-visible::before) {
+  /* 최종 상태: 보임 (원래 크기로) */
+  transform: translateY(-50%) scaleY(1);
+  opacity: 1;
+}
+
+
+/* 아이템 내부의 아이콘 스타일 (변경 없음) */
+:deep(.el-dropdown-menu__item .el-icon) {
+  margin-right: 12px;
+  font-size: 18px;
+  transition: color 0.2s ease;
+}
+:deep(.el-dropdown-menu__item:not(.is-disabled):hover .el-icon) {
+  color: var(--el-color-primary);
+}
+
 
 /* 아이템 내부의 아이콘 스타일 */
 :deep(.el-dropdown-menu__item .el-icon) {
-  margin-right: 10px; /* 아이콘과 텍스트 사이 간격 */
-  font-size: 16px;
+  margin-right: 12px; /* 아이콘과 텍스트 사이 간격을 살짝 넓힙니다. */
+  font-size: 18px; /* 아이콘을 조금 더 잘 보이게 키웁니다. */
+  /* 아이콘 색상도 부드럽게 변하도록 transition을 추가합니다. */
+  transition: color 0.2s ease;
 }
 
-/* 드롭다운 메뉴가 나타날 때 화살표(popper) 숨김 */
-:deep(.el-popper.is-light) {
-  border: none; /* 기본 테두리 제거 */
-}
-
-:deep(.el-popper.is-light .el-popper__arrow::before) {
-  display: none; /* 화살표 숨기기 */
+/* 아이템에 마우스를 올렸을 때 아이콘 색상도 텍스트와 함께 변경되도록 합니다. */
+:deep(.el-dropdown-menu__item:not(.is-disabled):hover .el-icon) {
+  color: var(--el-color-primary);
 }
 /* 기본 (라이트모드) */
 .theme-sensitive {

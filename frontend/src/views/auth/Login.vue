@@ -67,25 +67,33 @@ onMounted(async () => {
 
   const isLoggedIn = userStore().isLoggedIn;
   if (isLoggedIn) {
-    await Api.post(ApiUrls.LOGOUT, {}, true);
-    setTimeout(()=>{
-      userStore().delUserInfo();
-      sessionStorage.clear();
-      localStorage.clear();
-    }, 1000);
+    try {
+      await Api.post(ApiUrls.LOGOUT, {}, true);
+      setTimeout(()=>{
+        userStore().delUserInfo();
+        sessionStorage.clear();
+      }, 1000);
+    } catch (error){}
+    finally {
+      resetState();
+    }
   }
 
+  resetState();
+})
+
+const resetState = () => {
   state.isVisible = false;
   state.isProcessing = false;
 
-  if(rememberId.value && !Common.isEmpty(localStorage.getItem('userId'))) {
-    userId.value = localStorage.getItem('userId');
+  if(rememberId.value && !Common.isEmpty(sessionStorage.getItem('userId'))) {
+    userId.value = sessionStorage.getItem('userId');
     passwordInput.value?.focus();
   } else {
-    localStorage.removeItem('userId');
+    sessionStorage.removeItem('userId');
     userIdInput.value?.focus();
   }
-})
+}
 
 /**
  * 비밀번호 입력 시 Caps Lock 상태를 확인하는 함수
@@ -148,14 +156,14 @@ const onClickLogin = async (isForced: boolean) => {
         const user = await Api.post(ApiUrls.GET_USER, { userId : userId.value }, true);
         const userInfo = user.data as userState
 
-        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
         userStore().setUserInfo(userInfo);
 
         // 아이디 기억하기
         if(rememberId.value) {
-          localStorage.setItem('userId', userId.value);
+          sessionStorage.setItem('userId', userId.value);
         } else {
-          localStorage.removeItem('userId');
+          sessionStorage.removeItem('userId');
         }
 
         // main 화면 진입

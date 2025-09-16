@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.api.kakao.dto;
+package com.koo.bonscore.common.api.kakao.surround.dto;
 
 import lombok.Builder;
 import lombok.Getter;
