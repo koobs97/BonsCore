@@ -338,6 +338,7 @@ const handleDelete = (storeId: number) => {
   font-size: 0.8rem;
   /* ★ 수정: 보조 텍스트 색상, 활성 상태에선 상속받음 */
   color: var(--el-text-color-secondary);
+  text-align: left;
 }
 
 .list-item:hover .item-name { color: var(--el-text-color-primary); }
@@ -377,6 +378,11 @@ const handleDelete = (storeId: number) => {
   font-weight: 800;
   color: var(--el-text-color-primary);
 }
+
+.header-text {
+  text-align: left;
+}
+
 .header-actions .el-button { font-size: 18px; outline: none; }
 
 .detail-body { margin-top: 24px; }
