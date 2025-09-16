@@ -131,7 +131,7 @@
 }
 
 html.dark {
-  --el-color-primary: #ffffff !important;
+  --el-color-primary: #EAECEF !important;
   --el-overlay-color-light: #c0c4cc;
 
   --black-white-color: black;

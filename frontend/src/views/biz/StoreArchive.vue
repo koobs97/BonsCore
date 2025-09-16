@@ -176,7 +176,7 @@ const handleDelete = (storeId: number) => {
     <!-- 왼쪽 목록 패널 -->
     <div class="list-panel">
       <div class="list-header">
-        <h2 class="list-title">My Archive</h2>
+        <h2 class="list-title">저장소</h2>
         <el-button type="primary" :icon="Plus" circle @click="openAddDialog" />
       </div>
       <div class="search-wrapper">
@@ -294,7 +294,7 @@ const handleDelete = (storeId: number) => {
   color: var(--el-text-color-primary);
 }
 .search-wrapper {
-  padding: 12px 20px;
+  padding: 12px 8px 12px 8px;
   flex-shrink: 0;
 }
 .store-list {

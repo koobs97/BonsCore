@@ -9,7 +9,10 @@ import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
 import naverApiLogo from "@/assets/images/naver-api-logo.png";
 import googleApiLogo from "@/assets/images/google_cloud_logo.png";
 import naverDataLabLogo from "@/assets/images/naver-datalab-icon.png";
-import kakaoApiLogo from "@/assets/images/kakao-api-logo.png"
+import kakaoApiLogo from "@/assets/images/kakao-api-logo.png";
+import Graph from "@/assets/images/graph-icon.png";
+import stars from "@/assets/images/stars_icon.png";
+import archive from "@/assets/images/archive-icon.png";
 
 const step = ref('search');
 const searchQuery = ref('');
@@ -830,7 +833,12 @@ const reset = () => {
   <div class="estimator-container">
     <div class="card">
       <div class="card-header">
-        <h1 class="title">웨이팅 지수 분석기 📈</h1>
+        <div style="display: flex; align-items: center; justify-content: center;">
+          <h1 class="title">웨이팅 지수 분석기</h1>
+          <div class="icon-flipper">
+            <img class="title-icon" :src="Graph" alt="분석 아이콘" />
+          </div>
+        </div>
         <p class="subtitle">가게의 오늘 웨이팅 지수를 예측해 드립니다.</p>
       </div>
 
@@ -858,18 +866,15 @@ const reset = () => {
                     <el-icon class="info-icon"><QuestionFilled /></el-icon>
                   </template>
 
-                  <!-- ★★★ Popover의 내용물을 ElAlert로 변경 ★★★ -->
-                  <div class="modern-alert modern-alert-info">
-                    <div class="modern-alert-icon">
-                      <!-- 아이콘 (예: SVG 또는 아이콘 폰트) -->
-                      <i class="el-icon-info"></i>
-                    </div>
-                    <div class="modern-alert-content">
-                      <p class="modern-alert-title">빠른 검색 팁!</p>
-                      <p class="modern-alert-description">
-                        네이버 정책에 따라 검색 결과는 <strong>최대 5개</strong>까지 제공됩니다.
-                      </p>
-                    </div>
+                  <!-- Popover 내용물  -->
+                  <div class="tip-accent-themed">
+                    <p class="tip-accent-title">
+                      <el-icon><InfoFilled /></el-icon>
+                      빠른 검색 팁!
+                    </p>
+                    <p class="tip-accent-description">
+                      네이버 정책에 따라 검색 결과는 <strong>최대 5개</strong>까지 제공됩니다.
+                    </p>
                   </div>
 
                 </el-popover>
@@ -891,7 +896,8 @@ const reset = () => {
         <div class="info-section">
           <div class="info-block">
             <div class="info-title-wrapper">
-              <h3 class="info-title">✨ 이런 가게는 어때요?</h3>
+              <img class="highlight-icon" :src="stars" alt="별 아이콘" />
+              <h3 class="info-title">이런 가게는 어때요?</h3>
               <el-button
                   :icon="Refresh"
                   circle
@@ -924,7 +930,8 @@ const reset = () => {
         <!-- My Archive 섹션 시작 -->
         <div class="info-block">
           <div class="info-title-wrapper">
-            <h3 class="info-title">🗂️ My Archive</h3>
+            <img class="highlight-icon" :src="archive" alt="저장소 아이콘" />
+            <h3 class="info-title">저장소</h3>
           </div>
 
           <el-skeleton :rows="3" animated v-if="isArchiveLoading" class="archive-skeleton" />
@@ -1134,44 +1141,42 @@ const reset = () => {
 :global(.el-popper.search-tip-popover .el-popper__arrow) {
   display: none !important;
 }
-
-.modern-alert {
+.icon-flipper {
+  /* 3D 효과를 위한 원근감 설정 */
+  perspective: 1000px;
   display: flex;
-  align-items: flex-start;
-  padding: 16px;
-  border-radius: 6px;
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+  align-items: center;
+  justify-content: center;
 }
 
-.modern-alert-info {
-  background-color: var(--black-white-color); /* 부드러운 파란색 계열 */
-  border-left: 5px solid var(--el-overlay-color-light);
+.icon-flipper .title-icon {
+  width: 24px; /* 크기 조절 */
+  height: 24px;
+  margin-left: 6px;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  filter: invert(1);
+}
+html.dark .title-icon {
+  /*
+    invert(1)은 이미지의 모든 색상을 완전히 반전시킵니다.
+    검은색은 흰색으로, 흰색은 검은색으로 바뀝니다.
+  */
+  filter: invert(0);
 }
 
-.modern-alert-icon {
-  margin-right: 12px;
-  font-size: 24px;
-  color: #5096FF;
-  /* 아이콘이 없어서 임시로 아이콘 폰트를 위한 공간 설정 */
-  width: 24px;
-  text-align: center;
+/* 마우스를 올렸을 때 Y축으로 180도 회전 */
+.icon-flipper:hover .title-icon {
+  transform: rotateY(180deg);
 }
 
-.modern-alert-content {
-  flex-grow: 1;
-}
-
-.modern-alert-title {
-  margin: 0;
-  font-weight: 600;
-  color: var(--main-header-text-color2);
-  font-size: 16px;
-}
-
-.modern-alert-description {
-  margin: 4px 0 0;
-  color: var(--text-color3);
-  font-size: 14px;
+.highlight-icon {
+  width: 24px; /* 크기 조절 */
+  height: 24px;
+  margin-left: 6px;
+  margin-right: 4px;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
 }
 
 .estimator-container {
@@ -1285,8 +1290,7 @@ input[type="text"]:focus {
 .info-title-wrapper {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
   margin-bottom: 8px;
 }
 .info-title {
@@ -1807,4 +1811,59 @@ button.is-disabled:hover {
   display: flex;
   align-items: center;
 }
+
+.tip-accent-themed {
+  /* 폰트를 적용하여 가독성 향상 */
+  font-family: 'Noto Sans KR', sans-serif;
+  padding: 16px;
+
+  /* 테마의 기본 배경색을 사용 (라이트/다크 모드 자동 전환) */
+  background: var(--el-bg-color);
+  border-radius: 6px;
+
+  /* 테마의 그림자 스타일을 사용하여 일관성 유지 */
+  box-shadow: var(--el-box-shadow-light);
+
+  /* --- 그라디언트 테두리 핵심 로직 --- */
+  border-top: 3px solid transparent;
+
+  /*
+    1. 첫 번째 그래디언트는 컴포넌트의 배경색을 담당합니다.
+    2. 두 번째 그래디언트가 테두리 영역을 채우게 됩니다.
+       - var(--primary-color) 와 var(--blue)를 사용해 세련된 색상 조합을 만듭니다.
+  */
+  background-image: linear-gradient(var(--el-bg-color), var(--el-bg-color)),
+  linear-gradient(to right, var(--primary-color), var(--blue));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.tip-accent-title {
+  display: flex;
+  align-items: center;
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 700; /* 좀 더 강조 */
+
+  /* 테마의 기본 텍스트 색상 사용 */
+  color: var(--el-text-color-primary);
+}
+
+.tip-accent-title .el-icon {
+  margin-right: 8px;
+  font-size: 18px;
+
+  /* 아이콘 색상을 테두리의 시작 색상과 통일하여 디자인 안정감 부여 */
+  color: var(--primary-color);
+}
+
+.tip-accent-description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+
+  /* 본문 내용은 일반 텍스트 색상을 사용 */
+  color: var(--el-text-color-regular);
+}
+
 </style>
