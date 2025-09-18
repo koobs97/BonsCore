@@ -13,6 +13,7 @@ import kakaoApiLogo from "@/assets/images/kakao-api-logo.png";
 import Graph from "@/assets/images/graph-icon.png";
 import stars from "@/assets/images/stars_icon.png";
 import archive from "@/assets/images/archive-icon.png";
+import emptyBox from "@/assets/images/enpty_box.png";
 
 const step = ref('search');
 const searchQuery = ref('');
@@ -60,11 +61,11 @@ const fetchMyArchiveStores = () => {
   isArchiveLoading.value = true;
   setTimeout(() => {
     myArchiveStores.value = [
-      { id: 1, name: '런던 베이글 뮤지엄', category: '베이커리', visitDate: '2023-10-26' },
-      { id: 2, name: '카멜 커피', category: '카페', visitDate: '2023-09-15' },
-      { id: 3, name: '다운타우너 안국', category: '수제버거', visitDate: '2023-08-01' },
-      { id: 4, name: '고든램지 버거', category: '수제버거', visitDate: '2023-11-05' },
-      { id: 5, name: '진작', category: '일식', visitDate: '2023-07-22' },
+      // { id: 1, name: '런던 베이글 뮤지엄', category: '베이커리', visitDate: '2023-10-26' },
+      // { id: 2, name: '카멜 커피', category: '카페', visitDate: '2023-09-15' },
+      // { id: 3, name: '다운타우너 안국', category: '수제버거', visitDate: '2023-08-01' },
+      // { id: 4, name: '고든램지 버거', category: '수제버거', visitDate: '2023-11-05' },
+      // { id: 5, name: '진작', category: '일식', visitDate: '2023-07-22' },
     ].sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()); // 최신 방문일 순으로 정렬
     isArchiveLoading.value = false;
   }, 1200); // 추천 가게보다 약간 늦게 로딩되도록 시간 조절
@@ -949,7 +950,21 @@ const reset = () => {
               </div>
               <span class="item-date">{{ store.visitDate }}</span>
             </div>
-            <el-empty v-if="myArchiveStores.length === 0" description="아카이브가 비었어요" :image-size="60" />
+            <el-empty
+                v-if="myArchiveStores.length === 0"
+                description="아카이브가 비었어요"
+                :image-size="80"
+                style="padding: 20px;"
+            >
+              <!-- [수정] 이 부분을 추가합니다 -->
+              <template #image>
+                <img
+                    :src="emptyBox"
+                    alt="비어있는 아카이브"
+                    class="custom-empty-image"
+                />
+              </template>
+            </el-empty>
           </div>
         </div>
         <!-- My Archive 섹션 끝 -->
@@ -1386,6 +1401,7 @@ input[type="text"]:focus {
   flex-grow: 1;
   overflow-y: auto;
   min-height: 0;
+  height: 165px;
   max-height: 165px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 6px;
@@ -1419,6 +1435,14 @@ input[type="text"]:focus {
 .item-category, .item-date {
   font-size: 0.7rem;
   color: var(--el-text-color-secondary);
+}
+.custom-empty-image {
+  /* image-size prop 대신 직접 크기를 제어할 수 있습니다. */
+  width: 80px;
+  /* 예시: 이미지에 회색 필터를 적용하여 톤을 맞춤 */
+  filter: grayscale(1);
+  opacity: 0.4;
+  padding: 0;
 }
 
 button {
