@@ -7,7 +7,7 @@ import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
-import com.koo.bonscore.common.mail.service.MailService;
+import com.koo.bonscore.common.api.mail.service.MailService;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.exception.custom.BsCoreException;

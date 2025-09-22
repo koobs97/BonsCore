@@ -15,28 +15,53 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class LoginSessionManager {
 
-    private final Map<String, String> activeSessions = new ConcurrentHashMap<>();
+//    private final Map<String, String> activeSessions = new ConcurrentHashMap<>();
     // Redis를 사용하여 블랙리스트 관리
     private final RedisTemplate<String, String> redisTemplate; // RedisTemplate 주입
+    private static final String ACTIVE_SESSION_KEY_PREFIX = "jwt:active:session:";
     private static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:"; // Redis 키 접두사
 
     private final JwtTokenProvider jwtTokenProvider;
 
     public void registerSession(String userId, String token) {
+
+        // 기존에 로그인된 세션이 있다면 무효화 처리 (Redis에서 삭제)
         invalidateOldSession(userId);
-        activeSessions.put(userId, token);
+
+        // 새로운 세션을 Redis에 등록. Access Token의 만료 시간과 동일한 TTL 설정
+        try {
+            Claims claims = jwtTokenProvider.getClaimsFromToken(token);
+            long expirationMillis = claims.getExpiration().getTime();
+            long nowMillis = new Date().getTime();
+            long remainingMillis = expirationMillis - nowMillis;
+
+            if (remainingMillis > 0) {
+                // key: "jwt:active:session:유저ID", value: "AccessToken 값"
+                redisTemplate.opsForValue().set(
+                        ACTIVE_SESSION_KEY_PREFIX + userId,
+                        token,
+                        Duration.ofMillis(remainingMillis) // 남은 만료 시간만큼 TTL 설정
+                );
+            }
+        } catch (Exception e) {
+            // 토큰 파싱 실패 시 로깅 또는 예외 처리
+        }
     }
 
     public boolean isDuplicateLogin(String userId) {
-        return activeSessions.containsKey(userId);
+        // Redis에 해당 유저의 활성 세션 키가 존재하는지 확인
+        return Boolean.TRUE.equals(redisTemplate.hasKey(ACTIVE_SESSION_KEY_PREFIX + userId));
     }
 
     public void invalidateOldSession(String userId) {
-        if (activeSessions.containsKey(userId)) {
-            String oldToken = activeSessions.remove(userId);
-            if (oldToken != null) {
-                addTokenToBlacklist(oldToken); // Redis에 추가
-            }
+        // Redis에서 기존 활성 세션 토큰을 가져온다.
+        String oldToken = redisTemplate.opsForValue().get(ACTIVE_SESSION_KEY_PREFIX + userId);
+
+        if (oldToken != null) {
+            // 1. 기존 활성 세션 정보를 Redis에서 삭제한다.
+            redisTemplate.delete(ACTIVE_SESSION_KEY_PREFIX + userId);
+            // 2. 가져온 기존 토큰을 블랙리스트에 추가한다.
+            addTokenToBlacklist(oldToken);
         }
     }
 
@@ -74,18 +99,17 @@ public class LoginSessionManager {
         return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_KEY_PREFIX + token));
     }
 
-    // Redis 사용 시에는 이 스케줄링 메서드가 필요 없어집니다.
-    // @Scheduled(cron = "0 0 4 * * *")
-    // public void cleanupBlacklist() { ... }
-
+    // 로그아웃 메서드도 Redis를 사용하도록 수정
     public void logoutSession(String userId, String accessToken, String refreshToken) {
-        activeSessions.remove(userId);
+        // 1. 활성 세션 목록에서 제거
+        redisTemplate.delete(ACTIVE_SESSION_KEY_PREFIX + userId);
 
+        // 2. Access Token과 Refresh Token을 블랙리스트에 추가
         if (accessToken != null) {
             addTokenToBlacklist(accessToken);
         }
         if (refreshToken != null) {
-            addTokenToBlacklist(refreshToken); // Refresh Token도 블랙리스트에 추가
+            addTokenToBlacklist(refreshToken);
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.koo.bonscore.common.mail.service;
+package com.koo.bonscore.common.api.mail.service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

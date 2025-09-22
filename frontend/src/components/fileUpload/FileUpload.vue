@@ -1,124 +1,125 @@
 <!-- src/components/FileUpload.vue -->
 <template>
-  <div class="compact-file-upload-container">
-    <!-- 1. 파일 목록 (헤더 포함) -->
-    <div class="file-list-wrapper">
-      <div class="file-list-header">
-        <span class="header-title">첨부파일 목록</span>
-        <span class="header-info">
-          {{ fileList.length }} / {{ props.limit }}개 (총 {{ totalSize }})
-        </span>
-      </div>
-
-      <transition-group name="file-list-anim" tag="ul" class="compact-file-list">
-        <!-- 파일이 없을 때 플레이스홀더 -->
-        <li v-if="fileList.length === 0" key="placeholder" class="placeholder">
-          <el-icon style="font-size: 30px;"><UploadFilled /></el-icon>
-          <p>여기로 파일을 드래그하거나, 아래 버튼을 눌러 추가하세요.</p>
-          <p class="placeholder-rules">
-            ({{ props.allowedExtensions.join(', ') }} / 최대 {{ props.maxSizeMB }}MB)
-          </p>
-        </li>
-        <!-- 파일 목록 아이템 -->
-        <li v-for="file in fileList" :key="file.uid" class="compact-file-item">
-          <div class="file-info">
-            <el-icon><Document /></el-icon>
-            <span class="file-name" :title="file.name">{{ file.name }}</span>
-            <span class="file-size">({{ formatFileSize(file.size) }})</span>
-          </div>
-          <div class="file-status-actions">
-            <div class="file-status">
-              <el-progress v-if="file.status === 'uploading'" :percentage="file.percentage || 0" :stroke-width="4" :show-text="false" color="#67C23A" />
-              <span v-else-if="file.status === 'success'" class="status-label success"><el-icon><CircleCheckFilled /></el-icon></span>
-              <span v-else-if="file.status === 'fail'" class="status-label fail"><el-icon><CircleCloseFilled /></el-icon></span>
-              <span v-else class="status-label ready"><el-icon><Clock /></el-icon></span>
-            </div>
-            <el-button type="danger" icon="Delete" style="font-size: 16px;" link @click="handleRemove(file)" />
-          </div>
-        </li>
-      </transition-group>
+  <div class="image-uploader-container">
+    <!-- 1. 헤더: 제목 및 파일 개수 카운터 -->
+    <div class="uploader-header">
+      <span class="header-title">사진 첨부</span>
+      <span class="header-info">{{ fileList.length }} / {{ props.limit }}</span>
     </div>
 
-    <!-- 2. 업로드 트리거 (el-upload는 숨김) -->
+    <!-- 2. 가로 스크롤 영역 -->
+    <div class="image-list-wrapper">
+      <div class="image-list">
+        <!-- 사진 추가 버튼 카드 (파일 제한에 도달하지 않았을 때만 보임) -->
+        <div
+            v-if="fileList.length < props.limit"
+            class="add-photo-trigger"
+            @click="triggerUpload"
+        >
+          <el-icon><CameraFilled /></el-icon>
+          <span>사진 추가</span>
+        </div>
+
+        <!-- 선택된 이미지 미리보기 카드 -->
+        <transition-group name="image-preview-anim">
+          <!-- ★★★★★ 수정된 구조: 이미지를 감싸는 새 래퍼 추가 ★★★★★ -->
+          <div
+              v-for="(file, index) in fileList"
+              :key="file.uid"
+              class="image-card-wrapper"
+          >
+            <!-- 이미지 자체를 담는 컨테이너 (overflow: hidden 적용) -->
+            <div class="image-preview-item">
+              <el-image
+                  v-if="file.url"
+                  class="preview-image"
+                  :src="file.url"
+                  :preview-src-list="previewSrcList"
+                  :initial-index="index"
+                  fit="cover"
+                  hide-on-click-modal
+              />
+              <!-- 업로드 진행률 오버레이 -->
+              <div v-if="file.status === 'uploading'" class="upload-progress-overlay">
+                <el-progress type="circle" :percentage="file.percentage || 0" :width="40" color="#fff"/>
+              </div>
+            </div>
+            <!-- 삭제 버튼 (이제 래퍼를 기준으로 위치하여 잘리지 않음) -->
+            <el-button
+                class="remove-button"
+                type="danger"
+                :icon="CloseBold"
+                circle
+                @click="handleRemove(file)"
+            />
+          </div>
+        </transition-group>
+      </div>
+    </div>
+
+    <!-- 실제 파일 입력을 담당하는 숨겨진 el-upload 컴포넌트 -->
     <el-upload
         ref="uploadRef"
+        class="hidden-uploader"
         :action="props.uploadUrl"
         :limit="props.limit"
         :on-exceed="handleExceed"
         :on-change="handleChange"
+        :on-remove="handleRemoveInternal"
         :before-upload="beforeUpload"
-        :on-progress="handleProgress"
         :on-success="handleSuccess"
         :on-error="handleError"
         :file-list="fileList"
         :auto-upload="false"
         :show-file-list="false"
+        accept="image/*"
         multiple
-    >
-      <template #trigger>
-        <div class="upload-actions">
-          <el-button type="primary" icon="Upload">파일 선택</el-button>
-          <el-button icon="DeleteFilled" v-if="fileList.length > 0" type="danger" plain @click.stop="handleClearAll">전체 삭제</el-button>
-        </div>
-      </template>
-    </el-upload>
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import {
-  UploadFilled,
-  Document,
-  CircleCheck,
-  Close,
-} from '@element-plus/icons-vue';
-import type {
-  UploadInstance,
-  UploadProps,
-  UploadRawFile,
-  UploadUserFile,
-  UploadFile,
-  UploadFiles,
-} from 'element-plus';
+import { CameraFilled, CloseBold } from '@element-plus/icons-vue';
+import type { UploadInstance, UploadProps, UploadRawFile, UploadUserFile, UploadFile, UploadFiles } from 'element-plus';
 
-// --- Props & Emits ---
+// --- Props & Emits (기존과 동일) ---
 interface Props {
   uploadUrl?: string;
   limit?: number;
   maxSizeMB?: number;
   allowedExtensions?: string[];
 }
-
 const props = withDefaults(defineProps<Props>(), {
   uploadUrl: 'http://localhost:8080/api/files/upload',
   limit: 10,
   maxSizeMB: 10,
-  allowedExtensions: () => ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'hwp', 'docx'],
+  allowedExtensions: () => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
 });
-
 interface UploadSuccessResponse {
   fileName: string;
   fileDownloadUri: string;
 }
-
 const emit = defineEmits<{
   (e: 'upload-success', data: { response: UploadSuccessResponse; file: UploadFile; fileList: UploadFiles }): void;
   (e: 'upload-error', data: { error: Error; file: UploadFile; fileList: UploadFiles }): void;
-  (e: 'file-list-changed', fileList: UploadUserFile[]): void; // 파일 목록 변경 이벤트 추가
+  (e: 'file-list-changed', fileList: UploadUserFile[]): void;
 }>();
+
 
 // --- Refs & Computed ---
 const uploadRef = ref<UploadInstance>();
 const fileList = ref<UploadUserFile[]>([]);
 
+const previewSrcList = computed(() =>
+    fileList.value.map(file => file.url).filter(Boolean) as string[]
+);
+
 const totalSize = computed(() => {
   const total = fileList.value.reduce((sum, file) => sum + (file.size || 0), 0);
   return formatFileSize(total);
 });
-
-// --- 파일 크기 포맷팅 유틸 함수 ---
 const formatFileSize = (size: number | undefined) => {
   if (!size) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -131,33 +132,47 @@ const formatFileSize = (size: number | undefined) => {
 };
 
 // --- Handlers ---
-// 파일 선택/변경 시 Element Plus 내부 목록을 우리 ref와 동기화
+const triggerUpload = () => {
+  const inputEl = uploadRef.value?.$el.querySelector('input');
+  if (inputEl) {
+    inputEl.click();
+  }
+};
+
 const handleChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
+  if (uploadFile.status === 'ready' && uploadFile.raw && uploadFile.raw.type.startsWith('image/')) {
+    uploadFile.url = URL.createObjectURL(uploadFile.raw);
+  }
   fileList.value = uploadFiles;
-  emit('file-list-changed', uploadFiles);
 };
 
-// 개별 파일 삭제
 const handleRemove = (file: UploadUserFile) => {
-  uploadRef.value?.handleRemove(file); // Element Plus의 내부 로직을 통해 파일 제거
+  uploadRef.value?.handleRemove(file);
 };
 
-// 전체 목록 비우기
-const handleClearAll = () => {
-  ElMessageBox.confirm('모든 파일을 목록에서 지우시겠습니까?', '경고', {
-    confirmButtonText: '확인',
-    cancelButtonText: '취소',
-    type: 'warning',
-  }).then(() => {
-    uploadRef.value?.clearFiles();
-    ElMessage.info('모든 파일이 목록에서 제거되었습니다.');
-  }).catch(() => {});
+const handleRemoveInternal: UploadProps['onRemove'] = (file, files) => {
+  if (file.url && file.url.startsWith('blob:')) {
+    URL.revokeObjectURL(file.url);
+  }
+  fileList.value = files;
 };
+
+const handleClearAll = () => {
+  fileList.value.forEach(file => {
+    if (file.url && file.url.startsWith('blob:')) URL.revokeObjectURL(file.url);
+  });
+  uploadRef.value?.clearFiles();
+};
+
+onUnmounted(() => {
+  fileList.value.forEach(file => {
+    if (file.url && file.url.startsWith('blob:')) URL.revokeObjectURL(file.url);
+  });
+});
 
 const handleExceed: UploadProps['onExceed'] = (files) => {
-  ElMessage.warning(`최대 ${props.limit}개의 파일만 추가할 수 있습니다.`);
+  ElMessage.warning(`최대 ${props.limit}개의 사진만 첨부할 수 있습니다.`);
 };
-
 const beforeUpload: UploadProps['beforeUpload'] = (rawFile: UploadRawFile) => {
   const fileExtension = rawFile.name.substring(rawFile.name.lastIndexOf('.') + 1).toLowerCase();
   if (!props.allowedExtensions.includes(fileExtension)) {
@@ -165,18 +180,15 @@ const beforeUpload: UploadProps['beforeUpload'] = (rawFile: UploadRawFile) => {
     return false;
   }
   if (rawFile.size / 1024 / 1024 > props.maxSizeMB) {
-    ElMessage.error(`파일 크기는 ${props.maxSizeMB}MB를 초과할 수 없습니다!`);
+    ElMessage.error(`사진 크기는 ${props.maxSizeMB}MB를 초과할 수 없습니다!`);
     return false;
   }
   return true;
 };
-
 const handleSuccess: UploadProps['onSuccess'] = (response, uploadFile, uploadFiles) => {
-  // 성공 이벤트는 개별 파일마다 발생하므로, 전체 목록을 다시 동기화 해주는 것이 좋음
   fileList.value = uploadFiles;
   emit('upload-success', { response, file: uploadFile, fileList: uploadFiles });
 };
-
 const handleError: UploadProps['onError'] = (error, uploadFile, uploadFiles) => {
   let errorMessage = '파일 업로드 실패';
   try {
@@ -186,123 +198,192 @@ const handleError: UploadProps['onError'] = (error, uploadFile, uploadFiles) => 
   ElMessage.error(`${uploadFile.name}: ${errorMessage}`);
   emit('upload-error', { error, file: uploadFile, fileList: uploadFiles });
 };
-
-
-// --- Expose (부모 컴포넌트에서 호출할 함수들) ---
 const submit = () => {
-  if (fileList.value.length === 0) {
-    ElMessage.warning('업로드할 파일이 없습니다.');
-    return;
-  }
-  // 'success' 상태가 아닌 파일만 업로드 대상
-  const filesToUpload = fileList.value.filter(file => file.status !== 'success');
-  if (filesToUpload.length === 0) {
-    ElMessage.info('모든 파일이 이미 업로드되었습니다.');
-    return;
-  }
-  uploadRef.value?.submit();
+  return new Promise((resolve, reject) => {
+    const filesToUpload = fileList.value.filter(file => file.status !== 'success');
+    if (filesToUpload.length === 0) {
+      const uploadedFiles = fileList.value
+          .filter(file => file.status === 'success')
+          .map(file => file.response as UploadSuccessResponse);
+      resolve(uploadedFiles);
+      return;
+    }
+
+    const successResults: UploadSuccessResponse[] = [];
+    const originalOnSuccess = uploadRef.value!.onSuccess;
+    const originalOnError = uploadRef.value!.onError;
+
+    uploadRef.value!.onSuccess = (response: any, uploadFile, uploadFiles) => {
+      successResults.push(response);
+      if (successResults.length === filesToUpload.length) {
+        resolve(successResults);
+        uploadRef.value!.onSuccess = originalOnSuccess;
+        uploadRef.value!.onError = originalOnError;
+      }
+    };
+
+    uploadRef.value!.onError = (error, uploadFile, uploadFiles) => {
+      reject(error);
+      uploadRef.value!.onSuccess = originalOnSuccess;
+      uploadRef.value!.onError = originalOnError;
+    };
+
+    uploadRef.value?.submit();
+  });
 };
 
-const clearFiles = () => {
-  uploadRef.value?.clearFiles();
-};
-
-defineExpose({
-  submit,
-  clearFiles,
-  getFiles: () => fileList.value, // 현재 파일 목록을 가져오는 함수
-});
+defineExpose({ submit, clearFiles: handleClearAll, getFiles: () => fileList.value });
 </script>
 
 <style scoped>
-/* 최상위 컨테이너에 고정 높이 및 flexbox 설정 */
-.compact-file-upload-container {
-  width: calc(100% - 22px);
-  height: 240px; /* 원하는 고정 높이로 설정 */
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column; /* 자식 요소들을 수직으로 배치 */
-  transition: border-color 0.3s;
-}
-.compact-file-upload-container:hover {
-  border-color: var(--el-color-primary);
+.image-uploader-container {
+  width: 100%;
+  background-color: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
-/* 파일 목록 래퍼가 남은 공간을 모두 차지하도록 설정 */
-.file-list-wrapper {
-  flex-grow: 1; /* 남은 수직 공간을 모두 차지 */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; /* 자식 요소가 넘칠 때를 대비 */
-}
-
-/* 실제 파일 목록(ul)이 스크롤되도록 설정 */
-.compact-file-list {
-  flex-grow: 1; /* 래퍼 안에서 남은 공간을 모두 차지 */
-  overflow-y: auto; /* 내용이 넘치면 수직 스크롤바 생성 */
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.file-list-header {
+/* 헤더 */
+.uploader-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding: 0 5px 5px 5px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  margin-bottom: 5px;
-  flex-shrink: 0; /* 헤더는 줄어들지 않음 */
+  margin-bottom: 16px;
 }
-.header-title { font-size: 14px; font-weight: 500; }
-.header-info { font-size: 12px; color: var(--el-text-color-secondary); }
+.header-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.header-info {
+  font-size: 0.85rem;
+  color: var(--el-text-color-secondary);
+}
 
-/* 파일 없을 때 플레이스홀더 */
-.placeholder {
+/* 가로 스크롤 영역 */
+.image-list-wrapper {
+  overflow-x: scroll; /* auto -> scroll로 변경하여 항상 스크롤바 공간을 차지하게 함 */
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color) transparent;
+}
+.image-list-wrapper::-webkit-scrollbar {
+  height: 6px; /* 스크롤바의 높이 */
+}
+.image-list-wrapper::-webkit-scrollbar-thumb {
+  background-color: var(--el-border-color);
+  border-radius: 3px;
+}
+.image-list-wrapper::-webkit-scrollbar-track {
+  background: transparent; /* 트랙 배경을 투명하게 하여 거슬리지 않게 함 */
+}
+
+/* 실제 이미지와 버튼이 담기는 flex 컨테이너 */
+.image-list {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0; /* X 버튼이 잘리지 않도록 상단에 여백 추가 */
+  width: max-content;
+}
+
+/* 사진 추가 버튼 카드 */
+.add-photo-trigger {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  text-align: center;
-  color: var(--el-text-color-placeholder);
-  font-size: 14px;
-}
-.placeholder p { margin: 0; }
-.placeholder-rules { font-size: 12px; margin-top: 4px !important; color: var(--el-text-color-disabled); }
-
-/* 개별 파일 아이템 */
-.compact-file-item {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  padding: 5px 8px; /* 높이를 살짝 줄임 */
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  border: 2px dashed var(--el-border-color);
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
-.compact-file-item:hover { background-color: var(--el-fill-color-light); }
-.file-info { display: flex; align-items: center; gap: 8px; flex-grow: 1; overflow: hidden; }
-.file-info .el-icon { color: var(--el-text-color-regular); flex-shrink: 0; }
-.file-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
-.file-size { font-size: 12px; color: var(--el-text-color-secondary); flex-shrink: 0; margin-left: 8px; }
-
-.file-status-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.file-status { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
-.status-label { display: flex; align-items: center; font-size: 18px; }
-.status-label.ready { color: var(--el-color-info-light-3); }
-.status-label.success { color: var(--el-color-success); }
-.status-label.fail { color: var(--el-color-error); }
-
-/* 업로드 버튼 영역은 크기가 변하지 않도록 설정 */
-.upload-trigger-area {
-  flex-shrink: 0; /* 버튼 영역은 줄어들지 않음 */
-  padding-top: 10px;
+.add-photo-trigger:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
 }
-.upload-actions { display: flex; gap: 10px; }
+.add-photo-trigger .el-icon {
+  font-size: 32px;
+}
+.add-photo-trigger span {
+  font-size: 0.9rem;
+}
 
-/* 파일 목록 애니메이션 */
-.file-list-anim-enter-active, .file-list-anim-leave-active { transition: all 0.3s ease; }
-.file-list-anim-enter-from, .file-list-anim-leave-to { opacity: 0; transform: translateY(-10px); }
+/* ★★★★★ 수정된 스타일 ★★★★★ */
+/* 1. 이미지와 X버튼을 감싸는 새 래퍼 */
+.image-card-wrapper {
+  position: relative; /* 삭제 버튼의 기준점 */
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+/* 2. 이미지 자체를 담는 컨테이너 */
+.image-preview-item {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden; /* 이미지의 모서리를 둥글게 자르기 위해 필수 */
+  background-color: var(--el-fill-color);
+  position: relative; /* 프로그레스바 오버레이의 기준점 */
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+}
+
+/* 업로드 진행률 오버레이 */
+.upload-progress-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 3. 삭제 버튼 (래퍼 기준으로 위치하여 잘리지 않음) */
+.remove-button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 10;
+  background-color: var(--el-color-danger) !important;
+  color: white !important;
+  border: 2px solid var(--el-bg-color-overlay);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  width: 24px;
+  height: 24px;
+}
+.remove-button:hover {
+  transform: scale(1.1);
+}
+
+/* 숨겨진 el-upload */
+.hidden-uploader {
+  display: none;
+}
+
+/* 애니메이션 */
+.image-preview-anim-enter-active,
+.image-preview-anim-leave-active {
+  transition: all 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+}
+.image-preview-anim-enter-from,
+.image-preview-anim-leave-to {
+  opacity: 0;
+  transform: scale(0.5) translateY(30px);
+}
 </style>
