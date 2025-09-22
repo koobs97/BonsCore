@@ -357,8 +357,9 @@ const handleSubmit = async () => {
   background-color: var(--el-fill-color-light) !important; /* 배경색을 입력 필드와 동일하게 설정 */
   padding-left: 8px;
 }
-:deep(.el-textarea .el-input__count .el-input__count) {
+:deep(.el-textarea .el-input__count) {
   background-color: var(--el-fill-color-light) !important; /* 배경색을 입력 필드와 동일하게 설정 */
   padding-left: 8px;
 }
+
 </style>
