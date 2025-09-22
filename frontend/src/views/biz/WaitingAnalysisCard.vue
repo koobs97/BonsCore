@@ -1270,6 +1270,7 @@ html.dark .title-icon {
 .search-button {
   height: 40px;
   padding: 0 18px;
+  border-radius: 4px;
 }
 
 .step-title {
