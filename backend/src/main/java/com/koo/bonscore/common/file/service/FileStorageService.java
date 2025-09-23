@@ -1,20 +1,16 @@
 package com.koo.bonscore.common.file.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -22,46 +18,46 @@ public class FileStorageService {
 
     private final Path fileStorageLocation;
 
+    // 생성자는 원래대로 복구 (@Value 사용)
     public FileStorageService(@Value("${file.upload-dir}") String uploadDir) {
+        System.err.println("### FileStorageService 생성자 호출! ###");
         this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.fileStorageLocation);
-        } catch (Exception ex) {
-            throw new RuntimeException("파일을 업로드할 디렉토리를 생성할 수 없습니다.", ex);
+        } catch (IOException e) {
+            throw new RuntimeException("디렉토리를 생성할 수 없습니다.", e);
         }
     }
 
-    /**
-     * 파일을 저장하고 고유한 파일 이름을 반환합니다.
-     * @param file 저장할 MultipartFile
-     * @return 서버에 저장된 고유한 파일 이름
-     */
-    public String storeFile(MultipartFile file) {
-        String originalFileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
-        String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+    public void test(String fileName) {
+        System.err.println("### test 메소드 호출 성공! ###");
+    }
+
+    // ▼▼▼▼▼▼▼ 핵심 수정 부분 ▼▼▼▼▼▼▼
+    // MultipartFile 대신 InputStream과 originalFileName을 받도록 변경
+    public String storeFile(InputStream inputStream, String originalFileName) {
+        System.err.println("### storeFile 메소드 호출 성공! ###");
+
+        String cleanFileName = StringUtils.cleanPath(originalFileName);
+        String fileExtension = cleanFileName.substring(cleanFileName.lastIndexOf("."));
         String storedFileName = UUID.randomUUID().toString() + fileExtension;
 
         try {
             if (storedFileName.contains("..")) {
-                throw new RuntimeException("파일 이름에 유효하지 않은 경로 시퀀스가 포함되어 있습니다: " + storedFileName);
+                throw new RuntimeException("파일 이름에 유효하지 않은 시퀀스가 포함되어 있습니다.");
             }
             Path targetLocation = this.fileStorageLocation.resolve(storedFileName);
-            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            // 전달받은 InputStream을 사용하여 파일을 복사
+            Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
             return storedFileName;
         } catch (IOException ex) {
-            throw new RuntimeException("파일 " + storedFileName + "을(를) 저장할 수 없습니다. 다시 시도해 주세요.", ex);
+            throw new RuntimeException(storedFileName + " 파일 저장에 실패했습니다.", ex);
         }
     }
 
-    /**
-     * 파일 이름을 기반으로 접근 URL을 생성합니다.
-     * @param fileName 파일 이름
-     * @return 파일 접근 URL
-     */
     public String getFileDownloadUri(String fileName) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/images/") // WebConfig에 설정된 경로와 일치해야 함
-                .path(fileName)
-                .toUriString();
+        return "http://localhost:8080/images/" + fileName;
     }
 }

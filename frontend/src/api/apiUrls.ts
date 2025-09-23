@@ -37,6 +37,9 @@ export enum ApiUrls {
     OPENING_INFO = '/api/analysis/openingInfo',
     SURROUNDING_INFO = '/api/analysis/surroundings',
 
+    FILE_UPLOAD = '/api/files/upload',
+    CREATE_GOURMET_RECORD = '/api/gourmet-records',
+
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
     VALIDATE_PASSWORD = '/api/authorization/validatePassword',
     UPDATE_PASSWORD_AF_LOGIN = '/api/authorization/updatePassword'

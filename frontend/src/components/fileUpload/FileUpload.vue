@@ -83,6 +83,8 @@ import { ref, computed, onUnmounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CameraFilled, CloseBold } from '@element-plus/icons-vue';
 import type { UploadInstance, UploadProps, UploadRawFile, UploadUserFile, UploadFile, UploadFiles } from 'element-plus';
+import {ApiUrls} from "@/api/apiUrls";
+import {Api} from "@/api/axiosInstance";
 
 // --- Props & Emits (기존과 동일) ---
 interface Props {
@@ -199,36 +201,49 @@ const handleError: UploadProps['onError'] = (error, uploadFile, uploadFiles) => 
   emit('upload-error', { error, file: uploadFile, fileList: uploadFiles });
 };
 const submit = () => {
-  return new Promise((resolve, reject) => {
-    const filesToUpload = fileList.value.filter(file => file.status !== 'success');
+  return new Promise(async (resolve, reject) => {
+    // 1. 업로드할 파일들만 필터링 (이미 성공한 파일 제외)
+    const filesToUpload = fileList.value.filter(file => file.status === 'ready');
+
+    // 2. 업로드할 파일이 없으면, 이미 업로드된 파일 정보만 반환하고 종료
     if (filesToUpload.length === 0) {
-      const uploadedFiles = fileList.value
+      const alreadyUploadedFiles = fileList.value
           .filter(file => file.status === 'success')
           .map(file => file.response as UploadSuccessResponse);
-      resolve(uploadedFiles);
+      resolve(alreadyUploadedFiles);
       return;
     }
 
-    const successResults: UploadSuccessResponse[] = [];
-    const originalOnSuccess = uploadRef.value!.onSuccess;
-    const originalOnError = uploadRef.value!.onError;
+    // 3. FormData를 사용한 비동기 병렬 업로드
+    const uploadPromises = filesToUpload.map(file => {
+      const formData = new FormData();
+      formData.append('file', file.raw as Blob);
 
-    uploadRef.value!.onSuccess = (response: any, uploadFile, uploadFiles) => {
-      successResults.push(response);
-      if (successResults.length === filesToUpload.length) {
-        resolve(successResults);
-        uploadRef.value!.onSuccess = originalOnSuccess;
-        uploadRef.value!.onError = originalOnError;
-      }
-    };
+      // axiosInstance.post를 사용하여 파일 업로드
+      // (주의: 파일 업로드는 Content-Type이 multipart/form-data 이므로,
+      // axiosInstance에 이 헤더를 자동으로 설정하도록 하거나, 별도 함수 필요할 수 있음)
+      // 보통 FormData를 보내면 axios가 자동으로 설정해줍니다.
+      return Api.post(ApiUrls.FILE_UPLOAD, formData, false); // 로딩 옵션은 false로
+    });
 
-    uploadRef.value!.onError = (error, uploadFile, uploadFiles) => {
+    try {
+      // 4. 모든 파일 업로드가 완료될 때까지 기다림
+      const uploadResults = await Promise.all(uploadPromises);
+
+      // 5. 이전에 이미 업로드된 파일들과 새로 업로드된 파일 결과를 합침
+      const alreadyUploadedFiles = fileList.value
+          .filter(file => file.status === 'success')
+          .map(file => file.response as UploadSuccessResponse);
+
+      const allFiles = [...alreadyUploadedFiles, ...uploadResults];
+
+      resolve(allFiles);
+
+    } catch (error) {
+      ElMessage.error('하나 이상의 사진 업로드에 실패했습니다.');
+      console.error("File upload failed:", error);
       reject(error);
-      uploadRef.value!.onSuccess = originalOnSuccess;
-      uploadRef.value!.onError = originalOnError;
-    };
-
-    uploadRef.value?.submit();
+    }
   });
 };
 

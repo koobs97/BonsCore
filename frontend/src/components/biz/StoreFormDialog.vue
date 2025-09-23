@@ -4,6 +4,8 @@ import { ref, watch, nextTick } from 'vue';
 import { ElMessage, FormInstance, FormRules } from 'element-plus';
 import {Shop, CollectionTag, Calendar, EditPen, Star, Check, FolderOpened, StarFilled, Link} from '@element-plus/icons-vue'; // Link 아이콘 추가
 import FileUpload from '@/components/fileUpload/FileUpload.vue';
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
 
 // --- Props & Emits ---
 const props = defineProps({
@@ -49,22 +51,42 @@ const handleSubmit = async () => {
     if (valid) {
       isSubmitting.value = true;
       try {
-        const uploadedFiles = await fileUploadRef.value.submit() as any[];
+        // 1. FileUpload 컴포넌트의 submit을 호출하여 파일들을 먼저 업로드
+        //    성공 시, 서버로부터 받은 파일 정보 객체들의 배열을 반환받음
+        const uploadedFileResponses = await fileUploadRef.value.submit() as any[];
 
+        // 2. 최종적으로 서버에 전송할 페이로드(JSON)를 구성
         const finalPayload = {
-          ...formData.value,
-          images: uploadedFiles.map(file => ({
-            originalFileName: file.fileName,
-            storedFileName: file.fileName,
+          // 폼 데이터
+          name: formData.value.name,
+          category: formData.value.category,
+          visitDate: formData.value.visitDate,
+          rating: formData.value.rating,
+          memo: formData.value.memo,
+          referenceUrl: formData.value.referenceUrl,
+
+          // 업로드된 이미지 정보 (백엔드 DTO 구조와 일치시킴)
+          images: uploadedFileResponses.map(file => ({
+            originalFileName: file.fileName, // FileResponse의 필드명과 일치해야 함
+            storedFileName: file.fileName,   // 여기서는 원본과 저장명을 동일하게 사용
             imageUrl: file.fileDownloadUri,
             fileSize: file.size,
           })),
         };
-        emit('submit', finalPayload);
+
+        console.log('Final Payload to be sent:', finalPayload);
+
+        // 3. 구성된 최종 페이로드를 새로운 API로 전송
+        await Api.post(ApiUrls.CREATE_GOURMET_RECORD, finalPayload, true); // 로딩 옵션 사용
+
+        ElMessage.success('맛집 기록이 성공적으로 저장되었습니다!');
+        emit('submit', finalPayload); // 성공 이벤트 발생 (부모 컴포넌트 알림)
+        handleClose(); // 다이얼로그 닫기
 
       } catch (error) {
-        ElMessage.error('사진 업로드 중 오류가 발생했습니다. 다시 시도해 주세요.');
-        console.error("Upload failed:", error);
+        // 파일 업로드 실패 또는 최종 데이터 전송 실패 시
+        ElMessage.error('기록 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
+        console.error("Submission failed:", error);
       } finally {
         isSubmitting.value = false;
       }
