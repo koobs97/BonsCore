@@ -279,7 +279,7 @@ const handleSubmit = async () => {
 }
 .rating-text {
   margin-left: auto;
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
   font-variant-numeric: tabular-nums;
 }

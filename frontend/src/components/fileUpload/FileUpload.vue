@@ -258,7 +258,7 @@ defineExpose({ submit, clearFiles: handleClearAll, getFiles: () => fileList.valu
   color: var(--el-text-color-primary);
 }
 .header-info {
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
