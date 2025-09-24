@@ -20,10 +20,6 @@ public class GourmetRecordController {
     @PostMapping
     public ResponseEntity<Void> createGourmetRecord(@RequestBody GourmetRecordCreateRequest request,
                                                     @AuthenticationPrincipal String userId) { // 예: Spring Security 사용 시
-        // TODO: 실제 프로젝트에 맞게 사용자 ID를 가져오는 로직 구현 필요
-        // 예시로 "testuser" 하드코딩
-        request.setUserId("testuser");
-
         gourmetRecordService.createGourmetRecord(request);
         return ResponseEntity.ok().build();
     }

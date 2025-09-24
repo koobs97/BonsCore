@@ -8,8 +8,9 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class FileResponse {
-    private String fileName;
-    private String fileDownloadUri;
-    private String fileType;
+    private String originalFileName; // 원본 파일명
+    private String storedFileName;   // 서버에 저장된 파일명
+    private String fileDownloadUri;  // 다운로드 URI
+    private String fileType;         // 파일 타입 (e.g., "image/png")
     private long size;
 }

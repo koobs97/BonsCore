@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class GourmetRecordService {
@@ -16,6 +18,10 @@ public class GourmetRecordService {
     public void createGourmetRecord(GourmetRecordCreateRequest request) {
         // 1. 맛집 기록(부모) 정보 저장
         //    Mapper에서 useGeneratedKeys 또는 selectKey를 사용하여 request 객체의 recordId 필드에 자동 생성된 ID가 채워짐
+
+        request.setCreatedAt(LocalDateTime.now());
+        request.setUpdatedAt(LocalDateTime.now());
+
         gourmetRecordMapper.insertGourmetRecord(request);
 
         // 2. 이미지 정보(자식)가 있는 경우에만 저장

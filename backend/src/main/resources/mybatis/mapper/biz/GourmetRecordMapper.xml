@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.koo.bonscore.biz.store.mapper.GourmetRecordMapper">
+
+    <!-- 맛집 저장소 데이터 저장 -->
+    <insert id="insertGourmetRecord" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
+         MERGE
+          INTO GOURMET_RECORDS
+         USING DUAL
+            ON ( RECORD_ID = #{recordId} )
+          WHEN MATCHED THEN
+        UPDATE
+           SET STORE_NAME       = #{name}
+             , CATEGORY         = #{category}
+             , VISIT_DATE       = #{visitDate}
+             , RATING           = #{rating}
+             , MEMO             = #{memo}
+             , REFERENCE_URL    = #{referenceUrl}
+             , UPDATED_AT       = #{updatedAt}          /* 수정일시 */
+      WHEN NOT MATCHED THEN
+        INSERT
+             (
+               RECORD_ID
+             , USER_ID
+             , STORE_NAME
+             , CATEGORY
+             , VISIT_DATE
+             , RATING
+             , MEMO
+             , REFERENCE_URL
+             , CREATED_AT
+             , UPDATED_AT
+             )
+        VALUES
+             (
+               SEQ_GOURMET_RECORDS.NEXTVAL
+             , #{userId}
+             , #{name}
+             , #{category}
+             , #{visitDate}
+             , #{rating}
+             , #{memo}
+             , #{referenceUrl}
+             , #{createdAt}
+             , #{updatedAt}
+             )
+    </insert>
+
+    <!-- 여러 이미지 정보를 한 번에 저장 (Batch Insert) -->
+    <insert id="insertGourmetImages" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
+        INSERT ALL
+        <foreach collection="images" item="image" separator=" ">
+            INTO GOURMET_IMAGES (
+            IMAGE_ID,
+            RECORD_ID,
+            ORIGINAL_FILE_NAME,
+            STORED_FILE_NAME,
+            IMAGE_URL,
+            FILE_SIZE
+            ) VALUES (
+            SEQ_GOURMET_IMAGES.NEXTVAL,
+            #{image.recordId},
+            #{image.originalFileName},
+            #{image.storedFileName},
+            #{image.imageUrl},
+            #{image.fileSize}
+            )
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+</mapper>

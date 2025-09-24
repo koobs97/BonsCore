@@ -6,6 +6,9 @@ import {Shop, CollectionTag, Calendar, EditPen, Star, Check, FolderOpened, StarF
 import FileUpload from '@/components/fileUpload/FileUpload.vue';
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
+import {userStore} from "@/store/userStore";
+
+const userStoreObj = userStore();
 
 // --- Props & Emits ---
 const props = defineProps({
@@ -54,6 +57,7 @@ const handleSubmit = async () => {
         // 1. FileUpload 컴포넌트의 submit을 호출하여 파일들을 먼저 업로드
         //    성공 시, 서버로부터 받은 파일 정보 객체들의 배열을 반환받음
         const uploadedFileResponses = await fileUploadRef.value.submit() as any[];
+        console.log('uploadedFileResponses', uploadedFileResponses);
 
         // 2. 최종적으로 서버에 전송할 페이로드(JSON)를 구성
         const finalPayload = {
@@ -64,14 +68,22 @@ const handleSubmit = async () => {
           rating: formData.value.rating,
           memo: formData.value.memo,
           referenceUrl: formData.value.referenceUrl,
+          userId: userStoreObj.getUserInfo.userId,
 
-          // 업로드된 이미지 정보 (백엔드 DTO 구조와 일치시킴)
-          images: uploadedFileResponses.map(file => ({
-            originalFileName: file.fileName, // FileResponse의 필드명과 일치해야 함
-            storedFileName: file.fileName,   // 여기서는 원본과 저장명을 동일하게 사용
-            imageUrl: file.fileDownloadUri,
-            fileSize: file.size,
-          })),
+          // ▼▼▼▼▼▼▼ 여기를 이렇게 바꾸세요 ▼▼▼▼▼▼▼
+          images: uploadedFileResponses.map(response => {
+            // uploadedFileResponses 배열의 각 요소는 { header: ..., data: ... } 형태의 객체입니다.
+            // 이 객체를 'response'라고 부릅시다.
+            // 우리가 필요한 파일 정보는 'response' 객체 안의 'data' 객체에 있습니다.
+            const fileData = response.data; // data 객체를 변수로 빼서 가독성을 높입니다.
+
+            return {
+              originalFileName: fileData.originalFileName, // data 객체의 originalFileName 필드 사용
+              storedFileName: fileData.storedFileName,     // data 객체의 storedFileName 필드 사용
+              imageUrl: fileData.fileDownloadUri,        // data 객체의 fileDownloadUri 필드 사용
+              fileSize: fileData.size,                   // data 객체의 size 필드 사용
+            };
+          }),
         };
 
         console.log('Final Payload to be sent:', finalPayload);
