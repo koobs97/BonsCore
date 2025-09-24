@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface GourmetRecordMapper {
+    long selectRecordId();
     void insertGourmetRecord(GourmetRecordCreateRequest dto);
     void insertGourmetImages(GourmetRecordCreateRequest dto);
 }

@@ -22,6 +22,10 @@ public class GourmetRecordService {
         request.setCreatedAt(LocalDateTime.now());
         request.setUpdatedAt(LocalDateTime.now());
 
+        if(request.getRecordId() == null) {
+            request.setRecordId(gourmetRecordMapper.selectRecordId());
+        }
+
         gourmetRecordMapper.insertGourmetRecord(request);
 
         // 2. 이미지 정보(자식)가 있는 경우에만 저장

@@ -4,20 +4,24 @@
 
 <mapper namespace="com.koo.bonscore.biz.store.mapper.GourmetRecordMapper">
 
+    <select id="selectRecordId" resultType="long">
+        SELECT SEQ_GOURMET_RECORDS.NEXTVAL FROM DUAL
+    </select>
+
     <!-- 맛집 저장소 데이터 저장 -->
     <insert id="insertGourmetRecord" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
-         MERGE
-          INTO GOURMET_RECORDS
+         MERGE /* com.koo.bonscore.biz.store.mapper.GourmetRecordMapper.insertGourmetRecord */
+          INTO GOURMET_RECORDS                          /* 맛집 기록 정보 */
          USING DUAL
-            ON ( RECORD_ID = #{recordId} )
+            ON ( RECORD_ID = #{recordId} )              /* 맛집 기록 ID */
           WHEN MATCHED THEN
         UPDATE
-           SET STORE_NAME       = #{name}
-             , CATEGORY         = #{category}
-             , VISIT_DATE       = #{visitDate}
-             , RATING           = #{rating}
-             , MEMO             = #{memo}
-             , REFERENCE_URL    = #{referenceUrl}
+           SET STORE_NAME       = #{name}               /* 가게 이름 */
+             , CATEGORY         = #{category}           /* 카테고리 */
+             , VISIT_DATE       = #{visitDate}          /* 방문 날짜 */
+             , RATING           = #{rating}             /* 별점 */
+             , MEMO             = #{memo}               /* 메모 */
+             , REFERENCE_URL    = #{referenceUrl}       /* 참조 URL */
              , UPDATED_AT       = #{updatedAt}          /* 수정일시 */
       WHEN NOT MATCHED THEN
         INSERT
@@ -35,7 +39,7 @@
              )
         VALUES
              (
-               SEQ_GOURMET_RECORDS.NEXTVAL
+               #{recordId}
              , #{userId}
              , #{name}
              , #{category}
@@ -48,27 +52,32 @@
              )
     </insert>
 
-    <!-- 여러 이미지 정보를 한 번에 저장 (Batch Insert) -->
+    <!-- 여러 이미지 정보를 한 번에 저장 -->
     <insert id="insertGourmetImages" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
-        INSERT ALL
-        <foreach collection="images" item="image" separator=" ">
-            INTO GOURMET_IMAGES (
-            IMAGE_ID,
-            RECORD_ID,
-            ORIGINAL_FILE_NAME,
-            STORED_FILE_NAME,
-            IMAGE_URL,
-            FILE_SIZE
-            ) VALUES (
-            SEQ_GOURMET_IMAGES.NEXTVAL,
-            #{image.recordId},
-            #{image.originalFileName},
-            #{image.storedFileName},
-            #{image.imageUrl},
-            #{image.fileSize}
-            )
-        </foreach>
-        SELECT 1 FROM DUAL
+      INSERT /* com.koo.bonscore.biz.store.mapper.GourmetRecordMapper.insertGourmetImages */
+        INTO GOURMET_IMAGES                             /* 맛집 기록 이미지 파일 정보 */
+           (
+             IMAGE_ID                                   /* 이미지 ID */
+           , RECORD_ID                                  /* 이미지가 속한 맛집 기록 ID */
+           , ORIGINAL_FILE_NAME                         /* 원본 파일명 */
+           , STORED_FILE_NAME                           /* 저장 파일명 */
+           , IMAGE_URL                                  /* 다운로드 URL */
+           , FILE_SIZE                                  /* 파일 크기 (단위: byte) */
+           , CREATED_AT                                 /* 레코드 생성 일시 */
+           )
+      SELECT SEQ_GOURMET_IMAGES.NEXTVAL
+           , A.*
+        FROM (
+            <foreach collection="images" item="image" separator=" UNION ALL ">
+                SELECT #{recordId}                 AS RECORD_ID
+                     , #{image.originalFileName}   AS ORIGINAL_FILE_NAME
+                     , #{image.storedFileName}     AS STORED_FILE_NAME
+                     , #{image.imageUrl}           AS IMAGE_URL
+                     , #{image.fileSize}           AS FILE_SIZE
+                     , #{createdAt}                AS CREATED_AT
+                  FROM DUAL
+            </foreach>
+            ) A
     </insert>
 
 </mapper>
