@@ -52,10 +52,7 @@ const fetchStores = async () => {
     } else {
       activeStoreId.value = null;
     }
-  } catch (error) {
-    console.error("맛집 목록 조회 실패:", error);
-    ElMessage.error('데이터를 불러오는 중 오류가 발생했습니다.');
-  } finally {
+  } catch (error) { } finally {
     isLoading.value = false;
   }
 };
@@ -140,6 +137,21 @@ const handleFormSubmit = () => {
   fetchStores();
   dialogState.value.visible = false;
 };
+
+const prevImage = () => {
+  if (!selectedStore.value || selectedStore.value.images.length <= 1) return;
+  const imageCount = selectedStore.value.images.length;
+  // 현재 인덱스에서 1을 빼고, 음수가 되면 마지막 인덱스로 순환
+  currentImageIndex.value = (currentImageIndex.value - 1 + imageCount) % imageCount;
+};
+
+const nextImage = () => {
+  if (!selectedStore.value || selectedStore.value.images.length <= 1) return;
+  const imageCount = selectedStore.value.images.length;
+  // 현재 인덱스에서 1을 더하고, 총 개수를 넘어가면 0으로 순환
+  currentImageIndex.value = (currentImageIndex.value + 1) % imageCount;
+};
+
 </script>
 
 <template>
@@ -171,8 +183,9 @@ const handleFormSubmit = () => {
     <div class="detail-panel">
       <div v-if="selectedStore" class="detail-wrapper">
         <header class="detail-header">
+          <el-tag type="info" round effect="plain" size="small">{{ selectedStore.category }}</el-tag>
           <div class="title-group">
-            <el-tag type="info" round effect="plain" size="small">{{ selectedStore.category }}</el-tag>
+
             <h1 class="store-name">{{ selectedStore.name }}</h1>
           </div>
           <div class="actions-group">
@@ -184,28 +197,48 @@ const handleFormSubmit = () => {
         <main class="detail-body">
           <section class="gallery-section">
             <template v-if="selectedStore.images && selectedStore.images.length > 0">
-              <div class="main-image-container">
-                <el-image
-                    :src="currentMainImageUrl"
-                    fit="cover"
-                    class="main-image"
-                    :preview-src-list="selectedStoreImageUrls"
-                    :initial-index="currentImageIndex"
-                    hide-on-click-modal
-                />
-                <div class="image-count-badge">
-                  {{ currentImageIndex + 1 }} / {{ selectedStore.images.length }}
+              <div class="gallery-section">
+                <div class="main-image-container">
+                  <!-- ★★★ [수정] 부드러운 전환을 위해 transition 태그로 감싸고 key 추가 ★★★ -->
+                  <transition name="fade" mode="out-in">
+                    <el-image
+                        :key="currentMainImageUrl"
+                        :src="currentMainImageUrl"
+                        fit="cover"
+                        class="main-image"
+                        :preview-src-list="selectedStoreImageUrls"
+                        :initial-index="currentImageIndex"
+                        hide-on-click-modal
+                    />
+                  </transition>
+
+                  <div class="image-count-badge">
+                    {{ currentImageIndex + 1 }} / {{ selectedStore.images.length }}
+                  </div>
+
+                  <!-- 이전/다음 화살표 버튼 (기존과 동일) -->
+                  <div v-if="selectedStore.images.length > 1">
+                    <div class="arrow left" @click="prevImage">
+                      <el-icon><ArrowLeftBold /></el-icon>
+                    </div>
+                    <div class="arrow right" @click="nextImage">
+                      <el-icon><ArrowRightBold /></el-icon>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="thumbnail-list" v-if="selectedStore.images.length > 1">
-                <div
-                    v-for="(image, index) in selectedStore.images"
-                    :key="index"
-                    class="thumbnail"
-                    :class="{ active: index === currentImageIndex }"
-                    @click="selectImage(index)"
-                >
-                  <el-image :src="image.imageUrl" fit="cover" class="thumbnail-image" />
+
+                <div class="thumbnail-list-wrapper" v-if="selectedStore.images.length > 1">
+                  <div class="thumbnail-list" ref="thumbnailList">
+                    <div
+                        v-for="(image, index) in selectedStore.images"
+                        :key="index"
+                        class="thumbnail"
+                        :class="{ active: index === currentImageIndex }"
+                        @click="selectImage(index)"
+                    >
+                      <el-image :src="image.imageUrl" fit="cover" class="thumbnail-image" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </template>
@@ -218,26 +251,36 @@ const handleFormSubmit = () => {
           </section>
 
           <section class="details-section">
-            <h3 class="section-title">Details</h3>
+<!--            <h3 class="section-title">Details</h3>-->
             <div class="details-grid">
               <div class="detail-item">
-                <el-icon class="item-icon"><Calendar /></el-icon>
+
                 <div class="item-text">
-                  <span class="label">방문일</span>
+                  <div class="label-with-icon">
+                    <span class="label">방문일</span>
+                    <el-icon class="item-icon"><Calendar /></el-icon>
+                  </div>
                   <span class="value">{{ new Date(selectedStore.visitDate).toLocaleDateString('ko-KR') }}</span>
                 </div>
               </div>
               <div class="detail-item">
-                <el-icon class="item-icon"><StarFilled /></el-icon>
                 <div class="item-text">
-                  <span class="label">별점</span>
-                  <el-rate :model-value="selectedStore.rating" disabled size="small" />
+                  <div class="label-with-icon">
+                    <span class="label">별점</span>
+                    <el-icon class="item-icon"><StarFilled /></el-icon>
+                  </div>
+                  <div>
+                    <el-rate :model-value="selectedStore.rating" disabled size="small" />
+                  </div>
                 </div>
               </div>
               <div class="detail-item" v-if="selectedStore.referenceUrl">
-                <el-icon class="item-icon"><Link /></el-icon>
+
                 <div class="item-text">
-                  <span class="label">참조 링크</span>
+                  <div class="label-with-icon">
+                    <span class="label">참조 링크</span>
+                    <el-icon class="item-icon"><Link /></el-icon>
+                  </div>
                   <a :href="selectedStore.referenceUrl" target="_blank" class="value-link">바로가기</a>
                 </div>
               </div>
@@ -245,7 +288,7 @@ const handleFormSubmit = () => {
           </section>
 
           <section class="memo-section">
-            <h3 class="section-title">Memo</h3>
+<!--            <h3 class="section-title">Memo</h3>-->
             <p class="memo-text">{{ selectedStore.memo || '작성된 메모가 없습니다.' }}</p>
           </section>
         </main>
@@ -260,10 +303,15 @@ const handleFormSubmit = () => {
 <style scoped>
 /* --- 기본 컨테이너 및 리스트 패널 (변경 없음) --- */
 .archive-container {
-  width: 820px; height: 610px; display: flex; background-color: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light); border-radius: 4px;
+  width: 820px;
+  height: 620px;
+  display: flex;
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 4px;
   margin: 4px 0 0 0;
-  overflow: hidden; font-family: 'Noto Sans KR', sans-serif;
+  overflow: hidden;
+  font-family: 'Noto Sans KR', sans-serif;
   box-shadow: 0 4px 12px rgba(0,0,0, 0.05);
 }
 .list-panel {
@@ -288,22 +336,45 @@ const handleFormSubmit = () => {
 .store-list::-webkit-scrollbar-thumb { background-color: var(--el-border-color-light); border-radius: 2px; }
 
 .list-item {
-  padding: 12px; margin-bottom: 4px; border-radius: 8px;
-  display: flex; justify-content: space-between; align-items: center;
-  cursor: pointer; transition: background-color 0.2s ease;
+  padding: 12px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: 1px solid var(--el-border-color-light);
 }
 .list-item:hover { background-color: var(--el-fill-color-light); }
 .list-item.active {
-  background-color: var(--el-color-primary); color: #fff;
+  background-color: var(--el-color-primary);
+  color: #fff;
   box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 }
-.item-info { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-.item-name { font-weight: 500; font-size: 0.95rem; color: var(--el-bg-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.item-category { font-size: 0.8rem; color: var(--el-bg-color-overlay); }
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+  text-align: left;
+}
+.item-name {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item-category {
+  font-size: 0.8rem;
+  color: var(--el-text-color-placeholder);
+  margin-left: 1px;
+}
 .item-date { font-size: 0.8rem; color: var(--el-text-color-placeholder); flex-shrink: 0; margin-left: 8px; }
 .list-item.active .item-name, .list-item.active .item-category, .list-item.active .item-date { color: var(--el-bg-color); }
 
-/* --- ★★★ 상세 정보 패널 (한 줄 레이아웃 스타일) ★★★ --- */
 .detail-panel {
   flex: 1; display: flex; flex-direction: column;
   overflow-y: auto; background-color: var(--el-bg-color);
@@ -312,25 +383,31 @@ const handleFormSubmit = () => {
 .detail-panel::-webkit-scrollbar-thumb { background-color: var(--el-border-color); border-radius: 3px; }
 
 .detail-wrapper {
-  padding: 0 32px 32px;
+  padding: 0 32px 16px 32px;
 }
 
 .detail-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 24px 0;
+  padding: 18px 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
-.title-group { display: flex; flex-direction: column; gap: 8px; }
+.title-group {
+  display: flex;
+  gap: 8px;
+}
 .store-name {
   font-size: 1.8rem;
-  font-weight: 700; line-height: 1.2; margin: 0; color: var(--el-text-color-primary);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--el-text-color-primary);
   font-family: 'Poppins', sans-serif;
 }
 .actions-group .el-button { font-size: 18px; color: var(--el-text-color-secondary); }
 
 .detail-body section {
-  margin-bottom: 32px;
+  margin-bottom: 12px;
 }
 .detail-body section:last-child {
   margin-bottom: 0;
@@ -346,34 +423,119 @@ const handleFormSubmit = () => {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 12px; overflow: hidden;
+  border-radius: 12px;
+  overflow: hidden;
   background-color: var(--el-fill-color-light);
   margin-bottom: 12px;
 }
-.main-image { width: 100%; height: 100%; }
-.image-count-badge {
-  position: absolute; bottom: 12px; right: 12px;
-  padding: 4px 8px; border-radius: 12px;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: #fff; font-size: 0.75rem; font-weight: 500;
+
+.main-image {
+  width: 100%;
+  height: 100%;
 }
 
-.thumbnail-list { display: flex; gap: 10px; padding-bottom: 4px; }
+.image-count-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  z-index: 1;
+}
+
+/* 화살표 스타일 */
+.main-image-container .arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  z-index: 2;
+  font-size: 1.2rem;
+}
+
+.main-image-container .arrow:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.main-image-container .arrow.left {
+  left: 12px;
+}
+
+.main-image-container .arrow.right {
+  right: 12px;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.thumbnail-list-wrapper {
+  overflow-x: auto;
+  padding-bottom: 8px; /* 스크롤바 공간 확보 */
+}
+
+/* 스크롤바 스타일링 (선택 사항) */
+.thumbnail-list-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+.thumbnail-list-wrapper::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+}
+.thumbnail-list-wrapper::-webkit-scrollbar-track {
+  background-color: #f1f1f1;
+}
+
+
+.thumbnail-list {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
 .thumbnail {
-  width: 64px; height: 64px; border-radius: 8px;
-  border: 2px solid transparent; overflow: hidden;
-  cursor: pointer; transition: all 0.2s ease;
+  width: 60px; /* 썸네일 크기 약간 축소 */
+  height: 60px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
+
 .thumbnail:hover {
   border-color: var(--el-color-primary-light-3);
   transform: translateY(-2px);
 }
+
 .thumbnail.active {
   border-color: var(--el-color-primary);
   box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.4);
 }
-.thumbnail-image { width: 100%; height: 100%; }
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+}
 
 .no-image-placeholder {
   width: 100%;
@@ -389,17 +551,31 @@ const handleFormSubmit = () => {
 .details-grid {
   display: flex; /* ★수정★ Grid에서 Flex로 변경하여 한 줄 레이아웃 강제 */
   flex-wrap: wrap; /* 화면이 매우 좁아질 경우를 대비해 줄바꿈 허용 */
-  gap: 12px;
+  gap: 10px;
   /* background-color와 padding은 개별 아이템으로 이동 */
 }
 .detail-item {
-  display: flex; align-items: center; gap: 12px;
-  background-color: var(--el-fill-color-lighter); /* ★추가★ 스타일을 개별 아이템으로 이동 */
-  padding: 10px 16px; /* ★추가★ 스타일을 개별 아이템으로 이동 */
+  align-items: center;
+  background-color: var(--el-fill-color-lighter);
+  padding: 10px 16px;
   border-radius: 8px;
+  flex: 1; /* 남은 공간을 동일하게 나눠가짐 */
 }
-.item-icon { color: var(--el-text-color-secondary); font-size: 20px; }
-.item-text { display: flex; flex-direction: column; gap: 2px; }
+.label-with-icon {
+  justify-content: center;  /* 위아래 가운데 정렬 */
+  align-items: center;
+  display: flex;
+  gap: 4px;
+}
+.item-icon {
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+.item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .item-text .label { font-size: 0.8rem; color: var(--el-text-color-secondary); }
 .item-text .value { font-size: 0.95rem; font-weight: 500; color: var(--el-text-color-primary); }
 .item-text .value-link { font-size: 0.95rem; font-weight: 500; color: var(--el-color-primary); text-decoration: none; }
@@ -415,4 +591,5 @@ const handleFormSubmit = () => {
 .empty-detail {
   margin: auto; color: var(--el-text-color-placeholder);
 }
+
 </style>

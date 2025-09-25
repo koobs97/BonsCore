@@ -1,12 +1,13 @@
 <!-- src/components/StoreFormDialog.vue -->
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
-import { ElMessage, FormInstance, FormRules } from 'element-plus';
+import {ref, watch, nextTick, h} from 'vue';
+import {ElMessage, ElMessageBox, FormInstance, FormRules} from 'element-plus';
 import {Shop, CollectionTag, Calendar, EditPen, Star, Check, FolderOpened, StarFilled, Link} from '@element-plus/icons-vue'; // Link 아이콘 추가
 import FileUpload from '@/components/fileUpload/FileUpload.vue';
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
 import {userStore} from "@/store/userStore";
+import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 
 const userStoreObj = userStore();
 
@@ -53,7 +54,30 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid) => {
     if (valid) {
       isSubmitting.value = true;
+
       try {
+
+        await ElMessageBox.confirm(
+            // 1. message 옵션에 h() 함수를 사용하여 커스텀 컴포넌트를 렌더링합니다.
+            h(SignUpConfirm, {
+              // CustomConfirm 컴포넌트에 props 전달
+              title: '저장소 기록',
+              message: '기록을 등록하시겠습니까?',
+            }),
+            // 2. 기본 title은 사용하지 않으므로 빈 문자열로 둡니다.
+            '',
+            {
+              confirmButtonText: '등록하기',
+              cancelButtonText: '취소',
+              // 3. 커스텀 클래스를 추가하여 세부 스타일을 조정할 수 있습니다.
+              customClass: 'custom-message-box',
+              // 4. CustomConfirm 컴포넌트가 자체 아이콘과 UI를 가지므로,
+              //    MessageBox의 기본 UI 요소들은 비활성화합니다.
+              showClose: false, // 오른쪽 위 'X' 닫기 버튼 숨김
+              type: '', // 기본 'warning' 아이콘 숨김
+            }
+        );
+
         // 1. FileUpload 컴포넌트의 submit을 호출하여 파일들을 먼저 업로드
         //    성공 시, 서버로부터 받은 파일 정보 객체들의 배열을 반환받음
         const uploadedFileResponses = await fileUploadRef.value.submit() as any[];
@@ -70,7 +94,6 @@ const handleSubmit = async () => {
           referenceUrl: formData.value.referenceUrl,
           userId: userStoreObj.getUserInfo.userId,
 
-          // ▼▼▼▼▼▼▼ 여기를 이렇게 바꾸세요 ▼▼▼▼▼▼▼
           images: uploadedFileResponses.map(response => {
             // uploadedFileResponses 배열의 각 요소는 { header: ..., data: ... } 형태의 객체입니다.
             // 이 객체를 'response'라고 부릅시다.
@@ -87,21 +110,24 @@ const handleSubmit = async () => {
         };
 
         console.log('Final Payload to be sent:', finalPayload);
-
-        // 3. 구성된 최종 페이로드를 새로운 API로 전송
-        await Api.post(ApiUrls.CREATE_GOURMET_RECORD, finalPayload, true); // 로딩 옵션 사용
+        await Api.post(ApiUrls.CREATE_GOURMET_RECORD, finalPayload);
 
         ElMessage.success('맛집 기록이 성공적으로 저장되었습니다!');
         emit('submit', finalPayload); // 성공 이벤트 발생 (부모 컴포넌트 알림)
         handleClose(); // 다이얼로그 닫기
-
       } catch (error) {
-        // 파일 업로드 실패 또는 최종 데이터 전송 실패 시
-        ElMessage.error('기록 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
-        console.error("Submission failed:", error);
+        if (error === 'cancel') { }
+        else {
+          console.error("Submission failed:", error);
+        }
       } finally {
         isSubmitting.value = false;
       }
+
+
+
+
+
     } else {
       ElMessage.warning('입력 항목을 모두 올바르게 채워주세요.');
     }

@@ -81,7 +81,6 @@
     </insert>
 
     <resultMap id="gourmetRecordWithImagesMap" type="com.koo.bonscore.biz.store.dto.res.GourmetRecordDto">
-        <!-- 기본키(ID) 매핑: MyBatis가 언제 새로운 부모 객체를 만들어야 할지 판단하는 기준 -->
         <id property="id" column="RECORD_ID"/>
 
         <!-- GOURMET_RECORDS 테이블의 나머지 컬럼 매핑 -->
@@ -92,13 +91,8 @@
         <result property="memo" column="MEMO"/>
         <result property="referenceUrl" column="REFERENCE_URL"/>
 
-        <!-- 1:N 관계인 이미지 목록(List<GourmetImageDto>) 매핑 -->
-        <!-- property="images": GourmetRecordDto 클래스의 필드명 -->
-        <!-- ofType: List에 들어갈 객체의 타입 -->
         <collection property="images" ofType="com.koo.bonscore.biz.store.dto.req.GourmetImageDto">
-            <!-- 이미지 객체의 유니크 ID (필수는 아니지만 권장) -->
             <id property="imageId" column="IMAGE_ID"/>
-            <!-- GOURMET_IMAGES 테이블의 컬럼들을 GourmetImageDto 필드에 매핑 -->
             <result property="originalFileName" column="ORIGINAL_FILE_NAME"/>
             <result property="storedFileName" column="STORED_FILE_NAME"/>
             <result property="imageUrl" column="IMAGE_URL"/>
