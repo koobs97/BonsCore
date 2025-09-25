@@ -6,6 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class GourmetImageDto {
+    private Long imageId;
     private String originalFileName;
     private String storedFileName;
     private String imageUrl;

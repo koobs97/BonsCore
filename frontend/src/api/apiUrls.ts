@@ -38,7 +38,8 @@ export enum ApiUrls {
     SURROUNDING_INFO = '/api/analysis/surroundings',
 
     FILE_UPLOAD = '/api/files/upload',
-    CREATE_GOURMET_RECORD = '/api/gourmet-records',
+    CREATE_GOURMET_RECORD = '/api/gourmet-records/write',
+    GET_GOURMET_RECORDS = '/api/gourmet-records/read',
 
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
     VALIDATE_PASSWORD = '/api/authorization/validatePassword',

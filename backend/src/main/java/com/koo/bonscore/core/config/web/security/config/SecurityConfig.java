@@ -95,6 +95,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()  // 로그인 API는 인증 없이 허용
                         .requestMatchers("/api/public-key/**").permitAll()
+                        .requestMatchers("/images/**").permitAll() // 이미지 다운 url
                         .anyRequest().authenticated()                   // 나머지는 인증 필요
                 )
                 .build();

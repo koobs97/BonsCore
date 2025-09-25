@@ -24,6 +24,6 @@ spring:
 
 file:
   # 실제 파일이 저장될 로컬 컴퓨터의 경로
-  upload-dir: ./uploads/
+  upload-dir: C:/bons/BonsCore/uploads/
   # 클라이언트가 파일에 접근할 때 사용할 URL 경로
   resource-url-prefix: /images/

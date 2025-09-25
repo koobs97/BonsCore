@@ -8,6 +8,7 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 
 @RestControllerAdvice
 public class ApiResponseWrapperAdvice implements ResponseBodyAdvice<Object> {
@@ -22,9 +23,16 @@ public class ApiResponseWrapperAdvice implements ResponseBodyAdvice<Object> {
      */
     @Override
     public boolean supports(MethodParameter returnType,  @Nullable Class<? extends HttpMessageConverter<?>> converterType) {
+
+        if (ResourceHttpRequestHandler.class.isAssignableFrom(returnType.getContainingClass())) {
+            return false;
+        }
+
         // 이미 ApiResponse인 경우는 감싸지 않음
-        return !returnType.getParameterType().equals(ApiResponse.class)
-                && !returnType.getParameterType().equals(String.class);
+        Class<?> parameterType = returnType.getParameterType();
+        return !parameterType.equals(ApiResponse.class)
+                && !parameterType.equals(String.class)
+                && !parameterType.equals(Void.TYPE);
     }
 
     /**

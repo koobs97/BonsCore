@@ -3,7 +3,6 @@ package com.koo.bonscore.core.config.web.security.filter;
 import com.koo.bonscore.core.config.web.security.XssEscapeServletRequestWrapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
@@ -20,7 +19,6 @@ import java.io.IOException;
  * @version : 1.0
  * @since   : 2025-06-03
  */
-@Component
 public class XssEscapeFilter implements Filter {
 
     @Override

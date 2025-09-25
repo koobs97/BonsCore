@@ -194,6 +194,7 @@ const handleSubmit = async () => {
               :upload-url="'http://localhost:8080/api/files/upload'"
               :limit="10"
               :max-size-m-b="10"
+              :initial-files="formData.images || []"
           />
         </el-form-item>
 

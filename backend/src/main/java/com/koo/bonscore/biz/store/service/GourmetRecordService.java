@@ -1,12 +1,14 @@
 package com.koo.bonscore.biz.store.service;
 
 import com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest;
+import com.koo.bonscore.biz.store.dto.res.GourmetRecordDto;
 import com.koo.bonscore.biz.store.mapper.GourmetRecordMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -36,5 +38,10 @@ public class GourmetRecordService {
             // 이미지 리스트를 한번의 쿼리로 저장 (batch insert)
             gourmetRecordMapper.insertGourmetImages(request);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<GourmetRecordDto> getGourmetRecords(GourmetRecordCreateRequest request) {
+        return gourmetRecordMapper.selectGourmetRecordsByUserId(request.getUserId());
     }
 }

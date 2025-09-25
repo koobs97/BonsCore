@@ -40,7 +40,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // 1. PageClearInterceptor: 모든 경로(/**)에 적용
         registry.addInterceptor(pageClearInterceptor)
-                .addPathPatterns("/**");
+                .addPathPatterns("/**")
+                .excludePathPatterns(resourceUrlPrefix + "**");
 
         // 2. UserActivityLogInterceptor: '/api/auth/**' 경로에만 적용
         registry.addInterceptor(userActivityLogInterceptor)

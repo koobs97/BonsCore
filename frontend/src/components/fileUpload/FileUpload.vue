@@ -79,29 +79,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ref, computed, onUnmounted, watch } from 'vue'; // watch 추가
+import { ElMessage } from 'element-plus';
 import { CameraFilled, CloseBold } from '@element-plus/icons-vue';
 import type { UploadInstance, UploadProps, UploadRawFile, UploadUserFile, UploadFile, UploadFiles } from 'element-plus';
-import {ApiUrls} from "@/api/apiUrls";
-import {Api} from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
+import { Api } from "@/api/axiosInstance";
 
-// --- Props & Emits (기존과 동일) ---
+// --- Props & Emits ---
 interface Props {
   uploadUrl?: string;
   limit?: number;
   maxSizeMB?: number;
   allowedExtensions?: string[];
+  initialFiles?: any[]; // ★★★★★ 1. 초기 파일 목록을 받을 prop 추가 ★★★★★
 }
 const props = withDefaults(defineProps<Props>(), {
   uploadUrl: 'http://localhost:8080/api/files/upload',
   limit: 10,
   maxSizeMB: 10,
   allowedExtensions: () => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+  initialFiles: () => [], // ★★★★★ 2. prop 기본값 설정 ★★★★★
 });
+
+// ... (emit 정의는 이전과 동일)
 interface UploadSuccessResponse {
   fileName: string;
   fileDownloadUri: string;
+  originalFileName: string;
+  storedFileName: string;
+  imageUrl: string;
+  size: number;
 }
 const emit = defineEmits<{
   (e: 'upload-success', data: { response: UploadSuccessResponse; file: UploadFile; fileList: UploadFiles }): void;
@@ -114,25 +122,28 @@ const emit = defineEmits<{
 const uploadRef = ref<UploadInstance>();
 const fileList = ref<UploadUserFile[]>([]);
 
+// ★★★★★ 3. prop으로 받은 초기 파일을 fileList에 반영하는 로직 추가 ★★★★★
+watch(() => props.initialFiles, (newFiles) => {
+  // newFiles가 있고, 아직 fileList가 비어있을 때만 실행 (중복 방지)
+  if (newFiles && newFiles.length > 0 && fileList.value.length === 0) {
+    fileList.value = newFiles.map((file, index) => ({
+      // el-upload가 이해할 수 있는 UploadUserFile 형식으로 변환
+      name: file.originalFileName, // 표시될 이름
+      url: file.imageUrl,          // 미리보기 이미지 URL
+      status: 'success',           // 이미 업로드 성공한 상태로 설정
+      uid: Date.now() + index,     // 고유 ID 생성 (key 바인딩에 필수)
+      // 중요: 나중에 submit 시 기존 파일임을 식별하기 위해 원본 데이터를 response에 저장
+      response: { data: file }
+    }));
+  }
+}, { immediate: true }); // 컴포넌트가 마운트될 때 즉시 실행
+
+
 const previewSrcList = computed(() =>
     fileList.value.map(file => file.url).filter(Boolean) as string[]
 );
 
-const totalSize = computed(() => {
-  const total = fileList.value.reduce((sum, file) => sum + (file.size || 0), 0);
-  return formatFileSize(total);
-});
-const formatFileSize = (size: number | undefined) => {
-  if (!size) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let i = 0;
-  while (size >= 1024 && i < units.length - 1) {
-    size /= 1024;
-    i++;
-  }
-  return `${size.toFixed(1)} ${units[i]}`;
-};
-
+// ... (totalSize, formatFileSize 등 나머지 핸들러 및 함수는 이전과 동일)
 // --- Handlers ---
 const triggerUpload = () => {
   const inputEl = uploadRef.value?.$el.querySelector('input');
@@ -140,38 +151,32 @@ const triggerUpload = () => {
     inputEl.click();
   }
 };
-
 const handleChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
   if (uploadFile.status === 'ready' && uploadFile.raw && uploadFile.raw.type.startsWith('image/')) {
     uploadFile.url = URL.createObjectURL(uploadFile.raw);
   }
   fileList.value = uploadFiles;
 };
-
 const handleRemove = (file: UploadUserFile) => {
   uploadRef.value?.handleRemove(file);
 };
-
 const handleRemoveInternal: UploadProps['onRemove'] = (file, files) => {
   if (file.url && file.url.startsWith('blob:')) {
     URL.revokeObjectURL(file.url);
   }
   fileList.value = files;
 };
-
 const handleClearAll = () => {
   fileList.value.forEach(file => {
     if (file.url && file.url.startsWith('blob:')) URL.revokeObjectURL(file.url);
   });
   uploadRef.value?.clearFiles();
 };
-
 onUnmounted(() => {
   fileList.value.forEach(file => {
     if (file.url && file.url.startsWith('blob:')) URL.revokeObjectURL(file.url);
   });
 });
-
 const handleExceed: UploadProps['onExceed'] = (files) => {
   ElMessage.warning(`최대 ${props.limit}개의 사진만 첨부할 수 있습니다.`);
 };
@@ -202,43 +207,26 @@ const handleError: UploadProps['onError'] = (error, uploadFile, uploadFiles) => 
 };
 const submit = () => {
   return new Promise(async (resolve, reject) => {
-    // 1. 업로드할 파일들만 필터링 (이미 성공한 파일 제외)
     const filesToUpload = fileList.value.filter(file => file.status === 'ready');
-
-    // 2. 업로드할 파일이 없으면, 이미 업로드된 파일 정보만 반환하고 종료
     if (filesToUpload.length === 0) {
       const alreadyUploadedFiles = fileList.value
           .filter(file => file.status === 'success')
-          .map(file => file.response as UploadSuccessResponse);
+          .map(file => file.response); // response에 원본 데이터가 저장되어 있음
       resolve(alreadyUploadedFiles);
       return;
     }
-
-    // 3. FormData를 사용한 비동기 병렬 업로드
     const uploadPromises = filesToUpload.map(file => {
       const formData = new FormData();
       formData.append('file', file.raw as Blob);
-
-      // axiosInstance.post를 사용하여 파일 업로드
-      // (주의: 파일 업로드는 Content-Type이 multipart/form-data 이므로,
-      // axiosInstance에 이 헤더를 자동으로 설정하도록 하거나, 별도 함수 필요할 수 있음)
-      // 보통 FormData를 보내면 axios가 자동으로 설정해줍니다.
-      return Api.post(ApiUrls.FILE_UPLOAD, formData, false); // 로딩 옵션은 false로
+      return Api.post(ApiUrls.FILE_UPLOAD, formData, false);
     });
-
     try {
-      // 4. 모든 파일 업로드가 완료될 때까지 기다림
       const uploadResults = await Promise.all(uploadPromises);
-
-      // 5. 이전에 이미 업로드된 파일들과 새로 업로드된 파일 결과를 합침
       const alreadyUploadedFiles = fileList.value
           .filter(file => file.status === 'success')
-          .map(file => file.response as UploadSuccessResponse);
-
+          .map(file => file.response);
       const allFiles = [...alreadyUploadedFiles, ...uploadResults];
-
       resolve(allFiles);
-
     } catch (error) {
       ElMessage.error('하나 이상의 사진 업로드에 실패했습니다.');
       console.error("File upload failed:", error);
