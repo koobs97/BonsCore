@@ -24,17 +24,17 @@ const dialogState = ref({
 /** 현재 메인에 보여줄 이미지의 인덱스 */
 const currentImageIndex = ref(0);
 
-// --- 기존 함수 (수정 없음) ---
 const formatDateToMonthDay = (date: any): string => {
   if (!date) return '';
-  try {
-    const d = new Date(date);
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${month}-${day}`;
-  } catch (e) {
-    return String(date);
+  // date가 'YYYY-MM-DD' 형식이므로 new Date()가 정상적으로 파싱합니다.
+  const d = new Date(date);
+  if (isNaN(d.getTime())) {
+    // 만약에라도 잘못된 날짜 형식이 들어올 경우를 대비
+    return '??-??';
   }
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${month}-${day}`;
 };
 
 const fetchStores = async () => {
@@ -42,19 +42,33 @@ const fetchStores = async () => {
   try {
     const payload = { userId: userStoreObj.getUserInfo.userId };
     const response = await Api.post(ApiUrls.GET_GOURMET_RECORDS, payload);
-    stores.value = response.data;
 
+    // 서버에서 받은 데이터를 클라이언트에서 사용하기 좋은 형태로 가공합니다.
+    const formattedStores = response.data.map((store: any) => {
+      // visitDate가 배열(Array) 형태인지 먼저 확인합니다.
+      if (Array.isArray(store.visitDate) && store.visitDate.length >= 3) {
+        const [year, month, day] = store.visitDate;
+        // 'YYYY-MM-DD' 형식의 문자열로 변환합니다.
+        const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // 기존 store 객체를 복사하고, visitDate만 변환된 값으로 덮어씁니다.
+        return { ...store, visitDate: formattedDate };
+      }
+      // 만약 배열이 아니라면 (예외 상황 대비), 기존 데이터를 그대로 반환합니다.
+      return store;
+    });
+
+    // 가공이 완료된 데이터로 stores 상태를 업데이트합니다.
+    stores.value = formattedStores;
+
+    // 아래의 기존 로직은 그대로 유지됩니다.
     if (stores.value.length > 0) {
-      // 현재 선택된 ID가 없거나, 목록에 더 이상 존재하지 않으면 첫 번째 항목을 선택
       if (!activeStoreId.value || !stores.value.some(s => s.id === activeStoreId.value)) {
         activeStoreId.value = stores.value[0].id;
       }
     } else {
       activeStoreId.value = null;
     }
-  } catch (error) { } finally {
-    isLoading.value = false;
-  }
+  } catch (error) { } finally { isLoading.value = false; }
 };
 
 const handleDelete = (storeId: number) => {
@@ -130,7 +144,13 @@ const openAddDialog = () => {
 };
 
 const openEditDialog = (store: any) => {
-  dialogState.value = { visible: true, isEditMode: true, initialData: { ...store } };
+  // fetchStores에서 이미 모든 날짜 형식이 'YYYY-MM-DD'로 변환되었으므로,
+  // 여기서는 어떠한 추가 변환도 필요 없습니다. 그냥 데이터를 그대로 전달하면 됩니다.
+  dialogState.value = {
+    visible: true,
+    isEditMode: true,
+    initialData: { ...store } // 가공이 필요 없는 깔끔한 데이터
+  };
 };
 
 const handleFormSubmit = () => {
@@ -160,7 +180,7 @@ const nextImage = () => {
     <div class="list-panel">
       <div class="list-header">
         <h2 class="list-title">저장소</h2>
-        <el-button type="primary" :icon="Plus" circle @click="openAddDialog" />
+        <el-button :icon="Plus" circle @click="openAddDialog" />
       </div>
       <div class="search-wrapper">
         <el-input v-model="searchQuery" placeholder="이름 또는 카테고리 검색" :prefix-icon="Search" clearable />
@@ -199,7 +219,6 @@ const nextImage = () => {
             <template v-if="selectedStore.images && selectedStore.images.length > 0">
               <div class="gallery-section">
                 <div class="main-image-container">
-                  <!-- ★★★ [수정] 부드러운 전환을 위해 transition 태그로 감싸고 key 추가 ★★★ -->
                   <transition name="fade" mode="out-in">
                     <el-image
                         :key="currentMainImageUrl"
@@ -209,6 +228,7 @@ const nextImage = () => {
                         :preview-src-list="selectedStoreImageUrls"
                         :initial-index="currentImageIndex"
                         hide-on-click-modal
+                        :preview-teleported="true"
                     />
                   </transition>
 
@@ -312,7 +332,6 @@ const nextImage = () => {
   margin: 4px 0 0 0;
   overflow: hidden;
   font-family: 'Noto Sans KR', sans-serif;
-  box-shadow: 0 4px 12px rgba(0,0,0, 0.05);
 }
 .list-panel {
   width: 300px; background-color: var(--el-bg-color-page);
@@ -328,7 +347,7 @@ const nextImage = () => {
   font-weight: 600;
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  color: var(--el-color-primary);
+  color: var(--el-text-color-regular);
 }
 .search-wrapper { padding: 8px 8px 16px 8px; flex-shrink: 0; }
 .store-list { flex-grow: 1; overflow-y: auto; padding: 0 8px 8px; }
@@ -345,6 +364,7 @@ const nextImage = () => {
   cursor: pointer;
   transition: background-color 0.2s ease;
   border: 1px solid var(--el-border-color-light);
+  background-color: var(--el-bg-color);
 }
 .list-item:hover { background-color: var(--el-fill-color-light); }
 .list-item.active {
@@ -549,17 +569,25 @@ const nextImage = () => {
 .no-image-placeholder span { margin-top: 12px; font-size: 0.9rem; }
 
 .details-grid {
-  display: flex; /* ★수정★ Grid에서 Flex로 변경하여 한 줄 레이아웃 강제 */
-  flex-wrap: wrap; /* 화면이 매우 좁아질 경우를 대비해 줄바꿈 허용 */
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  /* background-color와 padding은 개별 아이템으로 이동 */
 }
 .detail-item {
   align-items: center;
-  background-color: var(--el-fill-color-lighter);
   padding: 10px 16px;
   border-radius: 8px;
   flex: 1; /* 남은 공간을 동일하게 나눠가짐 */
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  border: 1px solid var(--el-border-color-lighter);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .label-with-icon {
   justify-content: center;  /* 위아래 가운데 정렬 */
@@ -582,10 +610,20 @@ const nextImage = () => {
 .item-text .value-link:hover { text-decoration: underline; }
 
 .memo-text {
-  font-size: 0.95rem; line-height: 1.8;
-  color: var(--el-text-color-regular); white-space: pre-wrap;
-  word-break: keep-all; background-color: var(--el-fill-color-light);
-  padding: 16px; border-radius: 8px; margin: 0;
+  height: 50px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--el-text-color-regular);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  background-color: var(--el-fill-color-light);
+  padding: 16px;
+  border-radius: 8px;
+  margin: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  overflow-y: auto;
 }
 
 .empty-detail {

@@ -3,7 +3,8 @@
 import { reactive, ref, onMounted } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import { QuestionFilled, InfoFilled, Refresh } from "@element-plus/icons-vue";
+import { QuestionFilled, InfoFilled, Refresh, Search, MoreFilled } from "@element-plus/icons-vue";
+import { userStore } from "@/store/userStore";
 
 import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
 import naverApiLogo from "@/assets/images/naver-api-logo.png";
@@ -15,6 +16,7 @@ import stars from "@/assets/images/stars_icon.png";
 import archive from "@/assets/images/archive-icon.png";
 import emptyBox from "@/assets/images/enpty_box.png";
 
+const userStoreObj = userStore();
 const step = ref('search');
 const searchQuery = ref('');
 const foundStores = ref([]) as any;
@@ -57,18 +59,47 @@ const selectRecommendedStore = (storeName: string) => {
 const myArchiveStores = ref<any[]>([]);
 const isArchiveLoading = ref(true);
 
-const fetchMyArchiveStores = () => {
+/**
+ * ★★★ 새로운 함수: 저장소의 특정 맛집 상세 페이지로 이동
+ * @param storeId 이동할 가게의 고유 ID
+ */
+const goToArchiveDetail = (storeId: number) => {
+  // router.push(`/archive/${storeId}`); // 예시: /archive/123 과 같은 동적 경로로 이동
+  console.log(`저장소의 상세 페이지로 이동합니다. ID: ${storeId}`); // 실제 라우터 push 로직으로 대체 필요
+  // 상세 보기 화면으로 이동한 후, 해당 ID를 가진 가게가 활성화되도록 상태 관리(Pinia 등)를 활용할 수도 있습니다.
+};
+
+const fetchMyArchiveStores = async () => {
   isArchiveLoading.value = true;
-  setTimeout(() => {
-    myArchiveStores.value = [
-      // { id: 1, name: '런던 베이글 뮤지엄', category: '베이커리', visitDate: '2023-10-26' },
-      // { id: 2, name: '카멜 커피', category: '카페', visitDate: '2023-09-15' },
-      // { id: 3, name: '다운타우너 안국', category: '수제버거', visitDate: '2023-08-01' },
-      // { id: 4, name: '고든램지 버거', category: '수제버거', visitDate: '2023-11-05' },
-      // { id: 5, name: '진작', category: '일식', visitDate: '2023-07-22' },
-    ].sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()); // 최신 방문일 순으로 정렬
+  try {
+    // 사용자 ID를 페이로드에 담아 API를 호출합니다.
+    const payload = { userId: userStoreObj.getUserInfo.userId };
+    const response = await Api.post(ApiUrls.GET_GOURMET_RECORDS, payload);
+
+    // 서버에서 받은 데이터를 사용하기 좋은 형태로 가공합니다.
+    const formattedStores = response.data.map((store: any) => {
+      // visitDate가 배열(Array) 형태인지 확인합니다. (예: [2023, 10, 26])
+      if (Array.isArray(store.visitDate) && store.visitDate.length >= 3) {
+        const [year, month, day] = store.visitDate;
+        // 'YYYY-MM-DD' 형식의 문자열로 변환합니다.
+        const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // 기존 store 객체를 복사하고, visitDate만 변환된 값으로 덮어씁니다.
+        return { ...store, visitDate: formattedDate };
+      }
+      // 만약 배열이 아니라면 (예외 상황 대비), 기존 데이터를 그대로 반환합니다.
+      return store;
+    });
+
+    // 가공된 데이터를 최신 방문일 순으로 정렬하여 상태에 저장합니다.
+    myArchiveStores.value = formattedStores.sort((a: any, b: any) =>
+        new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()
+    );
+
+  } catch (error) {
+    myArchiveStores.value = []; // 실패 시 목록을 비웁니다.
+  } finally {
     isArchiveLoading.value = false;
-  }, 1200); // 추천 가게보다 약간 늦게 로딩되도록 시간 조절
+  }
 };
 
 onMounted(() => {
@@ -942,13 +973,35 @@ const reset = () => {
                 v-for="store in myArchiveStores"
                 :key="store.id"
                 class="archive-list-item"
-                @click="selectRecommendedStore(store.name)"
             >
+              <!-- 정보 영역 -->
               <div class="item-info">
                 <span class="item-name">{{ store.name }}</span>
                 <span class="item-category">{{ store.category }}</span>
+                <span class="item-date">방문일: {{ store.visitDate }}</span>
               </div>
-              <span class="item-date">{{ store.visitDate }}</span>
+
+              <!-- 액션 버튼 영역: 클래스 이름 변경 -->
+              <div class="archive-item-actions">
+                <el-tooltip content="웨이팅 분석하기" placement="top">
+                  <el-button
+                      type="primary"
+                      :icon="Search"
+                      circle
+                      plain
+                      @click="selectRecommendedStore(store.name)"
+                      class="action-btn"
+                  />
+                </el-tooltip>
+                <el-tooltip content="저장소에서 자세히 보기" placement="top">
+                  <el-button
+                      :icon="MoreFilled"
+                      circle
+                      @click="goToArchiveDetail(store.id)"
+                      class="action-btn"
+                  />
+                </el-tooltip>
+              </div>
             </div>
             <el-empty
                 v-if="myArchiveStores.length === 0"
@@ -1427,16 +1480,66 @@ input[type="text"]:focus {
 .archive-list-item:hover {
   background-color: var(--el-fill-color-light);
 }
-.item-info { display: flex; flex-direction: column; gap: 1px; }
+.item-actions .el-button {
+  width: 28px;
+  height: 28px;
+}
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
 .item-name {
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .item-category, .item-date {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--el-text-color-secondary);
 }
+
+.archive-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.1;
+  transform: scale(0.95); /* 살짝 작게 시작 */
+  transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+  pointer-events: none; /* 숨겨져 있을 때 클릭 방지 */
+}
+
+.archive-list-item:hover .archive-item-actions {
+  opacity: 1;
+  transform: scale(1); /* 원래 크기로 */
+  pointer-events: auto; /* 클릭 가능하게 */
+}
+
+.action-btn {
+  /* 크기 */
+  width: 28px;
+  height: 28px;
+
+  /* 아이콘 크기 */
+  font-size: 14px;
+
+  /* Element UI 기본 마진 제거 */
+  margin: 0;
+
+  /* 부드러운 전환 효과 */
+  transition: all 0.2s ease;
+}
+
+/* 버튼에 마우스를 올렸을 때 효과 */
+.action-btn:hover {
+  transform: scale(1.15) rotate(10deg); /* 살짝 커지면서 약간 회전 */
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
 .custom-empty-image {
   /* image-size prop 대신 직접 크기를 제어할 수 있습니다. */
   width: 80px;

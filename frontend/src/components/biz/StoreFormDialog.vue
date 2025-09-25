@@ -6,7 +6,7 @@ import {Shop, CollectionTag, Calendar, EditPen, Star, Check, FolderOpened, StarF
 import FileUpload from '@/components/fileUpload/FileUpload.vue';
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
-import {userStore} from "@/store/userStore";
+import { userStore } from "@/store/userStore";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 
 const userStoreObj = userStore();
@@ -26,11 +26,22 @@ const emit = defineEmits(['update:visible', 'submit']);
 // --- 내부 상태 및 로직 ---
 const formRef = ref<FormInstance>();
 const formData = ref({ ...props.initialData });
-const fileUploadRef = ref<InstanceType<typeof FileUpload> | null>(null);
+const fileUploadRef = ref<InstanceType<typeof FileUpload> | null>(null) as any;
 const isSubmitting = ref(false);
 
 watch(() => props.initialData, (newData) => {
-  formData.value = { ...newData };
+  // 먼저 새로운 데이터를 복사
+  const formattedData = { ...newData };
+
+  // visitDate 값이 존재하고, 유효한 문자열인 경우에만 포맷팅을 진행
+  if (formattedData.visitDate && typeof formattedData.visitDate === 'string') {
+    // ISO 형식의 날짜 문자열에서 'T'를 기준으로 앞부분(YYYY-MM-DD)만 잘라내기
+    formattedData.visitDate = formattedData.visitDate.split('T')[0];
+  }
+
+  // 포맷팅이 완료된 데이터를 formData에 할당
+  formData.value = formattedData;
+
   fileUploadRef.value?.clearFiles();
   nextTick(() => { formRef.value?.clearValidate(); });
 }, { deep: true });
@@ -85,7 +96,8 @@ const handleSubmit = async () => {
 
         // 2. 최종적으로 서버에 전송할 페이로드(JSON)를 구성
         const finalPayload = {
-          // 폼 데이터
+          // 폼 데이터 (수정할 필요 없음)
+          recordId: formData.value.id,
           name: formData.value.name,
           category: formData.value.category,
           visitDate: formData.value.visitDate,
@@ -95,16 +107,26 @@ const handleSubmit = async () => {
           userId: userStoreObj.getUserInfo.userId,
 
           images: uploadedFileResponses.map(response => {
-            // uploadedFileResponses 배열의 각 요소는 { header: ..., data: ... } 형태의 객체입니다.
-            // 이 객체를 'response'라고 부릅시다.
-            // 우리가 필요한 파일 정보는 'response' 객체 안의 'data' 객체에 있습니다.
-            const fileData = response.data; // data 객체를 변수로 빼서 가독성을 높입니다.
+            // fileData를 먼저 선언합니다.
+            let fileData;
 
+            // response 객체에 data 속성이 있는지 확인합니다.
+            // data 속성이 있다면 -> '새로 업로드된 파일' (AxiosResponse)
+            // data 속성이 없다면 -> '기존에 있던 파일' (순수 데이터 객체)
+            if (response && response.data) {
+              fileData = response.data; // 새로 업로드된 파일의 경우
+            } else {
+              fileData = response; // 기존 파일의 경우
+            }
+
+            // 이제 fileData는 항상 올바른 파일 정보 객체를 가리킵니다.
             return {
-              originalFileName: fileData.originalFileName, // data 객체의 originalFileName 필드 사용
-              storedFileName: fileData.storedFileName,     // data 객체의 storedFileName 필드 사용
-              imageUrl: fileData.fileDownloadUri,        // data 객체의 fileDownloadUri 필드 사용
-              fileSize: fileData.size,                   // data 객체의 size 필드 사용
+              originalFileName: fileData.originalFileName,
+              storedFileName: fileData.storedFileName,
+              // ★★★ imageUrl은 fileDownloadUri에서 가져와야 할 수 있습니다 ★★★
+              // 백엔드 응답 DTO 필드명에 따라 둘 중 하나를 사용하거나 맞춰주세요.
+              imageUrl: fileData.imageUrl || fileData.fileDownloadUri,
+              fileSize: fileData.size || fileData.fileSize, // size 또는 fileSize
             };
           }),
         };
@@ -179,7 +201,6 @@ const handleSubmit = async () => {
           />
         </el-form-item>
 
-        <!-- ★★★★★ 추가된 부분: 참조 URL ★★★★★ -->
         <el-form-item prop="referenceUrl">
           <el-input
               v-model="formData.referenceUrl"
@@ -194,12 +215,28 @@ const handleSubmit = async () => {
         <el-row :gutter="24">
           <el-col :span="6">
             <el-form-item prop="visitDate">
-              <el-date-picker v-model="formData.visitDate" type="date" placeholder="방문일" format="YYYY-MM-DD" value-format="YYYY-MM-DD" :prefix-icon="Calendar" size="large" style="width: 100%;"/>
+              <el-date-picker
+                  v-model="formData.visitDate"
+                  type="date"
+                  placeholder="방문일"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  :prefix-icon="Calendar"
+                  size="large"
+                  style="width: 100%;"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="9">
             <el-form-item prop="category">
-              <el-input v-model="formData.category" placeholder="카테고리" :prefix-icon="CollectionTag" size="large"/>
+              <el-input
+                  v-model="formData.category"
+                  placeholder="카테고리"
+                  :prefix-icon="CollectionTag"
+                  size="large"
+                  maxlength="40"
+                  show-word-limit
+              />
             </el-form-item>
           </el-col>
           <el-col :span="9">
@@ -312,9 +349,12 @@ const handleSubmit = async () => {
   margin-bottom: 2px;
 }
 
-/* 입력창 스타일 전역 개선 */
-:deep(.el-input__wrapper),
-:deep(.el-textarea__inner),
+/* 글자 수 텍스트 자체는 배경색을 갖지 않고, 부모(컨테이너)의 색을 그대로 따르게 함 */
+:deep(.el-input .el-input__count .el-input__count-inner),
+:deep(.el-textarea .el-input__count .el-input__count-inner) {
+  background-color: transparent !important; /* 배경색 없음 */
+}
+
 .rating-wrapper {
   background-color: var(--el-fill-color-light) !important; /* lighter -> light 로 변경하여 깊이감 추가 */
   box-shadow: none !important;
@@ -415,11 +455,11 @@ const handleSubmit = async () => {
 }
 :deep(.el-input .el-input__count .el-input__count-inner),
 :deep(.el-textarea .el-input__count .el-input__count-inner) {
-  background-color: var(--el-fill-color-light) !important; /* 배경색을 입력 필드와 동일하게 설정 */
+  background-color: var(--el-bg-color) !important; /* 배경색을 입력 필드와 동일하게 설정 */
   padding-left: 8px;
 }
 :deep(.el-textarea .el-input__count) {
-  background-color: var(--el-fill-color-light) !important; /* 배경색을 입력 필드와 동일하게 설정 */
+  background-color: var(--el-bg-color) !important; /* 배경색을 입력 필드와 동일하게 설정 */
   padding-left: 8px;
 }
 

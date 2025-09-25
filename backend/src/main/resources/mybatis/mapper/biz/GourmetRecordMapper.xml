@@ -9,7 +9,7 @@
     </select>
 
     <!-- 맛집 저장소 데이터 저장 -->
-    <insert id="insertGourmetRecord" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
+    <insert id="mergeGourmetRecord" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
          MERGE /* com.koo.bonscore.biz.store.mapper.GourmetRecordMapper.insertGourmetRecord */
           INTO GOURMET_RECORDS                          /* 맛집 기록 정보 */
          USING DUAL
@@ -52,38 +52,54 @@
              )
     </insert>
 
-    <!-- 여러 이미지 정보를 한 번에 저장 -->
-    <insert id="insertGourmetImages" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
-      INSERT /* com.koo.bonscore.biz.store.mapper.GourmetRecordMapper.insertGourmetImages */
-        INTO GOURMET_IMAGES                             /* 맛집 기록 이미지 파일 정보 */
-           (
-             IMAGE_ID                                   /* 이미지 ID */
-           , RECORD_ID                                  /* 이미지가 속한 맛집 기록 ID */
-           , ORIGINAL_FILE_NAME                         /* 원본 파일명 */
-           , STORED_FILE_NAME                           /* 저장 파일명 */
-           , IMAGE_URL                                  /* 다운로드 URL */
-           , FILE_SIZE                                  /* 파일 크기 (단위: byte) */
-           , CREATED_AT                                 /* 레코드 생성 일시 */
-           )
-      SELECT SEQ_GOURMET_IMAGES.NEXTVAL
-           , A.*
-        FROM (
-            <foreach collection="images" item="image" separator=" UNION ALL ">
-                SELECT #{recordId}                 AS RECORD_ID
-                     , #{image.originalFileName}   AS ORIGINAL_FILE_NAME
-                     , #{image.storedFileName}     AS STORED_FILE_NAME
-                     , #{image.imageUrl}           AS IMAGE_URL
-                     , #{image.fileSize}           AS FILE_SIZE
-                     , #{createdAt}                AS CREATED_AT
-                  FROM DUAL
+    <!-- 전달된 파일 목록에 없는 이미지들을 DB에서 삭제 -->
+    <delete id="deleteImagesNotInList" parameterType="map">
+        DELETE /* com.koo.bonscore.biz.store.mapper.GourmetRecordMapper.deleteImagesNotInList */
+          FROM GOURMET_IMAGES
+         WHERE RECORD_ID = #{recordId}
+        <if test="images != null and images.size() > 0">
+            AND STORED_FILE_NAME NOT IN
+            <foreach collection="images" item="image" open="(" separator="," close=")">
+                #{image.storedFileName}
             </foreach>
-            ) A
-    </insert>
+        </if>
+    </delete>
+
+    <update id="mergeGourmetImages" parameterType="com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest">
+        <!-- Oracle의 경우 MERGE를 여러 번 실행하기 위해 BEGIN-END 블록 사용 -->
+        BEGIN
+        <foreach collection="images" item="image">
+            MERGE /* com.koo.bonscore.biz.store.mapper.GourmetRecordMapper.mergeGourmetImages */
+             INTO GOURMET_IMAGES I
+            USING DUAL
+              ON (      I.RECORD_ID         = #{recordId}
+                    AND I.STORED_FILE_NAME  = #{image.storedFileName}
+                 )
+            WHEN NOT MATCHED THEN
+          INSERT (
+                 IMAGE_ID
+               , RECORD_ID
+               , ORIGINAL_FILE_NAME
+               , STORED_FILE_NAME
+               , IMAGE_URL
+               , FILE_SIZE
+               , CREATED_AT
+               )
+          VALUES (
+                 SEQ_GOURMET_IMAGES.NEXTVAL
+               , #{recordId}
+               , #{image.originalFileName}
+               , #{image.storedFileName}
+               , #{image.imageUrl}
+               , #{image.fileSize}
+               , #{createdAt}
+               );
+        </foreach>
+        END;
+    </update>
 
     <resultMap id="gourmetRecordWithImagesMap" type="com.koo.bonscore.biz.store.dto.res.GourmetRecordDto">
         <id property="id" column="RECORD_ID"/>
-
-        <!-- GOURMET_RECORDS 테이블의 나머지 컬럼 매핑 -->
         <result property="name" column="STORE_NAME"/>
         <result property="category" column="CATEGORY"/>
         <result property="visitDate" column="VISIT_DATE"/>

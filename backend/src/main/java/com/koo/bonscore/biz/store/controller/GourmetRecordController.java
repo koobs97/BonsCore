@@ -22,7 +22,7 @@ public class GourmetRecordController {
 
     @PostMapping("/write")
     public ResponseEntity<Void> createGourmetRecord(@RequestBody GourmetRecordCreateRequest request) {
-        gourmetRecordService.createGourmetRecord(request);
+        gourmetRecordService.saveGourmetRecord(request);
         return ResponseEntity.ok().build();
     }
 

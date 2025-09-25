@@ -37,6 +37,14 @@ import java.util.List;
 public class AuthorizationController {
     private final AuthorizationService authorizationService;
 
+    /**
+     * 로그인 후 권한에 맞는 메뉴 조회
+     * @param request UpdateUserDto
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @throws Exception e
+     * @return 메뉴 리스트
+     */
     @UserActivityLog(activityType = "GET_MENUS", userIdField = "#request.userId")
     @PostMapping("/getMenus")
     public List<MenuByRoleDto> getMenus(@RequestBody AuthorizationDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
@@ -49,6 +57,14 @@ public class AuthorizationController {
         }
     }
 
+    /**
+     * 검색조건에 쓰일 코드 조회
+     * @param request UpdateUserDto
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @throws Exception e
+     * @return 코드 리스트
+     */
     @PostMapping("/geActivityCds")
     public ActivityResponseDto geActivityCds(@RequestBody LogReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
@@ -60,6 +76,14 @@ public class AuthorizationController {
         }
     }
 
+    /**
+     * 로그 데이터 조회
+     * @param request UpdateUserDto
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @throws Exception e
+     * @return 로그리스트
+     */
     @UserActivityLog(activityType = "GET_LOGS", userIdField = "#request.userId")
     @PostMapping("/getLogs")
     public List<LogResDto> getLogs(@RequestBody LogReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
