@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch } from 'vue'; // watch 추가
+import { ref, computed, onUnmounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { CameraFilled, CloseBold } from '@element-plus/icons-vue';
 import type { UploadInstance, UploadProps, UploadRawFile, UploadUserFile, UploadFile, UploadFiles } from 'element-plus';
@@ -92,17 +92,16 @@ interface Props {
   limit?: number;
   maxSizeMB?: number;
   allowedExtensions?: string[];
-  initialFiles?: any[]; // ★★★★★ 1. 초기 파일 목록을 받을 prop 추가 ★★★★★
+  initialFiles?: any[];
 }
 const props = withDefaults(defineProps<Props>(), {
   uploadUrl: 'http://localhost:8080/api/files/upload',
   limit: 10,
   maxSizeMB: 10,
   allowedExtensions: () => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-  initialFiles: () => [], // ★★★★★ 2. prop 기본값 설정 ★★★★★
+  initialFiles: () => [],
 });
 
-// ... (emit 정의는 이전과 동일)
 interface UploadSuccessResponse {
   fileName: string;
   fileDownloadUri: string;
@@ -122,64 +121,61 @@ const emit = defineEmits<{
 const uploadRef = ref<UploadInstance>();
 const fileList = ref<UploadUserFile[]>([]);
 
-// ★★★★★ 3. prop으로 받은 초기 파일을 fileList에 반영하는 로직 추가 ★★★★★
 watch(() => props.initialFiles, (newFiles) => {
-  // newFiles가 있고, 아직 fileList가 비어있을 때만 실행 (중복 방지)
   if (newFiles && newFiles.length > 0 && fileList.value.length === 0) {
     fileList.value = newFiles.map((file, index) => ({
-      // el-upload가 이해할 수 있는 UploadUserFile 형식으로 변환
-      name: file.originalFileName, // 표시될 이름
-      url: file.imageUrl,          // 미리보기 이미지 URL
-      status: 'success',           // 이미 업로드 성공한 상태로 설정
-      uid: Date.now() + index,     // 고유 ID 생성 (key 바인딩에 필수)
-      // 중요: 나중에 submit 시 기존 파일임을 식별하기 위해 원본 데이터를 response에 저장
-      response: { data: file }
+      name: file.originalFileName,
+      url: file.imageUrl,
+      status: 'success',
+      uid: Date.now() + index,
+      // ★★★★★ 수정된 부분: response에 원본 데이터 '그대로' 저장 (불필요한 data 객체 래핑 제거) ★★★★★
+      response: file
     }));
   }
-}, { immediate: true }); // 컴포넌트가 마운트될 때 즉시 실행
+}, { immediate: true });
 
 
 const previewSrcList = computed(() =>
     fileList.value.map(file => file.url).filter(Boolean) as string[]
 );
 
-// ... (totalSize, formatFileSize 등 나머지 핸들러 및 함수는 이전과 동일)
-// --- Handlers ---
 const triggerUpload = () => {
-  const inputEl = uploadRef.value?.$el.querySelector('input');
-  if (inputEl) {
-    inputEl.click();
-  }
+  uploadRef.value?.$el.querySelector('input')?.click();
 };
+
 const handleChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
   if (uploadFile.status === 'ready' && uploadFile.raw && uploadFile.raw.type.startsWith('image/')) {
     uploadFile.url = URL.createObjectURL(uploadFile.raw);
   }
   fileList.value = uploadFiles;
 };
+
 const handleRemove = (file: UploadUserFile) => {
   uploadRef.value?.handleRemove(file);
 };
+
 const handleRemoveInternal: UploadProps['onRemove'] = (file, files) => {
   if (file.url && file.url.startsWith('blob:')) {
     URL.revokeObjectURL(file.url);
   }
   fileList.value = files;
 };
+
 const handleClearAll = () => {
   fileList.value.forEach(file => {
     if (file.url && file.url.startsWith('blob:')) URL.revokeObjectURL(file.url);
   });
   uploadRef.value?.clearFiles();
 };
+
 onUnmounted(() => {
-  fileList.value.forEach(file => {
-    if (file.url && file.url.startsWith('blob:')) URL.revokeObjectURL(file.url);
-  });
+  handleClearAll();
 });
-const handleExceed: UploadProps['onExceed'] = (files) => {
+
+const handleExceed: UploadProps['onExceed'] = () => {
   ElMessage.warning(`최대 ${props.limit}개의 사진만 첨부할 수 있습니다.`);
 };
+
 const beforeUpload: UploadProps['beforeUpload'] = (rawFile: UploadRawFile) => {
   const fileExtension = rawFile.name.substring(rawFile.name.lastIndexOf('.') + 1).toLowerCase();
   if (!props.allowedExtensions.includes(fileExtension)) {
@@ -192,11 +188,14 @@ const beforeUpload: UploadProps['beforeUpload'] = (rawFile: UploadRawFile) => {
   }
   return true;
 };
+
 const handleSuccess: UploadProps['onSuccess'] = (response, uploadFile, uploadFiles) => {
   fileList.value = uploadFiles;
   emit('upload-success', { response, file: uploadFile, fileList: uploadFiles });
 };
+
 const handleError: UploadProps['onError'] = (error, uploadFile, uploadFiles) => {
+  console.error("el-upload onError:", { error, uploadFile });
   let errorMessage = '파일 업로드 실패';
   try {
     const errorResponse = JSON.parse(error.message);
@@ -205,40 +204,96 @@ const handleError: UploadProps['onError'] = (error, uploadFile, uploadFiles) => 
   ElMessage.error(`${uploadFile.name}: ${errorMessage}`);
   emit('upload-error', { error, file: uploadFile, fileList: uploadFiles });
 };
+
+
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// ★★★★★ 핵심 수정: submit 함수를 Promise.allSettled로 변경하여 안정성 확보 ★★★★★
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const submit = () => {
   return new Promise(async (resolve, reject) => {
+    // 1. 이미 업로드된 파일과 새로 업로드할 파일 분리
+    const alreadyUploadedFiles = fileList.value
+        .filter(file => file.status === 'success')
+        .map(file => file.response); // response에는 원본 데이터가 저장되어 있음
+
     const filesToUpload = fileList.value.filter(file => file.status === 'ready');
+
+    console.log(`[FileUpload] 기존 파일 ${alreadyUploadedFiles.length}개`, alreadyUploadedFiles);
+    console.log(`[FileUpload] 새로 업로드할 파일 ${filesToUpload.length}개`, filesToUpload);
+
+
+    // 2. 새로 업로드할 파일이 없으면 기존 파일 목록만 반환
     if (filesToUpload.length === 0) {
-      const alreadyUploadedFiles = fileList.value
-          .filter(file => file.status === 'success')
-          .map(file => file.response); // response에 원본 데이터가 저장되어 있음
+      console.log('[FileUpload] 새로 업로드할 파일 없음. 기존 파일 목록만 반환.');
       resolve(alreadyUploadedFiles);
       return;
     }
+
+    // 3. 업로드 Promise 배열 생성
     const uploadPromises = filesToUpload.map(file => {
       const formData = new FormData();
       formData.append('file', file.raw as Blob);
+      console.log(`[FileUpload] '${file.name}' 업로드 시작...`);
+      // Api.post는 AxiosPromise를 반환합니다.
       return Api.post(ApiUrls.FILE_UPLOAD, formData, false);
     });
+
     try {
-      const uploadResults = await Promise.all(uploadPromises);
-      const alreadyUploadedFiles = fileList.value
-          .filter(file => file.status === 'success')
-          .map(file => file.response);
-      const allFiles = [...alreadyUploadedFiles, ...uploadResults];
+      // 4. Promise.allSettled를 사용하여 모든 업로드가 완료될 때까지 대기
+      const results = await Promise.allSettled(uploadPromises);
+      console.log('[FileUpload] 모든 업로드 시도 완료. 결과:', results);
+
+      const successfulUploads: any[] = [];
+      const failedUploads: any[] = [];
+
+      // 5. 성공/실패 결과 분리
+      results.forEach((result, index) => {
+        const originalFile = filesToUpload[index];
+        if (result.status === 'fulfilled') {
+          console.log(`[FileUpload] '${originalFile.name}' 업로드 성공.`, result.value);
+          // 성공한 경우, 서버 응답 데이터(result.value)를 저장
+          successfulUploads.push(result.value);
+        } else {
+          console.error(`[FileUpload] '${originalFile.name}' 업로드 실패. 원인:`, result.reason);
+          failedUploads.push({
+            fileName: originalFile.name,
+            reason: result.reason,
+          });
+        }
+      });
+
+      // 6. 실패한 업로드가 하나라도 있으면 전체 Promise를 reject 처리
+      if (failedUploads.length > 0) {
+        const failedFileNames = failedUploads.map(f => f.fileName).join(', ');
+        ElMessage.error(`${failedFileNames} 파일 업로드에 실패했습니다.`);
+        // 실패에 대한 상세 정보를 reject로 넘겨 부모 컴포넌트에서 확인할 수 있도록 함
+        reject({
+          message: '하나 이상의 파일 업로드에 실패했습니다.',
+          failedFiles: failedUploads,
+        });
+        return;
+      }
+
+      // 7. 모든 파일이 성공한 경우, 기존 파일과 새로 업로드된 파일 목록을 합쳐서 반환
+      const allFiles = [...alreadyUploadedFiles, ...successfulUploads];
+      console.log('[FileUpload] 모든 파일 처리 성공. 최종 목록:', allFiles);
       resolve(allFiles);
+
     } catch (error) {
-      ElMessage.error('하나 이상의 사진 업로드에 실패했습니다.');
-      console.error("File upload failed:", error);
+      // Promise.allSettled 자체는 에러를 throw하지 않지만, 예외 상황을 대비한 catch 블록
+      ElMessage.error('파일 업로드 중 예기치 않은 오류가 발생했습니다.');
+      console.error("[FileUpload] 예기치 않은 오류:", error);
       reject(error);
     }
   });
 };
 
+
 defineExpose({ submit, clearFiles: handleClearAll, getFiles: () => fileList.value });
 </script>
 
 <style scoped>
+/* CSS는 변경 사항이 없으므로 기존 코드를 그대로 사용합니다. */
 .image-uploader-container {
   width: 100%;
   background-color: var(--el-fill-color-lighter);

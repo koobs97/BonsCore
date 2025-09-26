@@ -2,7 +2,7 @@
 import { ref, shallowRef, onMounted, defineAsyncComponent, computed, watch } from 'vue';
 import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
-  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Link, ArrowDown, CopyDocument,
+  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Link, ArrowDown, CopyDocument, Share,
 } from '@element-plus/icons-vue';
 import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 import { userStore } from '@/store/userStore';
@@ -13,6 +13,7 @@ import {ElMessage} from "element-plus";
 
 const activeName = ref('default')
 const githubUrl = ref('https://github.com/koobs97/BonsCore/tree/main');
+const notionUrl = ref('https://bonsang-note.notion.site/cd34738bd0b34dccb15c5b5cb74904d1?source=copy_link');
 
 // router, user
 const router = useRouter();
@@ -193,9 +194,28 @@ watch(isDarkMode, (newVal) => {
 const goToGitHub = () => {
   window.open('https://github.com/koobs97/BonsCore/tree/main', '_blank');
 }
-const copyToClipboard = async () => {
+const goToNotion = () => {
+  window.open('https://bonsang-note.notion.site/cd34738bd0b34dccb15c5b5cb74904d1?source=copy_link', '_blank');
+}
+const copyToClipboard1 = async () => {
   try {
     await navigator.clipboard.writeText(githubUrl.value);
+    ElMessage({
+      message: 'URL이 클립보드에 복사되었습니다.',
+      type: 'success',
+      duration: 2000,
+    });
+  } catch (err) {
+    console.error('클립보드 복사 실패:', err);
+    ElMessage({
+      message: '복사에 실패했습니다.',
+      type: 'error',
+    });
+  }
+};
+const copyToClipboard2 = async () => {
+  try {
+    await navigator.clipboard.writeText(notionUrl.value);
     ElMessage({
       message: 'URL이 클립보드에 복사되었습니다.',
       type: 'success',
@@ -236,33 +256,62 @@ const copyToClipboard = async () => {
         <el-popover :width="410" trigger="click">
           <template #reference>
             <el-button class="custom-image-button">
-              <img class="theme-sensitive" src="@/assets/images/github_icon.png" alt="custom icon"/>
+              <el-icon><Share /></el-icon>
             </el-button>
           </template>
-          <el-tabs v-model="activeName">
-            <el-tab-pane name="default">
-              <template #label>
+          <div class="my-custom-tabs">
+            <el-tabs v-model="activeName">
+              <el-tab-pane name="default">
+                <template #label>
                 <span style="font-size: 14px; font-weight: 600;">
                       GitHub
                     </span>
-              </template>
-            </el-tab-pane>
-          </el-tabs>
-          <div style="display: flex; align-items: center;">
-            <el-input readonly v-model="githubUrl">
-            </el-input>
-            <el-button link @click="copyToClipboard" style="outline: none;">
-              <el-icon style="font-size: 18px; margin-left: 8px;"><CopyDocument /></el-icon>
-            </el-button>
-            <el-button link style="font-size: 18px; margin-left: 8px; outline: none;" :icon="Link" @click="goToGitHub" />
+                </template>
+                <img class="theme-sensitive-poster" src="@/assets/images/github-poster.png" alt="custom icon"/>
+                <div style="display: flex; align-items: center; margin-top: 8px;">
+                  <img class="theme-sensitive" src="@/assets/images/github_icon.png" alt="custom icon"/>
+                  <el-input readonly v-model="githubUrl">
+                  </el-input>
+                  <el-button link @click="copyToClipboard1" style="outline: none;">
+                    <el-icon style="font-size: 18px; margin-left: 8px;"><CopyDocument /></el-icon>
+                  </el-button>
+                  <el-button link style="font-size: 18px; margin-left: 8px; outline: none;" :icon="Link" @click="goToGitHub" />
+                </div>
+                <el-divider style="margin: 12px 0 16px 0;" />
+                <div style="display: flex;align-items: center;">
+                  <el-icon style="font-size: 14px;"><CopyDocument /></el-icon>
+                  <el-text style="font-size: 12px; margin-left: 4px;">주소복사</el-text>
+                  <el-icon style="font-size: 14px; margin-left: 12px;"><Link /></el-icon>
+                  <el-text style="font-size: 12px; margin-left: 4px;">바로가기</el-text>
+                </div>
+              </el-tab-pane>
+              <el-tab-pane name="newTab">
+                <template #label>
+                 <span style="font-size: 14px; font-weight: 600;">
+                  Notion
+                </span>
+                </template>
+                <img class="theme-sensitive-poster" src="@/assets/images/notion-poster.png" alt="custom icon"/>
+                <div style="display: flex; align-items: center; margin-top: 8px;">
+                  <img class="theme-sensitive" src="@/assets/images/notion_icon.png" alt="custom icon"/>
+                  <el-input readonly v-model="notionUrl">
+                  </el-input>
+                  <el-button link @click="copyToClipboard2" style="outline: none;">
+                    <el-icon style="font-size: 18px; margin-left: 8px;"><CopyDocument /></el-icon>
+                  </el-button>
+                  <el-button link style="font-size: 18px; margin-left: 8px; outline: none;" :icon="Link" @click="goToNotion" />
+                </div>
+                <el-divider style="margin: 12px 0 16px 0;" />
+                <div style="display: flex;align-items: center;">
+                  <el-icon style="font-size: 14px;"><CopyDocument /></el-icon>
+                  <el-text style="font-size: 12px; margin-left: 4px;">주소복사</el-text>
+                  <el-icon style="font-size: 14px; margin-left: 12px;"><Link /></el-icon>
+                  <el-text style="font-size: 12px; margin-left: 4px;">바로가기</el-text>
+                </div>
+              </el-tab-pane>
+            </el-tabs>
           </div>
-          <el-divider style="margin: 12px 0 16px 0;" />
-          <div style="display: flex;align-items: center;">
-            <el-icon style="font-size: 14px;"><CopyDocument /></el-icon>
-            <el-text style="font-size: 12px; margin-left: 4px;">주소복사</el-text>
-            <el-icon style="font-size: 14px; margin-left: 12px;"><Link /></el-icon>
-            <el-text style="font-size: 12px; margin-left: 4px;">바로가기</el-text>
-          </div>
+
         </el-popover>
       </div>
     </el-header>
@@ -777,10 +826,29 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 :deep(.el-dropdown-menu__item:not(.is-disabled):hover .el-icon) {
   color: var(--el-color-primary);
 }
+
+.my-custom-tabs :deep(.el-tabs__item) {
+  padding: 0 12px;
+}
+
+.theme-sensitive-poster {
+  filter: none;
+  transition: filter 0.3s ease; /* 모드 전환시 부드럽게 */
+  width: 380px;
+  height: auto;
+  margin-right: 4px;
+  border: 2px solid;
+}
+
 /* 기본 (라이트모드) */
 .theme-sensitive {
   filter: none;
   transition: filter 0.3s ease; /* 모드 전환시 부드럽게 */
+  width: auto;
+  height: 24px;
+  margin-right: 4px;
+  border: 2px solid;
+  padding: 2px;
 }
 
 /* 다크모드 */

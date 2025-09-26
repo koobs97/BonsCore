@@ -1373,7 +1373,7 @@ input[type="text"]:focus {
   background: none;
   border: none;
   padding: 4px; /* 클릭 영역을 위해 최소한의 패딩 유지 */
-  margin: 0;
+  margin: 0 0 0 4px;
   height: auto; /* Element UI의 고정 높이 제거 */
 
   /* 2. 아이콘 색상을 주변 텍스트와 비슷하게 맞춰 이질감을 줄입니다 */

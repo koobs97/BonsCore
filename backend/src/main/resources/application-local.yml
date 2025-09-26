@@ -24,3 +24,4 @@ file:
   upload-dir: C:/Study/springboot/uploads
   # 클라이언트가 파일에 접근할 때 사용할 URL 경로
   resource-url-prefix: /images/
+  download-uri-prefix: http://localhost:8080/images/

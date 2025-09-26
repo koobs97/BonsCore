@@ -31,7 +31,9 @@ public enum ErrorCode {
     REFRESH_TOKEN_NOT_FOUND("ER_008", "리프레시 토큰을 찾을 수 없습니다."),
     PREVENT_DOUBLE_REQUEST("ER_009", "이미 처리 중인 요청입니다. 잠시 후 다시 시도해주세요."),
 
-    INVALID_INPUT("ER_009", "값이 유효하지 않습니다.")
+    INVALID_INPUT("ER_009", "값이 유효하지 않습니다."),
+    INVALID_FILE_EXTENSION("F001", "허용되지 않는 파일 확장자입니다."),
+    FILE_STORAGE_FAILED("F002", "파일 저장에 실패했습니다.");
     ;
 
     private final String code;

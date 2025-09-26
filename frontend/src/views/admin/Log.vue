@@ -28,7 +28,7 @@
           </el-form-item>
         </div>
         <el-form-item>
-          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px; margin-left: 298px;" />
+          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px; margin-left: 289px;" />
         </el-form-item>
         <el-form-item>
           <el-select v-model="searchParams.activityType" placeholder="활동 유형" clearable style="width: 110px">
@@ -76,11 +76,12 @@
     <el-dialog
         v-model="isModalVisible"
         title="사용자 활동 로그 (전체 화면)"
-        width="70%"
+        width="1600"
         height="60%"
         top="10vh"
         destroy-on-close
         class="fullscreen-dialog"
+        :append-to-body="true"
     >
       <!-- 모달 내부에도 똑같은 그리드 -->
       <ag-grid-vue
@@ -207,12 +208,7 @@ const fetchLogs = async () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     rowData.value = await generateMockData(apiParams);
 
-  } catch (error) {
-    console.error("로그 데이터 조회 실패:", error);
-    ElMessage.error('데이터 조회 중 오류가 발생했습니다.');
-  } finally {
-    loadingInstance.close();
-  }
+  } catch (error) { } finally { loadingInstance.close(); }
 };
 
 const onSearch = () => fetchLogs();
@@ -355,5 +351,62 @@ const generateMockData = async (params) => {
 
 :deep(.fullscreen-dialog .el-dialog__body) {
   padding: 0 !important; /* 내부 패딩을 제거하여 그리드가 꽉 차도록 함 */
+}
+
+</style>
+
+<style>
+/* =================================================================== */
+/* ============== AG Grid 다크 모드 전역 스타일 (scoped 없음) ============== */
+/* =================================================================== */
+/* Element Plus 다크 모드와 연동 */
+html.dark .ag-theme-alpine {
+  /* 기본 배경 및 텍스트 색상 */
+  --ag-background-color: var(--el-bg-color-overlay); /* 그리드 전체 배경색 */
+  --ag-data-color: var(--el-text-color-primary);     /* 셀 텍스트 색상 */
+  --ag-foreground-color: var(--el-text-color-primary); /* 아이콘 등 전경색 */
+  --ag-secondary-foreground-color: var(--el-text-color-secondary); /* 보조 아이콘 등 색상 */
+
+  /* 헤더 스타일 */
+  --ag-header-background-color: var(--el-bg-color); /* 헤더 배경색 */
+  --ag-header-foreground-color: var(--el-text-color-primary); /* 헤더 텍스트 색상 */
+  --ag-header-cell-hover-background-color: var(--el-fill-color-light); /* 헤더 셀 호버 배경색 */
+  --ag-header-cell-moving-background-color: var(--el-fill-color-darker); /* 헤더 이동 시 배경색 */
+
+  /* 행(Row) 스타일 */
+  --ag-row-background-color: var(--el-bg-color-overlay); /* 행 배경색 */
+  --ag-odd-row-background-color: #1d1e22; /* 홀수 행 배경색 (미세한 차이) */
+  --ag-row-hover-color: var(--el-fill-color); /* 행 호버 시 배경색 */
+
+  /* 테두리 및 구분선 색상 */
+  --ag-border-color: var(--el-border-color); /* 그리드 및 셀 테두리 색상 */
+  --ag-separator-color: var(--el-border-color-light); /* 헤더 등 구분선 색상 */
+  --ag-row-border-color: var(--el-border-color-lighter); /* 행 사이의 테두리 */
+
+  /* 입력 컨트롤(필터 등) 스타일 */
+  --ag-input-background-color: var(--el-fill-color-blank);
+  --ag-input-border-color: var(--el-border-color);
+  --ag-input-disabled-background-color: var(--el-disabled-bg-color);
+  --ag-input-disabled-border-color: var(--el-disabled-border-color);
+  --ag-input-focus-border-color: var(--el-color-primary); /* 포커스 시 테두리 색상 */
+
+  /* 체크박스 스타일 */
+  --ag-checkbox-background-color: var(--el-fill-color-blank);
+  --ag-checkbox-checked-color: var(--el-color-primary);
+
+  /* 툴팁 스타일 */
+  --ag-tooltip-background-color: var(--el-color-black);
+  --ag-tooltip-foreground-color: var(--el-color-white);
+
+  /* 페이지네이션 텍스트 및 아이콘 색상 */
+  --ag-secondary-color: var(--el-text-color-secondary);
+}
+
+/* 다크 모드일 때 페이지네이션 아이콘 색상 조정 */
+html.dark .ag-paging-button .ag-icon {
+  color: var(--el-text-color-secondary);
+}
+html.dark .ag-paging-button:not(.ag-disabled) .ag-icon:hover {
+  color: var(--el-text-color-primary);
 }
 </style>
