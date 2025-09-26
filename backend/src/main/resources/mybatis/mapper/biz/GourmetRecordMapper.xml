@@ -75,10 +75,14 @@
               ON (      I.RECORD_ID         = #{recordId}
                     AND I.STORED_FILE_NAME  = #{image.storedFileName}
                  )
+            WHEN MATCHED THEN
+          UPDATE
+             SET IMAGE_ORDER = #{image.imageOrder}
             WHEN NOT MATCHED THEN
           INSERT (
                  IMAGE_ID
                , RECORD_ID
+               , IMAGE_ORDER
                , ORIGINAL_FILE_NAME
                , STORED_FILE_NAME
                , IMAGE_URL
@@ -88,6 +92,7 @@
           VALUES (
                  SEQ_GOURMET_IMAGES.NEXTVAL
                , #{recordId}
+               , #{image.imageOrder}
                , #{image.originalFileName}
                , #{image.storedFileName}
                , #{image.imageUrl}
@@ -113,6 +118,7 @@
             <result property="storedFileName" column="STORED_FILE_NAME"/>
             <result property="imageUrl" column="IMAGE_URL"/>
             <result property="fileSize" column="FILE_SIZE"/>
+            <result property="imageOrder" column="IMAGE_ORDER"/>
         </collection>
     </resultMap>
 
@@ -127,6 +133,7 @@
              , R.MEMO
              , R.REFERENCE_URL
              , I.IMAGE_ID
+             , I.IMAGE_ORDER
              , I.ORIGINAL_FILE_NAME
              , I.STORED_FILE_NAME
              , I.IMAGE_URL
@@ -135,7 +142,7 @@
    LEFT JOIN GOURMET_IMAGES  I
           ON R.RECORD_ID = I.RECORD_ID
        WHERE R.USER_ID   = #{userId}
-    ORDER BY R.VISIT_DATE DESC, R.CREATED_AT DESC
+    ORDER BY R.VISIT_DATE DESC, R.CREATED_AT DESC, I.IMAGE_ORDER
     </select>
 
 </mapper>

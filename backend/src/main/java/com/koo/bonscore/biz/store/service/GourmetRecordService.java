@@ -1,5 +1,6 @@
 package com.koo.bonscore.biz.store.service;
 
+import com.koo.bonscore.biz.store.dto.req.GourmetImageDto;
 import com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest;
 import com.koo.bonscore.biz.store.dto.res.GourmetRecordDto;
 import com.koo.bonscore.biz.store.mapper.GourmetRecordMapper;
@@ -11,27 +12,40 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
+/**
+ * <pre>
+ * GourmetRecordService.java
+ * 설명 : 저장소 관리 서비스
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-09-24
+ */
 @Service
 @RequiredArgsConstructor
 public class GourmetRecordService {
 
     private final GourmetRecordMapper gourmetRecordMapper;
 
+    /**
+     * 저장소 레코드 저장
+     * @param request 작성한 데이터 및 이미지
+     */
     @Transactional
     public void saveGourmetRecord(GourmetRecordCreateRequest request) {
 
-        // ★★★★★★★★★★★★★ 1. 부모 테이블 저장 로직 (기존과 거의 동일) ★★★★★★★★★★★★★
         request.setUpdatedAt(LocalDateTime.now());
         if (request.getRecordId() == null) {
             // 새 레코드인 경우
             request.setRecordId(gourmetRecordMapper.selectRecordId());
             request.setCreatedAt(LocalDateTime.now());
         }
-        gourmetRecordMapper.mergeGourmetRecord(request); // MERGE 구문이므로 INSERT/UPDATE 모두 처리
+        gourmetRecordMapper.mergeGourmetRecord(request);
 
 
-        // ★★★★★★★★★★★★★ 2. 이미지 삭제 로직 추가 ★★★★★★★★★★★★★
         // 프론트에서 전달된 이미지 목록에 없는 파일들을 먼저 삭제
         Map<String, Object> params = new HashMap<>();
         params.put("recordId", request.getRecordId());
@@ -39,18 +53,25 @@ public class GourmetRecordService {
         gourmetRecordMapper.deleteImagesNotInList(params);
 
 
-        // ★★★★★★★★★★★★★ 3. 이미지 병합(MERGE) 로직으로 변경 ★★★★★★★★★★★★★
         if (request.getImages() != null && !request.getImages().isEmpty()) {
-            // 부모 ID와 생성 시간을 자식 DTO에 설정
-            request.getImages().forEach(image -> {
+
+            // 이미지가 들어온 순서대로 저장 및 순서지정
+            IntStream.range(0, request.getImages().size()).forEach(index -> {
+                GourmetImageDto image = request.getImages().get(index);
                 image.setRecordId(request.getRecordId());
+                image.setImageOrder(index);
+                // 프론트 배열의 순서(index)를 DTO에 저장
             });
 
-            // 기존 INSERT 대신 MERGE 메소드 호출
             gourmetRecordMapper.mergeGourmetImages(request);
         }
     }
 
+    /**
+     * 조회
+     * @param request GourmetRecordCreateRequest
+     * @return List<GourmetRecordDto>
+     */
     @Transactional(readOnly = true)
     public List<GourmetRecordDto> getGourmetRecords(GourmetRecordCreateRequest request) {
         return gourmetRecordMapper.selectGourmetRecordsByUserId(request.getUserId());

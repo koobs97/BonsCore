@@ -11,6 +11,7 @@ public class GourmetImageDto {
     private String storedFileName;
     private String imageUrl;
     private Long fileSize;
+    private int imageOrder;
 
     public void setRecordId(Long recordId) {
 

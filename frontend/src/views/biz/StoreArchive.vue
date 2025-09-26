@@ -508,8 +508,10 @@ const nextImage = () => {
 }
 
 .thumbnail-list-wrapper {
-  overflow-x: auto;
-  padding-bottom: 8px; /* 스크롤바 공간 확보 */
+  overflow-x: scroll;
+  overflow-y: hidden;
+  padding-bottom: 2px; /* 스크롤바 공간 확보 */
+  scrollbar-gutter: stable;
 }
 
 /* 스크롤바 스타일링 (선택 사항) */
@@ -521,7 +523,7 @@ const nextImage = () => {
   border-radius: 10px;
 }
 .thumbnail-list-wrapper::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: var(--el-fill-color-light);
 }
 
 
