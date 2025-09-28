@@ -105,8 +105,6 @@ public class AnalysisService {
         // 3. ★★★ 블로그 리뷰 수 기반 점수 계산 ★★★
         int blogReviewScore = calculateBlogReviewScore(blogCount);
 
-        // 4. 향후 날씨, SNS, 지도 혼잡도 등 다른 분석 로직 추가...
-
         // 5. 최종 결과 DTO 빌드
         return StoreAnalysisResultDto.builder()
                 .name(request.getName())
