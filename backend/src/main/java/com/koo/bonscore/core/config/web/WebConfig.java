@@ -24,11 +24,16 @@ public class WebConfig implements WebMvcConfigurer {
     private final PageClearInterceptor pageClearInterceptor;
     private final UserActivityLogInterceptor userActivityLogInterceptor;
 
+    @Value("${file.resource-url-prefix}")
+    private String resourceUrlPrefix;
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    @Value("${file.resource-url-prefix}")
-    private String resourceUrlPrefix;
+    // --- 임시 경로용 Value 추가 ---
+    @Value("${file.temp-resource-url-prefix}")
+    private String tempResourceUrlPrefix;
+    @Value("${file.upload-dir-temp}")
+    private String tempUploadDir;
 
     /**
      * 애플리케이션의 인터셉터 체인(Interceptor Chain)에 커스텀 인터셉터를 등록.
@@ -58,7 +63,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // /images/** URL 요청이 오면 file:./uploads/ 경로에서 파일을 찾아 제공
+
+        // 1. 영구 저장소 경로 매핑
         registry.addResourceHandler(resourceUrlPrefix + "**")
-                .addResourceLocations("file:" + uploadDir);
+                .addResourceLocations("file:" + uploadDir + "/");
+
+        // 2. 임시 저장소 경로 매핑 추가
+        registry.addResourceHandler(tempResourceUrlPrefix + "**")
+                .addResourceLocations("file:" + tempUploadDir + "/");
     }
 }

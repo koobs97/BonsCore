@@ -26,15 +26,15 @@ public class FileController {
     @PostMapping("/upload")
     public FileResponse uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            // 1. 파일을 저장하고, 서버에 저장된 파일명을 받습니다.
             String originalFileName = file.getOriginalFilename();
-            String storedFileName = fileStorageService.storeFile(file.getInputStream(), originalFileName);
+            // 1. 파일을 '임시' 저장소에 저장합니다.
+            String storedFileName = fileStorageService.storeTempFile(file.getInputStream(), originalFileName);
 
-            // 2. 파일 다운로드 URI를 생성합니다.
-            String fileDownloadUri = fileStorageService.getFileDownloadUri(storedFileName);
+            // 2. 임시 파일에 접근할 필요는 없으므로, 다운로드 URI 대신 저장된 파일명만 응답해줘도 충분합니다.
+            //    하지만 기존 DTO를 활용하기 위해 URI를 생성해서 보냅니다.
+            String fileDownloadUri = fileStorageService.getTempFileDownloadUri(storedFileName);
 
-            // 3. 프론트엔드로 보낼 응답 객체를 생성합니다.
-            FileResponse fileResponse = new FileResponse(
+            return new FileResponse(
                     originalFileName,
                     storedFileName,
                     fileDownloadUri,
@@ -42,14 +42,10 @@ public class FileController {
                     file.getSize()
             );
 
-            // 4. 생성된 응답 객체를 JSON 형태로 반환합니다. (HTTP 200 OK 상태와 함께)
-            return fileResponse;
-
         } catch (IOException e) {
-            // 예외 처리 (실패 시 적절한 응답 반환)
-            // 간단하게는 Internal Server Error를 반환할 수 있습니다.
-            logger.error(e.getMessage());
+            logger.error("임시 파일 업로드 실패: {}", e.getMessage());
+            // 실패 시 적절한 HTTP 상태 코드와 메시지를 반환하는 것이 좋습니다.
+            throw new RuntimeException("파일 업로드에 실패했습니다.", e);
         }
-        return null;
     }
 }

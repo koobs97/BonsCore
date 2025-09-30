@@ -36,62 +36,92 @@ public class FileStorageService {
     // 파일 다운로드 URI의 접두사를 저장할 변수
     private final String fileDownloadUriPrefix;
     // 업로드를 허용할 파일 확장자 목록 (이미지 파일)
-    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gibf", "webp");
+    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gif", "webp");
+
+    private final Path tempFileStorageLocation;
+    private final String tempFileDownloadUriPrefix;
 
     /**
      * FileStorageService 생성자.
      * application.yml에서 파일 관련 설정들을 주입받아 초기화
      *
-     * @param uploadDir           application.yml의 'file.upload-dir' 값
+     * @param uploadDir             application.yml의 'file.upload-dir' 값
+     * @param tempUploadDir         임시 경로
      * @param fileDownloadUriPrefix application.yml의 'file.download-uri-prefix' 값
      */
     public FileStorageService(@Value("${file.upload-dir}") String uploadDir,
-                              @Value("${file.download-uri-prefix}") String fileDownloadUriPrefix) {
+                              @Value("${file.upload-dir-temp}") String tempUploadDir,
+                              @Value("${file.download-uri-prefix}") String fileDownloadUriPrefix,
+                              @Value("${file.temp-download-uri-prefix}") String tempFileDownloadUriPrefix // 생성자에서 주입
+    ) {
 
         // 업로드 디렉토리 경로 설정
         this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
+        this.tempFileStorageLocation = Paths.get(tempUploadDir).toAbsolutePath().normalize(); // 임시 경로 초기화
+        this.fileDownloadUriPrefix = fileDownloadUriPrefix;
+        this.tempFileDownloadUriPrefix = tempFileDownloadUriPrefix;
+
         try {
             Files.createDirectories(this.fileStorageLocation);
+            Files.createDirectories(this.tempFileStorageLocation); // 임시 디렉토리 생성
         } catch (IOException e) {
             throw new RuntimeException("디렉토리를 생성할 수 없습니다.", e);
         }
-
-        // 파일 다운로드 URI 접두사 설정
-        this.fileDownloadUriPrefix = fileDownloadUriPrefix;
     }
 
     /**
-     * InputStream과 원본 파일 이름을 받아 파일을 서버에 저장
-     * 파일 이름은 UUID를 사용하여 고유하게 생성
-     *
+     * 파일을 '임시' 저장소에 저장.
      * @param inputStream      저장할 파일의 InputStream
      * @param originalFileName 사용자가 업로드한 원본 파일 이름
      * @return 서버에 저장된 고유한 파일 이름
      */
-    public String storeFile(InputStream inputStream, String originalFileName) {
-
-        // 원본파일명
-        String cleanFileName = StringUtils.cleanPath(originalFileName);
-        // 확장자 검사
-        validateFileExtension(cleanFileName);
-        // 확장자 추출
-        String fileExtension = cleanFileName.substring(cleanFileName.lastIndexOf("."));
-        // UUID를 사용한 새로운 파일 이름 생성
-        String storedFileName = UUID.randomUUID().toString() + fileExtension;
+    public String storeTempFile(InputStream inputStream, String originalFileName) {
+        String storedFileName = createStoredFileName(originalFileName);
 
         try {
-            if (storedFileName.contains("..")) {
-                throw new RuntimeException("파일 이름에 유효하지 않은 시퀀스가 포함되어 있습니다.");
-            }
-            Path targetLocation = this.fileStorageLocation.resolve(storedFileName);
-
-            // 전달받은 InputStream을 사용하여 파일을 복사
+            // 파일을 임시 저장소 위치에 저장
+            Path targetLocation = this.tempFileStorageLocation.resolve(storedFileName);
             Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
             return storedFileName;
         } catch (IOException ex) {
-            throw new RuntimeException(storedFileName + " 파일 저장에 실패했습니다.", ex);
+            throw new RuntimeException(storedFileName + " 임시 파일 저장에 실패했습니다.", ex);
         }
+    }
+
+    /**
+     * 임시 저장소에 있는 파일을 영구 저장소로 이동시킵니다.
+     * @param storedFileName 임시 저장소에 있는 파일명
+     * @param permanentSubPath 영구 저장소의 하위 경로 (예: "posts/123")
+     * @return 영구 저장소의 상대 경로를 포함한 파일명
+     */
+    public String moveToPermanentStorage(String storedFileName, String permanentSubPath) throws IOException {
+        Path sourcePath = this.tempFileStorageLocation.resolve(storedFileName);
+
+        if (!Files.exists(sourcePath)) {
+            // 파일이 임시 저장소에 없으면 예외 처리
+            throw new IOException("임시 파일을 찾을 수 없습니다: " + storedFileName);
+        }
+
+        // 영구 저장 경로 생성 (예: C:/bons/BonsCore/uploads/posts/123)
+        Path permanentDir = this.fileStorageLocation.resolve(permanentSubPath);
+        Files.createDirectories(permanentDir);
+        Path destinationPath = permanentDir.resolve(storedFileName);
+
+        // 파일 이동
+        Files.move(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
+
+        // 최종적으로 저장된 상대 경로 반환 (예: posts/123/uuid-filename.jpg)
+        return Paths.get(permanentSubPath).resolve(storedFileName).toString().replace("\\", "/");
+    }
+
+    /**
+     * 원본 파일명을 기반으로 고유한 저장용 파일명을 생성합니다.
+     */
+    private String createStoredFileName(String originalFileName) {
+        String cleanFileName = StringUtils.cleanPath(originalFileName);
+        validateFileExtension(cleanFileName);
+        String fileExtension = cleanFileName.substring(cleanFileName.lastIndexOf("."));
+        return UUID.randomUUID().toString() + fileExtension;
     }
 
     /**
@@ -129,10 +159,19 @@ public class FileStorageService {
     /**
      * 서버에 저장된 파일 이름을 받아 다운로드 가능한 전체 URI를 생성하여 반환
      *
-     * @param fileName 서버에 저장된 파일 이름
+     * @param storedRelativePath 상대 경로
      * @return 파일에 접근할 수 있는 전체 URL
      */
-    public String getFileDownloadUri(String fileName) {
-        return this.fileDownloadUriPrefix + fileName;
+    public String getFileDownloadUri(String storedRelativePath) {
+        return this.fileDownloadUriPrefix + storedRelativePath;
+    }
+
+    /**
+     *
+     * @param tempFileName  파일명만
+     * @return
+     */
+    public String getTempFileDownloadUri(String tempFileName) {
+        return this.tempFileDownloadUriPrefix + tempFileName;
     }
 }

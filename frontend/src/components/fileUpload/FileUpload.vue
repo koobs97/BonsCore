@@ -94,6 +94,7 @@ interface Props {
   allowedExtensions?: string[];
   initialFiles?: any[];
 }
+
 const props = withDefaults(defineProps<Props>(), {
   uploadUrl: 'http://localhost:8080/api/files/upload',
   limit: 10,
@@ -120,6 +121,24 @@ const emit = defineEmits<{
 // --- Refs & Computed ---
 const uploadRef = ref<UploadInstance>();
 const fileList = ref<UploadUserFile[]>([]);
+
+// FileUpload.vue에서 반환하는 파일 정보 타입 (FileResponse와 동일)
+interface UploadedFileResponse {
+  originalFileName: string;
+  storedFileName: string; // 임시 저장된 파일명 (예: 'uuid-1234.jpg')
+  fileDownloadUri: string;
+  size: number;
+}
+
+// 서버의 GourmetImageDto와 형식을 맞춘 타입
+interface GourmetImage {
+  imageId: number | null; // 새 이미지는 null
+  originalFileName: string;
+  storedFileName: string;
+  imageUrl: string;
+  fileSize: number;
+  imageOrder: number;
+}
 
 watch(() => props.initialFiles, (newFiles) => {
   if (newFiles && newFiles.length > 0 && fileList.value.length === 0) {

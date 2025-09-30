@@ -52,7 +52,7 @@ api:
 
 logging:
   level:
-    root: INFO
+    root: DEBUG
     org.springframework.web: INFO
     com:
       koo:

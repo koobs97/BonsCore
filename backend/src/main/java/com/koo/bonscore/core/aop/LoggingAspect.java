@@ -29,7 +29,7 @@ public class LoggingAspect {
     /**
      * @Pointcut: @Service 애노테이션이 붙은 클래스 내부의 모든 메서드에 대해 포인트컷 설정
      */
-    @Pointcut("within(@org.springframework.stereotype.Service *) && !execution(* com.koo.bonscore.common.file.service.FileStorageService.storeFile(..))")
+    @Pointcut("within(@org.springframework.stereotype.Service *) && !execution(* com.koo.bonscore.common.file.service.FileStorageService.*(..))")
     public void serviceMethods() {}
 
     /**

@@ -9,6 +9,24 @@ import {ApiUrls} from "@/api/apiUrls";
 import { userStore } from "@/store/userStore";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 
+// FileUpload.vue에서 반환하는 파일 정보 타입 (FileResponse와 동일)
+interface UploadedFileResponse {
+  originalFileName: string;
+  storedFileName: string; // 임시 저장된 파일명 (예: 'uuid-1234.jpg')
+  fileDownloadUri: string;
+  size: number;
+}
+
+// 서버의 GourmetImageDto와 형식을 맞춘 타입
+interface GourmetImage {
+  imageId: number | null; // 새 이미지는 null
+  originalFileName: string;
+  storedFileName: string;
+  imageUrl: string;
+  fileSize: number;
+  imageOrder: number;
+}
+
 const userStoreObj = userStore();
 
 const props = defineProps({
@@ -26,15 +44,33 @@ const formData = ref({ ...props.initialData });
 const isSubmitting = ref(false);
 const isUploading = ref(false);
 
-watch(() => props.initialData, (newData) => {
-  const formattedData = { ...newData };
-  if (formattedData.visitDate && typeof formattedData.visitDate === 'string') {
-    formattedData.visitDate = formattedData.visitDate.split('T')[0];
+watch(() => props.visible, (isVisible) => {
+  if (isVisible) {
+    // initialData를 기반으로 formData를 설정합니다.
+    const newData = props.initialData;
+
+    formData.value.id = newData.id || null;
+    formData.value.name = newData.name || '';
+    formData.value.category = newData.category || '';
+    formData.value.rating = newData.rating || 0;
+    formData.value.memo = newData.memo || '';
+    formData.value.referenceUrl = newData.referenceUrl || '';
+
+    if (newData.visitDate && typeof newData.visitDate === 'string') {
+      formData.value.visitDate = newData.visitDate.split('T')[0];
+    } else {
+      formData.value.visitDate = new Date().toISOString().split('T')[0];
+    }
+
+    // images 배열은 항상 새로 할당하여 이전 상태가 남지 않도록 합니다.
+    formData.value.images = newData.images ? [...newData.images] : [];
+
+    // 폼 유효성 검사 상태를 초기화합니다.
+    nextTick(() => {
+      formRef.value?.clearValidate();
+    });
   }
-  formattedData.images = formattedData.images || [];
-  formData.value = formattedData;
-  nextTick(() => { formRef.value?.clearValidate(); });
-}, { deep: true });
+}, { deep: true, immediate: true });
 
 const rules: FormRules = {
   name: [{ required: true, message: '가게 이름을 입력해주세요.', trigger: 'blur' }],
@@ -82,16 +118,23 @@ const uploadFile = async (file: File) => {
     const response = await Api.post(uploadUrl, uploadData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    const newImage = response.data;
-    formData.value.images.push({
+    const newImage = response.data; // 서버로부터 받은 FileResponse 객체
+
+    const imageObjectToAdd: GourmetImage = {
+      imageId: null, // 새 이미지이므로 ID는 null
       originalFileName: newImage.originalFileName,
       storedFileName: newImage.storedFileName,
       imageUrl: newImage.imageUrl || newImage.fileDownloadUri,
       fileSize: newImage.size || newImage.fileSize,
-    });
+      imageOrder: formData.value.images.length, // 현재 배열 길이를 순서로 사용
+    };
+
+    formData.value.images.push(imageObjectToAdd);
+
+    console.log(formData.value)
+
   } catch (error) {
     console.error(`File upload failed for ${file.name}:`, error);
-    ElMessage.error(`'${file.name}' 이미지 업로드에 실패했습니다.`);
   }
 };
 
@@ -119,11 +162,13 @@ const handleSubmit = async () => {
           memo: formData.value.memo,
           referenceUrl: formData.value.referenceUrl,
           userId: userStoreObj.getUserInfo.userId,
-          images: formData.value.images.map(image => ({
+          images: formData.value.images.map((image, index) => ({
+            imageId: image.imageId || null, // 기존 이미지의 ID를 전달
             originalFileName: image.originalFileName,
             storedFileName: image.storedFileName,
             imageUrl: image.imageUrl,
             fileSize: image.fileSize,
+            imageOrder: index, // 순서 정보도 함께 전달
           })),
         };
         await Api.post(ApiUrls.CREATE_GOURMET_RECORD, finalPayload);

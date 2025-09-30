@@ -25,3 +25,7 @@ file:
   # 클라이언트가 파일에 접근할 때 사용할 URL 경로
   resource-url-prefix: /images/
   download-uri-prefix: http://localhost:8080/images/
+  # 임시 파일이 저장될 경로
+  upload-dir-temp: C:/bons/BonsCore/uploads/temp
+  temp-resource-url-prefix: /images/temp/
+  temp-download-uri-prefix: http://localhost:8080/images/temp/
