@@ -8,6 +8,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
@@ -108,6 +109,32 @@ public class EncryptionService {
             return sb.toString();
         } catch (Exception e) {
             throw new RuntimeException("데이터 해싱 중 오류 발생", e);
+        }
+    }
+
+    /**
+     * 파라미터를 SHA-256으로 해싱
+     * @param param`
+     * @return 해싱된 문자열
+     */
+    public String hashString(String param) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(param.getBytes(StandardCharsets.UTF_8));
+
+            // 바이트 배열을 16진수 문자열로 변환
+            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // 이 예외는 발생해서는 안 됩니다. SHA-256은 표준 알고리즘입니다.
+            throw new RuntimeException("SHA-256 알고리즘을 찾을 수 없습니다.", e);
         }
     }
 }

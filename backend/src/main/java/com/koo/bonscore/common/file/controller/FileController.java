@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,11 +26,11 @@ public class FileController {
     private static final Logger logger = LoggerFactory.getLogger(FileController.class);
 
     @PostMapping("/upload")
-    public FileResponse uploadFile(@RequestParam("file") MultipartFile file) {
+    public FileResponse uploadFile(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal UserDetails userDetail) {
         try {
             String originalFileName = file.getOriginalFilename();
             // 1. 파일을 '임시' 저장소에 저장합니다.
-            String storedFileName = fileStorageService.storeTempFile(file.getInputStream(), originalFileName);
+            String storedFileName = fileStorageService.storeTempFile(file.getInputStream(), originalFileName, userDetail.getUsername());
 
             // 2. 임시 파일에 접근할 필요는 없으므로, 다운로드 URI 대신 저장된 파일명만 응답해줘도 충분합니다.
             //    하지만 기존 DTO를 활용하기 위해 URI를 생성해서 보냅니다.

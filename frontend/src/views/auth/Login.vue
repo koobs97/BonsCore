@@ -9,14 +9,14 @@
  * 작성일자 : 2025-01-30
  * ========================================
  */
-import { Hide, View } from "@element-plus/icons-vue";
-import { computed, reactive, ref, onMounted, h, nextTick } from 'vue';
-import { Api } from "@/api/axiosInstance";
-import { ApiUrls } from "@/api/apiUrls";
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Common } from '@/common/common';
-import { useRouter } from 'vue-router';
-import { userStore, userState } from '@/store/userStore';
+import {Hide, Monitor, View, ZoomIn} from "@element-plus/icons-vue";
+import {computed, h, nextTick, onMounted, reactive, ref} from 'vue';
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import {ElIcon, ElMessage, ElMessageBox} from 'element-plus';
+import {Common} from '@/common/common';
+import {useRouter} from 'vue-router';
+import {userState, userStore} from '@/store/userStore';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
 
 // router
@@ -82,6 +82,9 @@ onMounted(async () => {
   resetState();
 })
 
+/**
+ * 화면상태 세팅
+ */
 const resetState = () => {
   state.isVisible = false;
   state.isProcessing = false;
@@ -143,8 +146,8 @@ const onClickLogin = async (isForced: boolean) => {
 
     // 서버에서 공개키 get
     const encryptedPassword = await Common.encryptPassword(password.value);
-
     state.isProcessing = true;
+
     try {
       const res = await Api.post(ApiUrls.LOGIN, { userId : userId.value, password : encryptedPassword, force: isForced });
       if(res.data.success) {
@@ -165,6 +168,9 @@ const onClickLogin = async (isForced: boolean) => {
         } else {
           sessionStorage.removeItem('userId');
         }
+
+        // 사용자가 등록했던 임시파일 초기화
+        await Api.post(ApiUrls.CLEAR_TEMP_FILE, {});
 
         // main 화면 진입
         await router.push("/");
@@ -214,9 +220,7 @@ const onClickLogin = async (isForced: boolean) => {
     } finally {
       state.isProcessing = false;
     }
-
   }
-
 }
 
 /**
@@ -226,7 +230,34 @@ const onClickLogin = async (isForced: boolean) => {
 const onClickToGoPage = (param: string) => {
   router.push("/" + param);
 }
-
+const showResolutionInfo = () => {
+  ElMessageBox.alert(
+      // h() 함수를 사용하여 아이콘과 텍스트가 포함된 복잡한 구조를 생성
+      h('div', { class: 'resolution-info-content' }, [
+        h('div', { class: 'info-item' }, [
+          h(ElIcon, { class: 'info-icon', size: 20 }, () => h(Monitor)), // 모니터 아이콘
+          h('div', { class: 'info-text' }, [
+            h('span', { class: 'info-label' }, '최적 해상도'),
+            h('span', { class: 'info-value' }, '1920 x 1080'),
+          ]),
+        ]),
+        h('div', { class: 'info-item' }, [
+          h(ElIcon, { class: 'info-icon', size: 20 }, () => h(ZoomIn)), // 돋보기(배율) 아이콘
+          h('div', { class: 'info-text' }, [
+            h('span', { class: 'info-label' }, '브라우저 배율'),
+            h('span', { class: 'info-value' }, '125%'),
+          ]),
+        ]),
+      ]),
+      '권장 사용 환경', // Title
+      {
+        confirmButtonText: '확인',
+        center: true,
+        customClass: 'resolution-info-box', // 커스텀 스타일 클래스,
+        showClose: false,
+      }
+  )
+}
 </script>
 
 <template>
@@ -264,6 +295,13 @@ const onClickToGoPage = (param: string) => {
           </template>
         </el-input>
 
+        <div class="extra-info-links">
+          <el-button type="info" link @click="showResolutionInfo">
+            <el-icon style="margin-right: 4px;"><QuestionFilled /></el-icon>
+            권장 사용 환경
+          </el-button>
+        </div>
+
         <div class="caps-lock-placeholder">
           <!-- isCapsLockOn 상태에 따라 'visible' 클래스를 동적으로 제어. -->
           <span :class="['caps-lock-warning', { 'visible': isCapsLockOn }]">
@@ -280,10 +318,13 @@ const onClickToGoPage = (param: string) => {
         </el-button>
       </el-form>
 
+
+
       <div class="find-links">
         <el-button type="info" link @click="onClickToGoPage('FindId')">아이디 찾기</el-button>
         <el-divider direction="vertical" />
         <el-button type="info" link @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
+
       </div>
     </el-card>
 
@@ -330,7 +371,7 @@ const onClickToGoPage = (param: string) => {
 .login-input {
   height: 45px;
   font-size: 15px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 /* Element Plus의 내부 스타일을 덮어쓰기 위해 더 구체적인 선택자 사용 */
 .login-input :deep(.el-input__inner) {
@@ -382,6 +423,17 @@ const onClickToGoPage = (param: string) => {
   opacity: 1;
   visibility: visible;
 }
+.extra-info-links {
+  margin-top: 0;
+  margin-bottom: 12px;
+  text-align: right;
+}
+
+.extra-info-links .el-button {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  outline: none;
+}
 </style>
 <style>
 html.dark .el-checkbox__input.is-checked .el-checkbox__inner {
@@ -396,5 +448,88 @@ html.dark .el-checkbox__input.is-checked .el-checkbox__inner::after {
 /* 3. (선택) 체크되지 않은 박스의 테두리 색상도 명확하게 지정 */
 html.dark .el-checkbox__input .el-checkbox__inner {
   border-color: var(--el-border-color-light) !important;
+}
+.resolution-info-box .el-message-box__header {
+  margin-bottom: 20px; /* 제목과 내용 사이 간격 */
+}
+
+.resolution-info-content {
+  color: var(--el-text-color-regular);
+  text-align: left;
+  line-height: 1.7;
+}
+
+.resolution-info-content p {
+  margin-bottom: 12px;
+}
+
+.resolution-info-content ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.resolution-info-content li {
+  margin-bottom: 5px;
+}
+.resolution-info-box {
+  --el-messagebox-width: 420px; /* 다이얼로그 너비 조정 */
+  border-radius: 12px !important; /* 모서리를 더 둥글게 */
+}
+
+.resolution-info-box .el-message-box__header {
+  margin-bottom: 24px; /* 제목과 내용 사이 간격 확보 */
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-light); /* 제목 아래 구분선 추가 */
+}
+
+.resolution-info-box .el-message-box__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.resolution-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* 각 정보 항목 사이의 수직 간격 */
+  color: var(--el-text-color-regular);
+}
+
+.info-item {
+  display: flex;
+  align-items: center; /* 아이콘과 텍스트를 수직 중앙 정렬 */
+  gap: 16px; /* 아이콘과 텍스트 사이의 간격 */
+}
+
+.info-item .info-icon {
+  color: var(--el-color-primary); /* 아이콘 색상 */
+  background-color: var(--el-color-primary-light-9); /* 아이콘 배경색 */
+  padding: 8px;
+  border-radius: 50%; /* 원형 배경 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.info-label {
+  font-size: 14px;
+  color: var(--el-text-color-secondary); /* 레이블 색상을 약간 연하게 */
+  margin-bottom: 2px;
+}
+
+.info-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--el-text-color-primary); /* 값을 더 강조 */
+}
+
+.resolution-info-box .el-message-box__btns {
+  margin-top: 24px; /* 내용과 버튼 사이 간격 */
 }
 </style>

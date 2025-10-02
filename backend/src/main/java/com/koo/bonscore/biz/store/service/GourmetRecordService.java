@@ -109,9 +109,9 @@ public class GourmetRecordService {
      * @return List<GourmetRecordDto>
      */
     @Transactional(readOnly = true)
-    public List<GourmetRecordDto> getGourmetRecords(GourmetRecordCreateRequest request) {
+    public List<GourmetRecordDto> getGourmetRecords(String userId) {
 
-        List<GourmetRecordDto> records = gourmetRecordMapper.selectGourmetRecordsByUserId(request.getUserId());
+        List<GourmetRecordDto> records = gourmetRecordMapper.selectGourmetRecordsByUserId(userId);
 
         // 2. 조회된 데이터의 이미지 URL을 완성된 형태로 가공합니다.
         records.forEach(record -> {

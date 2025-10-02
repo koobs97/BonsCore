@@ -16,33 +16,34 @@ export enum ApiUrls {
     // users
     GET_USER = '/api/users/me',
 
+    // authorization
     GET_MENUS = '/api/authorization/getMenus',
     GET_ACTIVITY = '/api/authorization/geActivityCds',
     GET_LOGS = '/api/authorization/getLogs',
+    UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
+    VALIDATE_PASSWORD = '/api/authorization/validatePassword',
+    UPDATE_PASSWORD_AF_LOGIN = '/api/authorization/updatePassword',
 
-    // biz
-    PAGING = '/api/sample/paging',
-    MASKING = '/api/sample/masking',
-    TABLE_TEST = '/api/sample/tableTest',
-
+    // analysis
     RANDOM_RECOMMENDATIONS = '/api/analysis/random-recommendations',
-
-    //naver api
     NAVER_STORE_SEARCH = '/api/analysis/stores',
     NAVER_BLOG_SEARCH = '/api/analysis/details',
-
     WEATHER_SEARCH = '/api/analysis/weather',
     HOLIDAY_INFO = '/api/analysis/holiday-status',
     SEARCH_TREND = '/api/analysis/search-trend',
     OPENING_INFO = '/api/analysis/openingInfo',
     SURROUNDING_INFO = '/api/analysis/surroundings',
 
-    FILE_UPLOAD = '/api/files/upload',
+    // store
     CREATE_GOURMET_RECORD = '/api/gourmet-records/write',
     GET_GOURMET_RECORDS = '/api/gourmet-records/read',
+    CLEAR_TEMP_FILE = '/api/gourmet-records/delete',
 
-    UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
-    VALIDATE_PASSWORD = '/api/authorization/validatePassword',
-    UPDATE_PASSWORD_AF_LOGIN = '/api/authorization/updatePassword'
+    // files
+    FILE_UPLOAD = '/api/files/upload',
 
+    // sample
+    PAGING = '/api/sample/paging',
+    MASKING = '/api/sample/masking',
+    TABLE_TEST = '/api/sample/tableTest',
 }
