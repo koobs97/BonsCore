@@ -3,8 +3,10 @@ package com.koo.bonscore.biz.authorization.mapper;
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
 import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
+import com.koo.bonscore.biz.authorization.dto.req.UserReqDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
+import com.koo.bonscore.biz.authorization.dto.res.UserResDto;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -28,6 +30,13 @@ public interface AuthorizationMapper {
      * @return
      */
     List<MenuByRoleDto> getMenuByRole(AuthorizationDto userId);
+
+    /**
+     * 사용자 관리 정보 조회
+     * @param userReqDto 검색조건
+     * @return 사용자 정보 리스트
+     */
+    List<UserResDto> getUserInfos(UserReqDto userReqDto);
 
     /**
      * 활동 유형 조회

@@ -4,8 +4,15 @@
     <!-- 검색 패널 -->
     <el-card class="search-panel" shadow="never">
       <el-form :model="searchParams" size="small" inline style="text-align: left; background-color: var(--el-bg-color);">
-        <div>
-          <el-tag type="info" size="small" style="margin-right: 190px;">사용자 활동 로그</el-tag>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <el-tag type="info" size="small">사용자 활동 로그</el-tag>
+          <div>
+            <el-button type="primary" :icon="Search" @click="onSearch" size="small" style="color: var(--el-bg-color);">조회</el-button>
+            <el-button :icon="Refresh" @click="onReset" size="small">초기화</el-button>
+            <el-button :icon="FullScreen" @click="openFullScreenGrid" size="small">크게 보기</el-button>
+          </div>
+        </div>
+        <el-card shadow="never" style="margin-top: 4px; padding: 4px 4px 0 4px;">
           <el-form-item>
             <el-date-picker
                 v-model="searchParams.dateRange"
@@ -16,41 +23,27 @@
                 format="YYYY-MM-DD"
                 value-format="YYYYMMDD"
                 :size="'small'"
-                style="width: 218px"
+                style="width: 218px; margin-right: 4px;"
             />
+            <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px; margin-right: 4px;" />
+            <el-select v-model="searchParams.activityType" placeholder="활동 유형" clearable style="width: 110px; margin-right: 4px;">
+              <el-option
+                  v-for="item in activityTypeList"
+                  :key="item.activityType"
+                  :label="item.activityType"
+                  :value="item.activityType"
+              />
+            </el-select>
+            <el-select v-model="searchParams.activityResult" placeholder="결과" clearable style="width: 90px;">
+              <el-option
+                  v-for="item in activityResultList"
+                  :key="item.activityResult"
+                  :label="item.activityResult"
+                  :value="item.activityResult"
+              />
+            </el-select>
           </el-form-item>
-          <el-form-item>
-            <div class="search-buttons">
-              <el-button type="primary" :icon="Search" @click="onSearch" size="small" style="color: var(--el-bg-color);">조회</el-button>
-              <el-button :icon="Refresh" @click="onReset" size="small">초기화</el-button>
-              <el-button :icon="FullScreen" @click="openFullScreenGrid" size="small">크게 보기</el-button>
-            </div>
-          </el-form-item>
-        </div>
-        <el-form-item>
-          <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 120px; margin-left: 289px;" />
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="searchParams.activityType" placeholder="활동 유형" clearable style="width: 110px">
-            <el-option
-                v-for="item in activityTypeList"
-                :key="item.activityType"
-                :label="item.activityType"
-                :value="item.activityType"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="searchParams.activityResult" placeholder="결과" clearable style="width: 90px">
-            <el-option
-                v-for="item in activityResultList"
-                :key="item.activityResult"
-                :label="item.activityResult"
-                :value="item.activityResult"
-            />
-          </el-select>
-        </el-form-item>
-
+        </el-card>
       </el-form>
     </el-card>
 

@@ -79,6 +79,7 @@ public class MaskingSerializer extends JsonSerializer<String> implements Context
             case ID -> MaskingUtil.maskId(value);
             case NAME -> MaskingUtil.maskName(value);
             case EMAIL -> MaskingUtil.maskEmail(value);
+            case PHONE -> MaskingUtil.maskPhone(value);
             default -> value;
         };
         gen.writeString(masked);

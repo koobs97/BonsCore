@@ -4,9 +4,11 @@ import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
 import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
+import com.koo.bonscore.biz.authorization.dto.req.UserReqDto;
 import com.koo.bonscore.biz.authorization.dto.res.ActivityResponseDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
+import com.koo.bonscore.biz.authorization.dto.res.UserResDto;
 import com.koo.bonscore.biz.authorization.service.AuthorizationService;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
@@ -50,6 +52,26 @@ public class AuthorizationController {
     public List<MenuByRoleDto> getMenus(@RequestBody AuthorizationDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             return authorizationService.getMenuByRole(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
+
+    /**
+     * 사용자 관리 사용자 정보 조회
+     * @param request UserReqDto
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @throws Exception e
+     * @return 사용자 리스트
+     */
+    @UserActivityLog(activityType = "GET_USER_INFOS")
+    @PostMapping("/getUserInfos")
+    public List<UserResDto> getUserInfos(@RequestBody UserReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            return authorizationService.getUserInfos(request);
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());

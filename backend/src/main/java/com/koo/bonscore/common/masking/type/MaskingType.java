@@ -11,5 +11,5 @@ package com.koo.bonscore.common.masking.type;
  * @since   : 2025-05-30
  */
 public enum MaskingType {
-    ID, NAME, EMAIL
+    ID, NAME, EMAIL, PHONE,
 }

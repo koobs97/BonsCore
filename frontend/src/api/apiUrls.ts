@@ -18,6 +18,7 @@ export enum ApiUrls {
 
     // authorization
     GET_MENUS = '/api/authorization/getMenus',
+    GET_USER_INFOS = '/api/authorization/getUserInfos',
     GET_ACTIVITY = '/api/authorization/geActivityCds',
     GET_LOGS = '/api/authorization/getLogs',
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',

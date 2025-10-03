@@ -5,9 +5,11 @@ import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
 import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
+import com.koo.bonscore.biz.authorization.dto.req.UserReqDto;
 import com.koo.bonscore.biz.authorization.dto.res.ActivityResponseDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
+import com.koo.bonscore.biz.authorization.dto.res.UserResDto;
 import com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <pre>
@@ -36,7 +39,6 @@ import java.util.List;
 public class AuthorizationService {
 
     private final AuthorizationMapper authorizationMapper;
-
     private final RSAController rsaController;
     private final EncryptionService encryptionService;
     private final BCryptPasswordEncoder passwordEncoder; // SecurityConfig에서 bean 생성
@@ -46,9 +48,26 @@ public class AuthorizationService {
      * @param request AuthorizationDto
      * @return List<MenuByRoleDto>
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public List<MenuByRoleDto> getMenuByRole(AuthorizationDto request) {
         return authorizationMapper.getMenuByRole(request);
+    }
+
+    /**
+     * 사용자 관리 정보 조회
+     * @param request 검색조건
+     * @return List<UserResDto> 사용자 정보 리스트
+     */
+    @Transactional(readOnly = true)
+    public List<UserResDto> getUserInfos(UserReqDto request) {
+        return authorizationMapper.getUserInfos(request)
+                .stream()
+                .peek(item -> {
+                    item.setUserName(encryptionService.decrypt(item.getUserName()));
+                    item.setEmail(encryptionService.decrypt(item.getEmail()));
+                    item.setPhoneNumber(encryptionService.decrypt(item.getPhoneNumber()));
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -57,7 +76,7 @@ public class AuthorizationService {
      * @param request LogReqDto
      * @return ActivityResponseDto
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public ActivityResponseDto getActivityCd(LogReqDto request) {
         return ActivityResponseDto.builder()
                 .activityTypeList(authorizationMapper.getActivityType(request))
