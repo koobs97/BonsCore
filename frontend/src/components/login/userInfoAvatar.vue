@@ -8,6 +8,8 @@ import UserEditForm from '@/components/login/UserEditForm.vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import router from "../../../router";
+import WithdrawConfirm from "@/components/MessageBox/WithdrawConfirm.vue";
+import FinalConfirm from "@/components/MessageBox/FinalConfirm.vue";
 
 const userStoreObj = userStore();
 
@@ -93,7 +95,7 @@ const onClickLogOut = async () => {
           cancelButtonText: '취소',
 
           // --- 스타일링을 위한 옵션 ---
-          customClass: 'logout-confirm-box', // CSS에서 사용할 클래스
+          customClass: 'logout-confirm-box',
           type: '', // 기본 아이콘 숨기기
           showClose: false, // X 닫기 버튼 숨기기
         }
@@ -131,6 +133,97 @@ const onClickLogOut = async () => {
 }
 
 /**
+ * 회원탈퇴
+ */
+const onClickWithdraw = async () => {
+  let inputText = '';
+
+  try {
+    await ElMessageBox.confirm(
+        h(WithdrawConfirm, {
+          'onUpdate:text': (value) => { inputText = value; }
+        }),
+        {
+          confirmButtonText: '회원탈퇴',
+          cancelButtonText: '취소',
+          customClass: 'withdraw-confirm-box',
+          showClose: false,
+          type: '',
+
+          beforeClose: async (action, instance, done) => {
+            // '취소' 버튼을 누르면 즉시 닫습니다.
+            if (action !== 'confirm') {
+              done();
+              return;
+            }
+
+            // '회원탈퇴' 버튼을 눌렀을 때, 먼저 입력값 검증
+            if (inputText !== '회원탈퇴') {
+              ElMessage({
+                message: '문자를 정확히 입력해주세요.',
+                grouping: true,
+                type: 'error',
+              });
+              return;
+            }
+
+            // 중복 클릭을 방지
+            instance.confirmButtonLoading = true;
+            instance.confirmButtonText = '처리 중...';
+
+            try {
+              await ElMessageBox.confirm(
+                  h(FinalConfirm),
+                  {
+                    confirmButtonText: '확인',
+                    cancelButtonText: '취소',
+                    type: '',
+                    customClass: 'final-confirm-box'
+                  }
+              );
+
+              done();
+
+            } catch (err) { } // 사용자가 '취소'를 누른 경우
+            finally {
+              instance.confirmButtonLoading = false;
+              instance.confirmButtonText = '회원탈퇴';
+            }
+          },
+        }
+    );
+
+    // 위 로직이 모두 성공적으로 끝나고 done()이 호출되었을 때만
+    // 아래의 실제 탈퇴 처리가 시작.
+    const loading = ElLoading.service({
+      lock: true,
+      text: '회원탈퇴 처리 중...',
+      background: 'rgba(0, 0, 0, 0.7)',
+    });
+
+    await Api.post(ApiUrls.WITHDRAWN, {}, true);
+
+    setTimeout(() => {
+      userStore().delUserInfo();
+      sessionStorage.clear();
+      localStorage.clear();
+      router.push("/login");
+      ElMessage.success('회원탈퇴가 성공적으로 처리되었습니다.');
+      loading.close();
+    }, 1000);
+
+  } catch (error) {
+    // 사용자가 첫 번째 창에서 '취소'를 누른 경우
+    if (error === 'cancel') { }
+    else {
+      // API 호출 실패 등 다른 에러 처리
+      const loading = ElLoading.service();
+      if (loading) loading.close();
+    }
+  }
+}
+
+/**
  * 이메일 복사 함수
  * @param email
  */
@@ -152,9 +245,8 @@ const copyEmail = (email: string) => {
       <div style="height: 60px; display: flex; align-items: center;">
         <div style="display: flex; justify-content: flex-start; padding: 0 0 0 8px;">
 
-
           <el-popover
-              :width="300"
+              :width="338"
               v-model:visible="buttonRef"
               trigger="manual"
               placement="right-start"
@@ -309,6 +401,14 @@ const copyEmail = (email: string) => {
                         style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
                         @click="onClickLogOut"
                     >로그아웃</el-button>
+                    <el-button
+                        type="danger"
+                        icon="Delete"
+                        style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
+                        @click="onClickWithdraw"
+                    >
+                      회원탈퇴
+                    </el-button>
                   </div>
                 </div>
               </template>
@@ -344,4 +444,21 @@ const copyEmail = (email: string) => {
   transition: var(--el-transition-duration);
 }
 
+</style>
+<style>
+.withdraw-confirm-box.el-message-box {
+  width: 570px !important;
+  padding: 20px;
+  border-radius: 4px;
+}
+
+/* 커스텀 컴포넌트에 자체 헤더가 있으므로 기본 헤더는 숨김 */
+.withdraw-confirm-box .el-message-box__header {
+  display: none;
+}
+
+/* 컨텐츠 영역의 불필요한 패딩 제거 */
+.withdraw-confirm-box .el-message-box__content {
+  padding: 0;
+}
 </style>

@@ -50,7 +50,9 @@ public class WebConfig implements WebMvcConfigurer {
 
         // 2. UserActivityLogInterceptor: '/api/auth/**' 경로에만 적용
         registry.addInterceptor(userActivityLogInterceptor)
-                .addPathPatterns("/api/auth/**");
+                .addPathPatterns("/api/auth/**")
+                .addPathPatterns("/api/authorization/**")
+                .addPathPatterns("/api/store/**");
     }
 
     /**

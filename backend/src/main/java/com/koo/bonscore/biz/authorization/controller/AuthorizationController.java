@@ -16,6 +16,8 @@ import com.koo.bonscore.log.annotaion.UserActivityLog;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,7 +49,7 @@ public class AuthorizationController {
      * @throws Exception e
      * @return 메뉴 리스트
      */
-    @UserActivityLog(activityType = "GET_MENUS", userIdField = "#request.userId")
+    @UserActivityLog(activityType = "GET_MENUS")
     @PostMapping("/getMenus")
     public List<MenuByRoleDto> getMenus(@RequestBody AuthorizationDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
@@ -106,7 +108,7 @@ public class AuthorizationController {
      * @throws Exception e
      * @return 로그리스트
      */
-    @UserActivityLog(activityType = "GET_LOGS", userIdField = "#request.userId")
+    @UserActivityLog(activityType = "GET_LOGS")
     @PostMapping("/getLogs")
     public List<LogResDto> getLogs(@RequestBody LogReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
@@ -125,7 +127,7 @@ public class AuthorizationController {
      * @param httpResponse HttpServletResponse
      * @throws Exception e
      */
-    @UserActivityLog(activityType = "UPDATE_USER", userIdField = "#request.userId")
+    @UserActivityLog(activityType = "UPDATE_USER")
     @PostMapping("/updateUserInfo")
     public void updateUserInfo(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
@@ -146,7 +148,7 @@ public class AuthorizationController {
      * @return Boolean result
      * @throws Exception e
      */
-    @UserActivityLog(activityType = "VALIDATE_PASSWORD", userIdField = "#request.userId")
+    @UserActivityLog(activityType = "VALIDATE_PASSWORD")
     @PostMapping("/validatePassword")
     public boolean validatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
@@ -166,11 +168,30 @@ public class AuthorizationController {
      * @param httpResponse HttpServletResponse
      * @throws Exception e
      */
-    @UserActivityLog(activityType = "UPDATE_PASSWORD_AF_LOGIN", userIdField = "#request.userId")
+    @UserActivityLog(activityType = "UPDATE_PASSWORD_AF_LOGIN")
     @PostMapping("/updatePassword")
     public void updatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             authorizationService.updatePassword(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
+
+    /**
+     * 회원탈퇴
+     * @param userDetail Security 유저정보
+     * @param httpRequest HttpServletRequest
+     * @param httpResponse HttpServletResponse
+     * @throws Exception e
+     */
+    @UserActivityLog(activityType = "UPDATE_WITHDRAWN")
+    @PostMapping("/updateWithdrawn")
+    public void updateWithdrawn(@AuthenticationPrincipal UserDetails userDetail, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+        try {
+            authorizationService.updateWithdrawn(userDetail.getUsername());
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());

@@ -60,7 +60,7 @@ public class EncryptionService {
      * @return 원본 데이터
      */
     public String decrypt(String encryptedData) {
-        if (encryptedData == null) return null;
+        if (encryptedData == null || encryptedData.trim().isEmpty()) return null;
         try {
             byte[] decodedData = Base64.getDecoder().decode(encryptedData);
             ByteBuffer byteBuffer = ByteBuffer.wrap(decodedData);

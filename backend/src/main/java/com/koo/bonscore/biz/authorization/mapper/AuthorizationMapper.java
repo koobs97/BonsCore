@@ -26,8 +26,8 @@ public interface AuthorizationMapper {
 
     /**
      * 권한에 따른 메뉴 조회
-     * @param userId
-     * @return
+     * @param userId AuthorizationDto
+     * @return List<MenuByRoleDto>
      */
     List<MenuByRoleDto> getMenuByRole(AuthorizationDto userId);
 
@@ -77,4 +77,10 @@ public interface AuthorizationMapper {
      * @param updateUserDto UpdateUserDto
      */
     void updatePassword(UpdateUserDto updateUserDto);
+
+    /**
+     * 회원 탈퇴
+     * @param updateUserDto UpdateUserDto
+     */
+    void updateWithdrawn(UpdateUserDto updateUserDto);
 }

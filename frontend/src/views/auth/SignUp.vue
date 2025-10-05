@@ -503,7 +503,7 @@ const onClickSignUp = async () => {
 
         await Api.post(ApiUrls.SIGN_UP, params);
 
-        ElLoading.service({
+        const loading = ElLoading.service({
           lock: true,
           text: 'Loading',
           background: 'rgba(0, 0, 0, 0.7)',
@@ -514,8 +514,8 @@ const onClickSignUp = async () => {
           userStore().delUserInfo();
           sessionStorage.clear();
           router.push("/login");
+          loading.close();
         }, 1000);
-
       } catch (action) {
         if (action === 'cancel') {
           ElMessage.info('회원가입을 취소했습니다.');

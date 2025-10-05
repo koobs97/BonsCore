@@ -237,3 +237,11 @@ button:focus-visible {
   background-color: #f8f9fa !important;
 }
 
+.withdraw-confirm-box.el-message-box {
+  /* 원하는 너비로 수정하세요. !important는 충돌이 없다면 빼는 것이 좋습니다. */
+  width: 540px;
+  max-width: 540px; /* 화면이 작을 경우를 대비 */
+
+  padding: 25px 30px 20px;
+  border-radius: 12px;
+}

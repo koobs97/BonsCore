@@ -164,4 +164,20 @@ public class AuthorizationService {
         
         authorizationMapper.updatePassword(item);
     }
+
+    /**
+     * 회원탈퇴
+     * 개인 식별 정보(PII)는 즉시 NULL 값이나 빈 문자열로 변경하여 식별이 불가능하도록 처리
+     * @param userId 유저 id
+     * @throws Exception e
+     */
+    public void updateWithdrawn(String userId) throws Exception {
+
+        UpdateUserDto item = UpdateUserDto.builder()
+                .userId(userId)
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        authorizationMapper.updateWithdrawn(item);
+    }
 }

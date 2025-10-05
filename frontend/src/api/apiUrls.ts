@@ -24,6 +24,7 @@ export enum ApiUrls {
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
     VALIDATE_PASSWORD = '/api/authorization/validatePassword',
     UPDATE_PASSWORD_AF_LOGIN = '/api/authorization/updatePassword',
+    WITHDRAWN = '/api/authorization/updateWithdrawn',
 
     // analysis
     RANDOM_RECOMMENDATIONS = '/api/analysis/random-recommendations',
@@ -36,9 +37,9 @@ export enum ApiUrls {
     SURROUNDING_INFO = '/api/analysis/surroundings',
 
     // store
-    CREATE_GOURMET_RECORD = '/api/gourmet-records/write',
-    GET_GOURMET_RECORDS = '/api/gourmet-records/read',
-    CLEAR_TEMP_FILE = '/api/gourmet-records/delete',
+    CREATE_GOURMET_RECORD = '/api/store/write',
+    GET_GOURMET_RECORDS = '/api/store/read',
+    CLEAR_TEMP_FILE = '/api/store/delete',
 
     // files
     FILE_UPLOAD = '/api/files/upload',

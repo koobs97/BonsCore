@@ -4,14 +4,13 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus'
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-// 아이콘 import 추가
 import { User, Phone, Key, Message, Calendar, RefreshRight } from '@element-plus/icons-vue'
 import ChangePasswordDialog from "@/components/login/ChangePasswordDialog.vue";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 
 const changePasswordDialogVisible = ref(false);
 
-// --- Props & Emits (기존과 동일) ---
+// --- Props & Emits ---
 const props = defineProps({
   visible: { type: Boolean, required: true },
   userData: { type: Object, required: true }
