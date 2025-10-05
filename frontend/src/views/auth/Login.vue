@@ -437,20 +437,82 @@ const showResolutionInfo = () => {
 </style>
 <style>
 html.dark .el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: var(--el-color-primary) !important; /* 밝은 Primary 색상 */
-  border-color: var(--el-color-primary) !important;     /* 밝은 Primary 색상 */
+  background-color: var(--el-color-primary) !important;
+  border-color: var(--el-color-primary) !important;
 }
-/* 2. 체크 표시(V)의 색상 (border-color 사용) */
 html.dark .el-checkbox__input.is-checked .el-checkbox__inner::after {
-  /* ★★★ 핵심: 체크 표시의 테두리 색상을 어두운 색으로 강제 지정 */
   border-color: var(--el-bg-color-page) !important;
 }
-/* 3. (선택) 체크되지 않은 박스의 테두리 색상도 명확하게 지정 */
 html.dark .el-checkbox__input .el-checkbox__inner {
   border-color: var(--el-border-color-light) !important;
 }
+
+/* ------------------------------------ */
+/*       ✨ 권장 사용 환경 (최종 수정) ✨      */
+/* ------------------------------------ */
+
+/* 애니메이션 정의: 그라데이션 회전 */
+@keyframes rotating-gradient {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 1. 최상위 박스 (애니메이션의 기준틀 역할) */
+.resolution-info-box {
+  --el-messagebox-width: 420px;
+  border-radius: 12px !important;
+  position: relative;
+  overflow: hidden;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* 2. 회전하는 그라데이션 배경 (레이어 1) */
+.resolution-info-box::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+
+  /* 라이트 모드: 은은한 파스텔 톤 */
+  background: conic-gradient(from 0deg, #e0c3fc, #8ec5fc, #e0c3fc);
+  animation: rotating-gradient 4s linear infinite;
+}
+
+/* 3. 내부 배경색을 덮어 테두리 효과를 만드는 마스크 (레이어 2) */
+.resolution-info-box::after {
+  content: '';
+  position: absolute;
+  z-index: 2; /* 그라데이션 위에 위치 */
+  top: 2px; left: 2px; right: 2px; bottom: 2px; /* 2px 두께의 테두리 생성 */
+
+  background: var(--el-bg-color-overlay); /* 내부 배경색 */
+  border-radius: 8px; /* 외부보다 살짝 작은 둥근 모서리 */
+}
+
+/* 4. 실제 컨텐츠 (레이어 3) */
+/* 컨텐츠가 마스크 위에 보이도록 z-index를 설정 */
+.resolution-info-box .el-message-box__header,
+.resolution-info-box .el-message-box__content,
+.resolution-info-box .el-message-box__btns {
+  position: relative;
+  z-index: 3;
+  padding-bottom: 12px;
+}
+
 .resolution-info-box .el-message-box__header {
-  margin-bottom: 20px; /* 제목과 내용 사이 간격 */
+  margin-bottom: 6px; /* 제목과 내용 사이 간격 확보 */
+  padding: 16px 25px 12px;
+  border-bottom: 1px solid var(--el-border-color-light); /* 제목 아래 구분선 추가 */
+}
+.resolution-info-box .el-message-box__content {
+  padding: 24px 25px 0;
+}
+.resolution-info-box .el-message-box__title {
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .resolution-info-content {
@@ -474,13 +536,7 @@ html.dark .el-checkbox__input .el-checkbox__inner {
 }
 .resolution-info-box {
   --el-messagebox-width: 420px; /* 다이얼로그 너비 조정 */
-  border-radius: 12px !important; /* 모서리를 더 둥글게 */
-}
-
-.resolution-info-box .el-message-box__header {
-  margin-bottom: 24px; /* 제목과 내용 사이 간격 확보 */
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--el-border-color-light); /* 제목 아래 구분선 추가 */
+  border-radius: 8px !important; /* 모서리를 더 둥글게 */
 }
 
 .resolution-info-box .el-message-box__title {
@@ -503,7 +559,7 @@ html.dark .el-checkbox__input .el-checkbox__inner {
 
 .info-item .info-icon {
   color: var(--el-color-primary); /* 아이콘 색상 */
-  background-color: var(--el-color-primary-light-9); /* 아이콘 배경색 */
+  background-color: var(--el-bg-color-page); /* 아이콘 배경색 */
   padding: 8px;
   border-radius: 50%; /* 원형 배경 */
   display: flex;
