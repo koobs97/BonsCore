@@ -581,7 +581,7 @@ html.dark .el-checkbox__input .el-checkbox__inner {
 
 .info-value {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--el-text-color-primary); /* 값을 더 강조 */
 }
 
