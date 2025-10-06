@@ -1,5 +1,6 @@
 package com.koo.bonscore.biz.auth.mapper;
 
+import com.koo.bonscore.biz.auth.dto.LoginCheckDto;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
@@ -26,7 +27,7 @@ public interface AuthMapper {
      * @param loginDto
      * @return
      */
-    String login(LoginDto loginDto);
+    LoginCheckDto login(LoginDto loginDto);
 
     /**
      * 유저 id로 사용자 정보 조회
@@ -81,6 +82,13 @@ public interface AuthMapper {
      * @return
      */
     UserInfoSearchDto findUserById(UserInfoSearchDto userInfoSearchDto);
+
+    /**
+     * 사용자가 입력한 유저명, 이메일이 맞는지 조회
+     * @param userInfoSearchDto
+     * @return
+     */
+    UserInfoSearchDto findUserByNameMail(UserInfoSearchDto userInfoSearchDto);
 
     /**
      * 비밀번호 업데이트

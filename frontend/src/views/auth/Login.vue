@@ -9,15 +9,16 @@
  * 작성일자 : 2025-01-30
  * ========================================
  */
-import {Hide, Monitor, View, ZoomIn} from "@element-plus/icons-vue";
-import {computed, h, nextTick, onMounted, reactive, ref} from 'vue';
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
-import {ElIcon, ElMessage, ElMessageBox} from 'element-plus';
-import {Common} from '@/common/common';
-import {useRouter} from 'vue-router';
-import {userState, userStore} from '@/store/userStore';
+import { Hide, Monitor, View, ZoomIn } from "@element-plus/icons-vue";
+import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
+import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
+import { Common } from '@/common/common';
+import { useRouter } from 'vue-router';
+import { userState, userStore } from '@/store/userStore';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
+import DormantAccountNotice from "@/components/MessageBox/DormantAccountNotice.vue";
 
 // router
 const router = useRouter();
@@ -213,9 +214,34 @@ const onClickLogin = async (isForced: boolean) => {
             }
           }).finally(() => {
             state.isProcessing = false;
-          })
-          ;
+          });
         }
+        else if (res.data.reason === 'DORMANT_ACCOUNT') {
+          await ElMessageBox.confirm(
+              h(DormantAccountNotice, { // 새로 만든 컴포넌트 사용
+                title: '휴면 계정 안내',
+                message: res.data.message // 서버에서 받은 메시지
+              }),
+              '',
+              {
+                confirmButtonText: '본인인증 하러가기',
+                cancelButtonText: '닫기',
+                customClass: 'custom-message-box',
+                showClose: false,
+                distinguishCancelAndClose: true,
+                type: ''
+              }
+          ).then(() => {
+            // '본인인증' 버튼 클릭 시
+            router.push('/VerifyIdentity'); // 본인인증 페이지로 이동
+          }).catch((action) => {
+            // '닫기' 버튼 클릭 또는 ESC, 닫기 버튼 클릭
+            if (action === 'cancel') {
+              ElMessage.info('로그인을 취소했습니다.');
+            }
+          });
+        }
+
       }
     } finally {
       state.isProcessing = false;
@@ -317,8 +343,6 @@ const showResolutionInfo = () => {
           로그인
         </el-button>
       </el-form>
-
-
 
       <div class="find-links">
         <el-button type="info" link @click="onClickToGoPage('FindId')">아이디 찾기</el-button>
@@ -446,10 +470,6 @@ html.dark .el-checkbox__input.is-checked .el-checkbox__inner::after {
 html.dark .el-checkbox__input .el-checkbox__inner {
   border-color: var(--el-border-color-light) !important;
 }
-
-/* ------------------------------------ */
-/*       ✨ 권장 사용 환경 (최종 수정) ✨      */
-/* ------------------------------------ */
 
 /* 애니메이션 정의: 그라데이션 회전 */
 @keyframes rotating-gradient {

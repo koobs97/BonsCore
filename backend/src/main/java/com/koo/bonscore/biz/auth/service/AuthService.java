@@ -1,6 +1,7 @@
 package com.koo.bonscore.biz.auth.service;
 
 import com.koo.bonscore.biz.auth.controller.RSAController;
+import com.koo.bonscore.biz.auth.dto.LoginCheckDto;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
@@ -76,7 +77,15 @@ public class AuthService {
         String hashedPassword = passwordEncoder.encode(decryptedPassword);
 
         // userId의 해싱된 passwd get
-        String getHasedPassword = authMapper.login(request);
+        LoginCheckDto loginCheckDto = authMapper.login(request);
+        if(loginCheckDto == null) {
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INVALID_CREDENTIALS
+                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
+        }
+
+        String getHasedPassword = loginCheckDto.getPasswordHash();
 
         // 비밀번호 비교는 matches 함수 사용
         boolean isMatch = passwordEncoder.matches(decryptedPassword, getHasedPassword);
@@ -89,6 +98,14 @@ public class AuthService {
                       HttpStatusCode.INTERNAL_SERVER_ERROR
                     , ErrorCode.INVALID_CREDENTIALS
                     , ErrorCode.INVALID_CREDENTIALS.getMessage());
+        }
+
+        // 휴먼계정인경우
+        if(loginCheckDto.getAccountLocked().equals("Y")) {
+            response.setSuccess(false);
+            response.setReason("DORMANT_ACCOUNT");
+            response.setMessage("장기간 미접속으로 계정이 휴면 상태로 전환되었습니다.<br>본인인증을 통해 계정을 활성화할 수 있습니다.");
+            return response;
         }
 
         // 유저정보 세팅
@@ -216,18 +233,20 @@ public class AuthService {
                         , "아이디를 입력해주세요.");
 
             UserInfoSearchDto result = authMapper.findUserById(request);
-            if(result != null) {
-                result.setUserName(encryptionService.decrypt(result.getUserName()));
-                result.setEmail(encryptionService.decrypt(result.getEmail()));
-                if(!result.getUserName().equals(request.getUserName()) || !result.getEmail().equals(request.getEmail())) {
-                    throw new BsCoreException(
-                            HttpStatusCode.INTERNAL_SERVER_ERROR
-                            , ErrorCode.INVALID_INPUT
-                            , "입력하신 정보와 일치하는 사용자가 없습니다.");
-                }
-            }
+            vertifyUser(request, result);
 
         } // PW
+
+        /* 휴먼계정 풀기 */
+        if("LOCKED".equals(type)) {
+            // 존재(Existence) 검증
+            UserInfoSearchDto input = UserInfoSearchDto.builder()
+                    .email(encryptionService.hashWithSalt(request.getEmail()))
+                    .build();
+
+            UserInfoSearchDto result = authMapper.findUserByNameMail(input);
+            vertifyUser(request, result);
+        }
 
         // 메일 전송
         String authCode = mailService.sendVerificationEmail(request.getEmail(), request.getUserName());
@@ -236,6 +255,19 @@ public class AuthService {
         String key = VERIFICATION_PREFIX + request.getEmail();
         redisTemplate.opsForValue().set(key, authCode, Duration.ofMinutes(EXPIRATION_MINUTES));
 
+    }
+
+    private void vertifyUser(UserInfoSearchDto request, UserInfoSearchDto result) {
+        if(result != null) {
+            result.setUserName(encryptionService.decrypt(result.getUserName()));
+            result.setEmail(encryptionService.decrypt(result.getEmail()));
+            if(!result.getUserName().equals(request.getUserName()) || !result.getEmail().equals(request.getEmail())) {
+                throw new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR
+                        , ErrorCode.INVALID_INPUT
+                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
+            }
+        }
     }
 
     /**

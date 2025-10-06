@@ -5,12 +5,12 @@
 <mapper namespace="com.koo.bonscore.biz.auth.mapper.AuthMapper">
 
     <!-- 해싱된 패스워드 조회 -->
-    <select id="login" resultType="String" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
+    <select id="login" resultType="com.koo.bonscore.biz.auth.dto.LoginCheckDto" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
         SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.login */
                PASSWORD_HASH                         /* 비밀번호 해시 */
+             , ACCOUNT_LOCKED                        /* 휴먼 계정 여부 */
           FROM USER_INFO                             /* 유저정보 테이블 */
          WHERE USER_ID          = #{userId}          /* 사용자 ID */
-           AND ACCOUNT_LOCKED   = 'N'                /* 휴먼 계정 여부 */
            AND WITHDRAWN        = 'N'                /* 탈퇴 여부 */
          ORDER BY USER_ID DESC
     </select>
@@ -130,6 +130,16 @@
              , EMAIL                                 /* 이메일 */
           FROM USER_INFO                             /* 유저정보 테이블 */
          WHERE USER_ID = #{nonMaskedId}
+    </select>
+
+    <!-- 사용자가 입력한 유저명, 이메일이 맞는지 조회 -->
+    <select id="findUserByNameMail" resultType="com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto" parameterType="com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto">
+        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.findUserByNameMail */
+               USER_ID                               /* 사용자 ID */
+             , EMAIL                                 /* 이메일 */
+          FROM USER_INFO                             /* 유저정보 테이블 */
+         WHERE USER_NAME  = #{userName}
+           AND EMAIL_HASH = #{email}
     </select>
 
     <!-- 비밀번호 변경 -->
