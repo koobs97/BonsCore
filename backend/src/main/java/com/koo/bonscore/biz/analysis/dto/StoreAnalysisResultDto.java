@@ -2,6 +2,16 @@ package com.koo.bonscore.biz.analysis.dto;
 
 import lombok.*;
 
+/**
+ * <pre>
+ * StoreAnalysisResultDto.java
+ * 설명 : 웨이팅 예측 분석 - 네이버 가게 상세분석 결과 dto
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-08-20
+ */
 @Getter
 @Setter
 @Builder

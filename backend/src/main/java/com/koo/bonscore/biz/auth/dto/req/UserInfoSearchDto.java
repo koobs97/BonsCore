@@ -8,6 +8,16 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * <pre>
+ * UserInfoSearchDto.java
+ * 설명 : 인증 서비스에서 주로 사용되는 dto 클래스
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-07-24
+ */
 @Getter
 @Setter
 @Builder

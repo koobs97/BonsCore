@@ -10,7 +10,6 @@ import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
-import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
 import com.koo.bonscore.log.annotaion.UserActivityLog;
@@ -47,10 +46,14 @@ public class AuthController {
 
     /**
      * 로그인
-     * @param request
-     * @param httpResponse
-     * @return
-     * @throws Exception
+     * - 사용자 로그인을 처리하고, 성공 시 Access Token과 Refresh Token을 발급
+     * - 중복 로그인을 감지하고 강제 로그인 여부를 처리
+     *
+     * @param request 로그인에 필요한 사용자 ID와 비밀번호를 담은 DTO
+     * @param httpRequest 사용자 활동 로그(Activity Log)에 실패 결과를 기록하기 위해 사용되는 HttpServletRequest 객체
+     * @param httpResponse 로그인 성공 시 Refresh Token을 쿠키에 담아 전달하기 위한 HttpServletResponse 객체
+     * @return 로그인 성공 여부, Access Token, 메시지 등을 포함하는 응답 DTO (LoginResponseDto)
+     * @throws Exception 로그인 과정에서 발생하는 모든 예외
      */
     @UserActivityLog(activityType = "LOGIN", userIdField = "#request.userId")
     @PreventDoubleClick
@@ -75,7 +78,6 @@ public class AuthController {
 
                 String userId = request.getUserId();
                 String accessToken = responseDto.getAccessToken();
-
 
                 // 새로운 세션 등록 (이 과정에서 기존 세션은 블랙리스트 처리됨
                 loginSessionManager.registerSession(userId, accessToken);
@@ -106,12 +108,12 @@ public class AuthController {
 
     /**
      * Refresh Token 검증 및 Access Token 생성
-     * @param refreshTokenDto
-     * @param request
-     * @return
+     *
+     * @param refreshTokenDto Refresh Token 값을 담고 있는 요청 DTO
+     * @return 새로운 Access Token을 포함한 성공 응답, 또는 토큰이 유효하지 않을 경우 에러 응답
      */
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<Object>> refreshAccessToken(@RequestBody RefreshTokenDto refreshTokenDto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> refreshAccessToken(@RequestBody RefreshTokenDto refreshTokenDto) {
         String refreshToken = refreshTokenDto.getRefreshToken();
 
         // Refresh Token 검증
@@ -141,9 +143,11 @@ public class AuthController {
 
     /**
      * 로그아웃
-     * @param request
-     * @param response
-     * @return
+     * - 클라이언트의 Refresh Token 쿠키를 삭제하도록 응답 헤더를 설정
+     *
+     * @param request Authorization 헤더의 Access Token과 쿠키의 Refresh Token을 추출하기 위한 HTTP 요청 객체
+     * @param response Refresh Token 쿠키 삭제 명령을 헤더에 추가하기 위한 HTTP 응답 객체
+     * @return 로그아웃 성공 메시지를 포함한 공통 응답 객체
      */
     @UserActivityLog(activityType = "LOGOUT")
     @PostMapping("/logout")
@@ -190,41 +194,38 @@ public class AuthController {
 
     /**
      * 아이디 중복 체크
-     * @param request
-     * @param httpResponse
-     * @return
-     * @throws Exception
+     *
+     * @param request 확인할 사용자 ID가 포함된 회원가입 요청 DTO
+     * @return 중복된 아이디가 존재하면 true, 아니면 false
      */
     @PreventDoubleClick
     @PostMapping("/isDuplicateId")
-    public boolean isDuplicateId(@RequestBody SignUpDto request, HttpServletResponse httpResponse) throws Exception {
+    public boolean isDuplicateId(@RequestBody SignUpDto request) {
         return authService.isDuplicateId(request);
     }
 
     /**
      * 이메일 중복체크(이메일 입력 blur 이벤트 시 호출)
-     * @param request
-     * @param httpResponse
-     * @return
-     * @throws Exception
+     *
+     * @param request 확인할 이메일이 포함된 회원가입 요청 DTO
+     * @return 중복된 이메일이 존재하면 true, 아니면 false
      */
     @PreventDoubleClick
     @PostMapping("/isDuplicateEmail")
-    public boolean isDuplicateEmail(@RequestBody SignUpDto request, HttpServletResponse httpResponse) throws Exception {
+    public boolean isDuplicateEmail(@RequestBody SignUpDto request) {
         return authService.isDuplicateEmail(request);
     }
 
     /**
      * 회원가입
-     * @param request
-     * @param httpResponse
-     * @return
-     * @throws Exception
+     *
+     * @param request 회원가입 정보를 담은 요청 DTO
+     * @throws Exception 회원가입 처리 중 발생하는 예외
      */
     @UserActivityLog(activityType = "SIGNUP", userIdField = "#request.userId")
     @PreventDoubleClick
     @PostMapping("/signup")
-    public void signup(@RequestBody SignUpDto request,HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public void signup(@RequestBody SignUpDto request,HttpServletRequest httpRequest) throws Exception {
         try {
             authService.signup(request);
         } catch (Exception e) {
@@ -235,16 +236,15 @@ public class AuthController {
     }
 
     /**
-     * 이메일 발송 서비스
-     * @param request
-     * @param httpRequest
-     * @param httpResponse
-     * @return
-     * @throws Exception
+     * 인증 이메일 발송 서비스
+     *
+     * @param request 이메일 주소 등 사용자 정보를 담은 요청 DTO
+     * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
+     * @throws Exception 이메일 발송 실패 또는 사용자 정보 부재 시
      */
     @UserActivityLog(activityType = "SEND_MAIL", userIdField = "#request.email")
     @PostMapping("/sendmail")
-    public void sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public void sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
         try {
             authService.searchIdBySendMail(request);
         } catch (Exception e) {
@@ -256,15 +256,15 @@ public class AuthController {
 
     /**
      * 이메일 인증번호 인증
-     * @param request
-     * @param httpRequest
-     * @param httpResponse
-     * @return
-     * @throws Exception
+     *
+     * @param request 이메일과 사용자가 입력한 인증코드를 담은 요청 DTO
+     * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
+     * @return 인증 성공 시 다음 단계 진행을 위한 정보(예: 임시 토큰)를 담은 DTO
+     * @throws Exception 인증번호 불일치 또는 만료 시
      */
     @UserActivityLog(activityType = "CHECK_CODE", userIdField = "#request.email")
     @PostMapping("/verify-email")
-    public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
         try {
             return authService.verifyCode(request.getEmail(), request.getCode());
         } catch (Exception e) {
@@ -276,15 +276,16 @@ public class AuthController {
 
     /**
      * 아이디 찾기 완료 후 아이디 필드 복사 시 호출
-     * @param request
-     * @param httpRequest
-     * @param httpResponse
-     * @return
-     * @throws Exception
+     * 아이디 찾기 완료 후 클립보드 복사 등의 기능을 위해 사용자 아이디를 반환
+     *
+     * @param request 이메일 정보를 담은 요청 DTO
+     * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
+     * @return 조회된 사용자 아이디
+     * @throws Exception 사용자 정보를 찾을 수 없을 때
      */
     @UserActivityLog(activityType = "COPY_ID", userIdField = "#request.email")
     @PostMapping("/copy-id")
-    public String searchIdByMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public String searchIdByMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
         try {
             return authService.searchIdByMail(request);
         } catch (Exception e) {
@@ -296,14 +297,14 @@ public class AuthController {
 
     /**
      * 비밀번호 찾기 후 비밀번호 업데이트
-     * @param request
-     * @param httpRequest
-     * @param httpResponse
-     * @throws Exception
+     *
+     * @param request 인증 토큰과 새로운 비밀번호를 담은 요청 DTO
+     * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
+     * @throws Exception 토큰 검증 실패 또는 비밀번호 업데이트 실패 시
      */
     @UserActivityLog(activityType = "UPDATE_PWD", userIdField = "#request.userId")
     @PostMapping("/update-password")
-    public void updatePassowrd(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public void updatePassowrd(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
         try {
             authService.resetPasswordWithToken(request.getToken(), request.getPassword());
         } catch (Exception e) {

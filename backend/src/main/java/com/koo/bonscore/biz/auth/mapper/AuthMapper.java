@@ -24,75 +24,75 @@ public interface AuthMapper {
     
     /**
      * 로그인
-     * @param loginDto
-     * @return
+     * @param loginDto 사용자 ID
+     * @return 해싱된 패스워드, 휴먼계정여부
      */
     LoginCheckDto login(LoginDto loginDto);
 
     /**
-     * 유저 id로 사용자 정보 조회
-     * @param loginDto
-     * @return
+     * 유저 ID로 사용자 정보 조회
+     * @param loginDto 사용자 ID
+     * @return 유저 정보
      */
     UserDto findByUserId(LoginDto loginDto);
 
     /**
      * 아이디 중복 체크
-     * @param signUpDto
-     * @return
+     * @param signUpDto 사용자 ID
+     * @return 사용중인 ID 개수
      */
     Integer existsById(SignUpDto signUpDto);
 
     /**
      * 이메일 중복 체크
-     * @param signUpDto
-     * @return
+     * @param signUpDto email
+     * @return 사용중인 email 개수
      */
     Integer existsByEmail(SignUpDto signUpDto);
 
     /**
      * 회원가입
-     * @param signUpDto
+     * @param signUpDto 회원가입정보
      */
     void signUpUser(SignUpDto signUpDto);
 
     /**
      * 회원가입 시 일반사용자 권한부여
-     * @param signUpDto
+     * @param signUpDto 사용자 ID
      */
     void signUpUserRole(SignUpDto signUpDto);
 
     /**
      * 유저명, 이메일로 유효한 사용자인지 조회
-     * @param userInfoSearchDto
-     * @return
+     * @param userInfoSearchDto email
+     * @return 사용자 이름
      */
     String findByUserNameAndEmail(UserInfoSearchDto userInfoSearchDto);
 
     /**
      * 사용자 ID 조회
-     * @param userInfoSearchDto
-     * @return
+     * @param userInfoSearchDto email
+     * @return 사용자 ID
      */
     String findByUserIdByMail(UserInfoSearchDto userInfoSearchDto);
 
     /**
      * 사용자 아이디로 유저명, 이메일 조회
-     * @param userInfoSearchDto
-     * @return
+     * @param userInfoSearchDto 사용자 ID
+     * @return 사용자 이름, 이메일
      */
     UserInfoSearchDto findUserById(UserInfoSearchDto userInfoSearchDto);
 
     /**
      * 사용자가 입력한 유저명, 이메일이 맞는지 조회
-     * @param userInfoSearchDto
-     * @return
+     * @param userInfoSearchDto 사용자 이름, 이메일
+     * @return 사용자 ID, 이메일
      */
     UserInfoSearchDto findUserByNameMail(UserInfoSearchDto userInfoSearchDto);
 
     /**
      * 비밀번호 업데이트
-     * @param userInfoSearchDto
+     * @param userInfoSearchDto 아이디
      */
     void updatePassword(UserInfoSearchDto userInfoSearchDto);
 }

@@ -61,9 +61,9 @@ public class AuthService {
 
     /**
      * 로그인 서비스
-     * @param request
-     * @return LoginResponseDto
-     * @throws Exception
+     * @param request 로그인에 필요한 사용자 ID와 비밀번호를 담은 DTO
+     * @return LoginResponseDto 로그인 성공 여부, Access Token, 메시지 등을 포함하는 응답 DTO
+     * @throws Exception 로그인 과정에서 발생하는 모든 예외
      */
     @Transactional
     public LoginResponseDto login(LoginDto request) throws Exception {
@@ -134,8 +134,9 @@ public class AuthService {
 
     /**
      * 아이디 중복체크
-     * @param request
-     * @return
+     *
+     * @param request 확인할 사용자 ID가 포함된 회원가입 요청 DTO
+     * @return 중복된 아이디가 존재하면 true, 아니면 false
      */
     public boolean isDuplicateId(SignUpDto request) {
         return authMapper.existsById(request) > 0;
@@ -143,8 +144,8 @@ public class AuthService {
 
     /**
      * 이메일 중복 체크
-     * @param request
-     * @return
+     * @param request 확인할 이메일이 포함된 회원가입 요청 DTO
+     * @return 중복된 이메일이 존재하면 true, 아니면 false
      */
     public boolean isDuplicateEmail(SignUpDto request) {
         request.setEmailHash(encryptionService.hashWithSalt(request.getEmail()));
@@ -153,8 +154,8 @@ public class AuthService {
 
     /**
      * 회원가입
-     * @param request
-     * @throws Exception
+     * @param request 회원가입 정보를 담은 요청 DTO
+     * @throws Exception 회원가입 처리 중 발생하는 예외
      */
     @Transactional
     public void signup(SignUpDto request) throws Exception {
@@ -185,8 +186,9 @@ public class AuthService {
 
     /**
      * 아이디/비밀번호 찾기 서비스
-     * @param request
-     * @throws Exception
+     *
+     * @param request 이메일 주소 등 사용자 정보를 담은 요청 DTO
+     * @throws Exception 이메일 발송 실패 또는 사용자 정보 부재 시
      */
     public void searchIdBySendMail(UserInfoSearchDto request) throws Exception {
 
@@ -257,6 +259,11 @@ public class AuthService {
 
     }
 
+    /**
+     * 유저체크
+     * @param request 이메일 주소 등 사용자 정보를 담은 요청 DTO
+     * @param result 사용자 조회 결과
+     */
     private void vertifyUser(UserInfoSearchDto request, UserInfoSearchDto result) {
         if(result != null) {
             result.setUserName(encryptionService.decrypt(result.getUserName()));
@@ -272,11 +279,12 @@ public class AuthService {
 
     /**
      * 인증코드 인증
-     * @param email
-     * @param code
-     * @return
+     *
+     * @param email 이메일
+     * @param code 인증코드
+     * @return 사용자 ID, 토큰
      */
-    public UserInfoSearchDto verifyCode(String email, String code) throws Exception {
+    public UserInfoSearchDto verifyCode(String email, String code) {
 
         String key = VERIFICATION_PREFIX + email;
         String storedCode = redisTemplate.opsForValue().get(key);
@@ -308,11 +316,10 @@ public class AuthService {
 
     /**
      * 유저 ID 복사 시 호출
-     * @param request
-     * @return
-     * @throws Exception
+     * @param request 이메일 정보를 담은 요청 DTO
+     * @return 조회된 사용자 아이디
      */
-    public String searchIdByMail(UserInfoSearchDto request) throws Exception {
+    public String searchIdByMail(UserInfoSearchDto request) {
         UserInfoSearchDto input = UserInfoSearchDto.builder()
                 .email(encryptionService.hashWithSalt(request.getEmail()))
                 .build();
@@ -321,9 +328,10 @@ public class AuthService {
 
     /**
      * 비밀번호 업데이트
-     * @param token
-     * @param newPassword
-     * @throws Exception
+     *
+     * @param token 인증 토큰
+     * @param newPassword 새로운 비밀번호
+     * @throws Exception 토큰 검증 실패 또는 비밀번호 업데이트 실패 시
      */
     @Transactional
     public void resetPasswordWithToken(String token, String newPassword) throws Exception {

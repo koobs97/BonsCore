@@ -25,34 +25,51 @@ import java.util.stream.Collectors;
 
 import com.koo.bonscore.common.api.naver.dto.NaverItemDto;
 
+/**
+ * <pre>
+ * AnalysisService.java
+ * 설명 : 웨이팅 예측 분석 서비스
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-08-20
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnalysisService {
 
     private final NaverApiClient naverApiClient;
-    // private final WeatherApiClient weatherApiClient; // 예: 날씨 API 클라이언트 추가
     private final KakaoMapService kakaoMapService;
 
     // HTML 태그 제거용 정규표현식
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]*>");
 
+    /**
+     * Naver 지역 검색 API를 통해 가게를 검색
+     * @param query 사용자 검색어
+     * @return 가게 리스트 (최대 5건)
+     */
     public List<SimpleStoreInfoDto> searchStoresAndAnalyze(String query) {
         log.info("가게 분석 서비스 시작: query={}", query);
 
-        // 1. Naver API를 통해 가게 정보를 조회합니다. (외부 API 호출 위임)
         NaverApiResponseDto naverResponse = naverApiClient.searchLocal(query);
 
         if (naverResponse == null || naverResponse.getItems() == null) {
             return Collections.emptyList();
         }
 
-        // 2. 받아온 원본 데이터를 우리 서비스의 DTO로 가공합니다.
-        // 이 부분에 모든 비즈니스 로직(주소 가공 등)이 포함됩니다.
         return transformToStoreResult(naverResponse.getItems());
     }
 
-    // NaverItemDto 리스트를 StoreSearchResultDto 리스트로 변환하는 로직 (메서드 분리)
+    /**
+     * Naver API로부터 받은 원본 데이터 리스트를 서비스에서 사용할 DTO 리스트로 변환
+     * - 제목의 HTML 태그를 제거
+     * - 주소를 간단한 주소와 상세 주소로 분리
+     * @param items Naver 지역 검색 API 결과 아이템 ({@link NaverItemDto}) 리스트
+     * @return 변환된 가게 정보 DTO ({@link SimpleStoreInfoDto}) 리스트
+     */
     private List<SimpleStoreInfoDto> transformToStoreResult(List<NaverItemDto> items) {
         AtomicLong idCounter = new AtomicLong(1);
 
@@ -91,6 +108,12 @@ public class AnalysisService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 특정 가게에 대한 상세 분석을 수행하고, 분석 결과를 DTO로 반환
+     * 블로그 리뷰 수, 선택된 시간에 따른 점수 등을 계산
+     * @param request
+     * @return
+     */
     public StoreAnalysisResultDto analyzeStoreDetails(StoreDetailRequestDto request) {
         log.info("가게 상세 분석 서비스 시작: storeName={}, selectedTime={}", request.getName(), request.getSelectedTime());
 
@@ -99,10 +122,10 @@ public class AnalysisService {
         NaverBlogSearchResponseDto blogResponse = naverApiClient.searchBlog(searchQueryForBlog);
         int blogCount = (blogResponse != null) ? blogResponse.getTotal() : 0;
 
-        // 2. ★★★ 시간/요일 기반 점수 계산 ★★★
+        // 2. 시간/요일 기반 점수 계산
         int timeScore = calculateTimeScore(request.getSelectedTime());
 
-        // 3. ★★★ 블로그 리뷰 수 기반 점수 계산 ★★★
+        // 3. 블로그 리뷰 수 기반 점수 계산
         int blogReviewScore = calculateBlogReviewScore(blogCount);
 
         // 5. 최종 결과 DTO 빌드
