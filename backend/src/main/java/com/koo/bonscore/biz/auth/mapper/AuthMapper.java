@@ -37,6 +37,12 @@ public interface AuthMapper {
     UserDto findByUserId(LoginDto loginDto);
 
     /**
+     * 로그인일시 업데이트
+     * @param loginDto 사용자 ID
+     */
+    void updateLoginAt(LoginDto loginDto);
+
+    /**
      * 아이디 중복 체크
      * @param signUpDto 사용자 ID
      * @return 사용중인 ID 개수
@@ -74,7 +80,7 @@ public interface AuthMapper {
      * @param userInfoSearchDto email
      * @return 사용자 ID
      */
-    String findByUserIdByMail(UserInfoSearchDto userInfoSearchDto);
+    String findUserIdByMail(UserInfoSearchDto userInfoSearchDto);
 
     /**
      * 사용자 아이디로 유저명, 이메일 조회

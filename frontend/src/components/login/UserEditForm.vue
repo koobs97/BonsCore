@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import {ref, reactive, watch, defineProps, defineEmits, onMounted, h} from 'vue';
+import { ref, reactive, watch, defineProps, defineEmits, h } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus'
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import { User, Phone, Key, Message, Calendar, RefreshRight } from '@element-plus/icons-vue'
+import { User, Phone, Key, Message, Calendar, RefreshRight, QuestionFilled } from '@element-plus/icons-vue'
 import ChangePasswordDialog from "@/components/login/ChangePasswordDialog.vue";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
+import SecurityQuestionWizardDialog from "@/components/login/SecurityQuestionWizardDialog.vue";
 
 const changePasswordDialogVisible = ref(false);
+const securityQuestionDialogVisible = ref(false);
 
 // --- Props & Emits ---
 const props = defineProps({
@@ -169,6 +171,16 @@ const handlePasswordChanged = () => {
   changePasswordDialogVisible.value = false;
 };
 
+const handleSetSecurityQuestion = () => {
+  securityQuestionDialogVisible.value = true;
+}
+
+const handleSecurityQuestionSet = () => {
+  securityQuestionDialogVisible.value = false; // 다이얼로그 닫기
+  ElMessage.success('보안 질문이 성공적으로 설정되었습니다.');
+  // 필요하다면 사용자 정보 다시 불러오는 로직 추가
+}
+
 /**
  * validation 체크
  * @param fieldName
@@ -211,6 +223,7 @@ const handleFieldValidation = async (fieldName: any) => {
       :close-on-click-modal="false"
       append-to-body
       class="premium-dialog"
+      draggable
   >
     <div class="dialog-layout">
       <!-- 좌측 사이드바: 프로필 정보 -->
@@ -291,17 +304,39 @@ const handleFieldValidation = async (fieldName: any) => {
 
           <!-- Security Section -->
           <h4 class="section-title-footer">보안 설정</h4>
-          <div class="security-item">
-            <div class="item-info">
-              <el-icon><Key /></el-icon>
-              <span>비밀번호</span>
+          <div class="security-card">
+            <div class="security-menu-item">
+              <div class="item-info">
+                <el-icon><Key /></el-icon>
+                <div class="item-text">
+                  <span class="item-title">비밀번호</span>
+                  <span class="item-desc">주기적으로 변경하여 계정을 보호하세요.</span>
+                </div>
+              </div>
+              <el-button text bg @click="handleChangePassword">변경</el-button>
             </div>
-            <el-button text bg @click="handleChangePassword">변경</el-button>
+
+            <el-divider />
+
+            <div class="security-menu-item">
+              <div class="item-info">
+                <el-icon><QuestionFilled /></el-icon>
+                <div class="item-text">
+                  <span class="item-title">보안 질문</span>
+                  <span class="item-desc">비밀번호 분실 시 본인 확인에 사용됩니다.</span>
+                </div>
+              </div>
+              <el-button text bg @click="handleSetSecurityQuestion">설정</el-button>
+            </div>
           </div>
           <ChangePasswordDialog
               v-model:visible="changePasswordDialogVisible"
               :user-info="props.userData"
               @password-changed="handlePasswordChanged"
+          />
+          <SecurityQuestionWizardDialog
+              v-model:visible="securityQuestionDialogVisible"
+              @success="handleSecurityQuestionSet"
           />
         </el-form>
 
@@ -354,7 +389,7 @@ const handleFieldValidation = async (fieldName: any) => {
 
 /* 좌측 사이드바 */
 .sidebar {
-  width: 210px;
+  width: 200px;
   padding: 40px 20px;
   display: flex;
   flex-direction: column;
@@ -415,17 +450,38 @@ const handleFieldValidation = async (fieldName: any) => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--el-text-color-secondary);
-  margin: 100px 0 8px;
+  margin: 80px 0 8px;
   font-weight: 600;
 }
 
-.security-item {
+.security-card {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-light);
+  background-color: var(--el-fill-color-lighter);
+}
+.security-menu-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px;
-  border-radius: 8px;
-  background-color: var(--el-fill-color-lighter);
+  padding: 12px 0;
+}
+.item-text {
+  display: flex;
+  flex-direction: column;
+  margin-left: 12px;
+}
+.item-title {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+.item-desc {
+  font-size: 0.8rem;
+  color: var(--el-text-color-secondary);
+}
+/* Divider의 기본 마진이 너무 커서 조정합니다. */
+.security-card .el-divider {
+  margin: 0;
 }
 .item-info {
   display: flex;
@@ -445,7 +501,6 @@ const handleFieldValidation = async (fieldName: any) => {
   text-align: right;
   padding-top: 24px;
   margin-top: auto;
-  border-top: 1px solid var(--el-border-color-light);
 }
 .my-radio-group :deep(.el-radio-button),
 .my-radio-group :deep(.el-radio-button.is-active .el-radio-button__inner) {

@@ -23,6 +23,8 @@ public class UpdateUserDto {
     private String userId;
     private String password;
     private String passwordUpdated;
+    private String passwordHint;
+    private String passwordHintAnswer;
     private String userName;
     private String email;
     private String emailHash;

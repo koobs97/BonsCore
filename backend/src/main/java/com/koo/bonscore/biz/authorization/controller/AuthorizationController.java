@@ -144,14 +144,14 @@ public class AuthorizationController {
      *
      * @param request UpdateUserDto
      * @param httpRequest HttpServletRequest
-     * @param httpResponse HttpServletResponse
      * @return Boolean result
      * @throws Exception e
      */
     @UserActivityLog(activityType = "VALIDATE_PASSWORD")
     @PostMapping("/validatePassword")
-    public boolean validatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public boolean validatePassword(@RequestBody UpdateUserDto request, @AuthenticationPrincipal UserDetails userDetail, HttpServletRequest httpRequest) throws Exception {
         try {
+            request.setUserId(userDetail.getUsername());
             return authorizationService.passwordValidate(request);
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
@@ -165,14 +165,33 @@ public class AuthorizationController {
      * 
      * @param request UpdateUserDto
      * @param httpRequest HttpServletRequest
-     * @param httpResponse HttpServletResponse
      * @throws Exception e
      */
     @UserActivityLog(activityType = "UPDATE_PASSWORD_AF_LOGIN")
     @PostMapping("/updatePassword")
-    public void updatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public void updatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest) throws Exception {
         try {
             authorizationService.updatePassword(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
+
+    /**
+     * 비밀번호 질문 및 답변 입력
+     *
+     * @param request UpdateUserDto
+     * @param httpRequest HttpServletRequest
+     * @throws Exception e
+     */
+    @UserActivityLog(activityType = "UPDATE_PASSWORD_HINT")
+    @PostMapping("/updateHintWithAns")
+    public void updateHintWithAns(@RequestBody UpdateUserDto request, @AuthenticationPrincipal UserDetails userDetail, HttpServletRequest httpRequest) throws Exception {
+        try {
+            request.setUserId(userDetail.getUsername());
+            authorizationService.updateHintWithAns(request);
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
             httpRequest.setAttribute("errorMessage", e.getMessage());

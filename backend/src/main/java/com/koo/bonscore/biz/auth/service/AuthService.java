@@ -118,6 +118,9 @@ public class AuthService {
                 .birthDate(encryptionService.decrypt(user.getBirthDate()))
                 .genderCode(user.getGenderCode())
                 .build();
+        
+        // 로그인일시 업데이트
+        authMapper.updateLoginAt(request);
 
         // Access Token: 15분
         String accessToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
@@ -299,7 +302,7 @@ public class AuthService {
                     .build();
 
             // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
-            String userId = authMapper.findByUserIdByMail(input);
+            String userId = authMapper.findUserIdByMail(input);
 
             return UserInfoSearchDto.builder()
                     .userId(userId)
@@ -323,7 +326,7 @@ public class AuthService {
         UserInfoSearchDto input = UserInfoSearchDto.builder()
                 .email(encryptionService.hashWithSalt(request.getEmail()))
                 .build();
-        return authMapper.findByUserIdByMail(input);
+        return authMapper.findUserIdByMail(input);
     }
 
     /**

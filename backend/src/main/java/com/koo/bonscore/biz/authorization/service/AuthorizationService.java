@@ -79,8 +79,8 @@ public class AuthorizationService {
     @Transactional(readOnly = true)
     public ActivityResponseDto getActivityCd(LogReqDto request) {
         return ActivityResponseDto.builder()
-                .activityTypeList(authorizationMapper.getActivityType(request))
-                .activityResultList(authorizationMapper.getActivityResult(request))
+                .activityTypeList(authorizationMapper.getActivityType())
+                .activityResultList(authorizationMapper.getActivityResult())
                 .build();
     }
 
@@ -163,6 +163,24 @@ public class AuthorizationService {
                 .build();
         
         authorizationMapper.updatePassword(item);
+    }
+
+    /**
+     * 비밀번호 질문 및 답변 입력
+     *
+     * @param request 비밀번호 질문 및 답변 정보
+     * @throws Exception e
+     */
+    public void updateHintWithAns(UpdateUserDto request) throws Exception {
+
+        UpdateUserDto item = UpdateUserDto.builder()
+                .userId(request.getUserId())
+                .passwordHint(request.getPasswordHint())
+                .passwordHintAnswer(encryptionService.encrypt(request.getPasswordHintAnswer()))
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        authorizationMapper.updateHintWithAns(item);
     }
 
     /**

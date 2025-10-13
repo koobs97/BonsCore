@@ -40,14 +40,14 @@
     </select>
 
     <!-- 활동 유형 조회 -->
-    <select id="getActivityType" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto" parameterType="com.koo.bonscore.biz.authorization.dto.req.LogReqDto">
+    <select id="getActivityType" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto">
        SELECT /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.getActivityType */
               DISTINCT A.ACTIVITY_TYPE
          FROM USER_ACTIVITY_LOG A
     </select>
 
     <!-- 결과 유형 조회 -->
-    <select id="getActivityResult" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto" parameterType="com.koo.bonscore.biz.authorization.dto.req.LogReqDto">
+    <select id="getActivityResult" resultType="com.koo.bonscore.biz.authorization.dto.res.LogResDto">
        SELECT /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.getActivityResult */
               DISTINCT A.ACTIVITY_RESULT
          FROM USER_ACTIVITY_LOG A
@@ -106,23 +106,34 @@
         WHERE USER_ID          = #{userId}          /* 아이디 */
     </update>
 
+    <!-- 비밀번호 질문 및 답변 입력 -->
+    <update id="updateHintWithAns" parameterType="com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto">
+       UPDATE /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.updateHintWithAns */
+              USER_INFO                                     /* 유저정보 테이블 */
+          SET PASSWORD_HINT         = #{passwordHint}       /* 비밀번호 힌트 */
+            , PASSWORD_HINT_ANSWER  = #{passwordHintAnswer} /* 비밀번호 힌트 정답 */
+            , UPDATED_AT            = #{updatedAt}          /* 수정일시 */
+        WHERE USER_ID               = #{userId}             /* 아이디 */
+    </update>
+
     <!-- 회원탈퇴 -->
     <update id="updateWithdrawn" parameterType="com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto">
        UPDATE /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.updateWithdrawn */
-              USER_INFO                             /* 유저정보 테이블 */
-          SET USER_NAME        = ' '                /* 사용자 이름 */
-            , EMAIL            = NULL               /* 사용자 이메일 */
-            , EMAIL_HASH       = NULL               /* 사용자 이메일 해쉬 */
-            , PHONE_NUMBER     = NULL               /* 사용자 전화번호 */
-            , BIRTH_DATE       = NULL               /* 사용자 생년월일 */
-            , GENDER_CODE      = NULL               /* 성별 코드 */
-            , PASSWORD_HASH    = ' '                /* 비밀번호 해쉬 */
-            , PASSWORD_HINT    = NULL               /* 비밀번호 힌트 */
-            , PASSWORD_UPDATED = NULL               /* 비밀번호 변경일자 */
-            , ACCOUNT_LOCKED   = 'Y'                /* 휴먼 계정 여부 */
-            , WITHDRAWN        = 'Y'                /* 탈퇴 여부 */
-            , UPDATED_AT       = #{updatedAt}       /* 수정일시 */
-        WHERE USER_ID          = #{userId}          /* 아이디 */
+              USER_INFO                                     /* 유저정보 테이블 */
+          SET USER_NAME             = ' '                   /* 사용자 이름 */
+            , EMAIL                 = NULL                  /* 사용자 이메일 */
+            , EMAIL_HASH            = NULL                  /* 사용자 이메일 해쉬 */
+            , PHONE_NUMBER          = NULL                  /* 사용자 전화번호 */
+            , BIRTH_DATE            = NULL                  /* 사용자 생년월일 */
+            , GENDER_CODE           = NULL                  /* 성별 코드 */
+            , PASSWORD_HASH         = ' '                   /* 비밀번호 해쉬 */
+            , PASSWORD_HINT         = NULL                  /* 비밀번호 힌트 */
+            , PASSWORD_HINT_ANSWER  = NULL                  /* 비밀번호 힌트 정답 */
+            , PASSWORD_UPDATED      = NULL                  /* 비밀번호 변경일자 */
+            , ACCOUNT_LOCKED        = 'Y'                   /* 휴먼 계정 여부 */
+            , WITHDRAWN             = 'Y'                   /* 탈퇴 여부 */
+            , UPDATED_AT            = #{updatedAt}          /* 수정일시 */
+        WHERE USER_ID               = #{userId}             /* 아이디 */
     </update>
 
 </mapper>

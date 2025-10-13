@@ -24,6 +24,7 @@ export enum ApiUrls {
     UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
     VALIDATE_PASSWORD = '/api/authorization/validatePassword',
     UPDATE_PASSWORD_AF_LOGIN = '/api/authorization/updatePassword',
+    UPDATE_PASSWORD_HINT = '/api/authorization/updateHintWithAns',
     WITHDRAWN = '/api/authorization/updateWithdrawn',
 
     // analysis

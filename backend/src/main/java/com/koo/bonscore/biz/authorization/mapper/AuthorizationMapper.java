@@ -40,47 +40,51 @@ public interface AuthorizationMapper {
 
     /**
      * 활동 유형 조회
-     * @param logReqDto
-     * @return
+     * @return 활동 유형 리스트
      */
-    List<LogResDto> getActivityType(LogReqDto logReqDto);
+    List<LogResDto> getActivityType();
 
     /**
      * 결과 유형 조회
-     * @param logReqDto
-     * @return
+     * @return 결과 유형 리스트
      */
-    List<LogResDto> getActivityResult(LogReqDto logReqDto);
+    List<LogResDto> getActivityResult();
 
     /**
      * 로그조회 화면의 로그
-     * @param logReqDto
-     * @return
+     * @param logReqDto 검색조건
+     * @return 로그
      */
     List<LogResDto> getUserLog(LogReqDto logReqDto);
 
     /**
      * 유저 정보 업데이트
-     * @param updateUserDto
+     * @param updateUserDto 업데이트할 정보
      */
     void updateUserInfo(UpdateUserDto updateUserDto);
 
     /**
      * 비밀번호 변경을 위해 현재 비밀번호 조회
-     * @param updateUserDto UpdateUserDto
+     * @param updateUserDto 유저 ID
      * @return Password
      */
     String getPassword(UpdateUserDto updateUserDto);
 
     /**
      * 비밀번호 변경
-     * @param updateUserDto UpdateUserDto
+     * @param updateUserDto 업데이트할 정보(비밀번호)
      */
     void updatePassword(UpdateUserDto updateUserDto);
 
     /**
+     * 비밀번호 질문 및 답변 입력
+     * @param updateUserDto 업데이트할 정보(비밀번호 질문 및 답변)
+     */
+    void updateHintWithAns(UpdateUserDto updateUserDto);
+
+    /**
      * 회원 탈퇴
-     * @param updateUserDto UpdateUserDto
+     * @param updateUserDto 탈퇴할 유저 ID
      */
     void updateWithdrawn(UpdateUserDto updateUserDto);
 }
