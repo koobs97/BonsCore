@@ -36,5 +36,6 @@ public class UserInfoSearchDto {
     private String token;
     private String password;
     private String passwordUpdated;
+    private String passwordHintAnswer;
     private LocalDateTime updatedAt;
 }

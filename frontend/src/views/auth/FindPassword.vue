@@ -9,7 +9,7 @@
  * 작성일자 : 2025-07-23
  * ========================================
  */
-import { ref, reactive, computed, onMounted, nextTick, h } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ElAlert, ElLoading, ElMessage } from 'element-plus';
 import {
@@ -20,7 +20,7 @@ import {
   QuestionFilled,
   Timer,
   MoreFilled,
-  Promotion
+  Promotion, Right
 } from '@element-plus/icons-vue';
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
@@ -37,12 +37,13 @@ const state = reactive({
 })
 
 // UI 흐름 제어를 위한 상태 변수
-// 1: 본인 인증 단계, 2: 비밀번호 재설정 단계, 3: 완료 단계
-const currentStep = ref(1);
+const currentStep = ref(0); // 0: 방법 선택, 1: 본인 인증, 2: 비밀번호 재설정, 3: 완료
+const findMethod = ref<'email' | 'security' | null>(null); // 'email' 또는 'security'
 const isCodeSent = ref(false); // 인증번호 전송 여부
 
 // 버튼 loading
 const emailLoading = ref(false);
+const securityQuestionLoading = ref(false);
 
 // focus
 const userId = ref();
@@ -61,9 +62,13 @@ const formData = reactive({
   confirmPassword: '',
 });
 
+// 보안 질문 관련 상태
+const securityQuestion = ref('');
+const securityAnswer = ref('');
+const showNoQuestionAlert = ref(false);
+
 // 화면진입 시
 onMounted(() => {
-  userId.value.focus();
 })
 
 /**
@@ -79,6 +84,81 @@ onBeforeRouteLeave(async(to, from, next) => {
 
   next(); // 다음 단계로 진행
 })
+
+/**
+ * 찾기 방법 선택
+ * @param method
+ */
+const selectMethod = (method: 'email' | 'security') => {
+  findMethod.value = method;
+  currentStep.value = 1;
+  nextTick(() => {
+    if (userId.value) {
+      userId.value.focus();
+    }
+  });
+};
+
+
+/**
+ * 보안 질문 가져오기
+ */
+const fetchUserSecurityQuestion = async () => {
+  if (!formData.userId) {
+    ElMessage.error('아이디를 먼저 입력해주세요.');
+    return;
+  }
+  securityQuestionLoading.value = true;
+  showNoQuestionAlert.value = false;
+  try {
+    // [API 호출] 사용자의 ID를 기반으로 설정된 보안 질문을 가져옵니다.
+    const response = await Api.post(ApiUrls.GET_USER_PASSWORD_HINT, { userId: formData.userId });
+
+    // 보안 질문이 있는 경우와 없는 경우 분리
+    if (response) {
+      securityQuestion.value = response;
+    } else {
+      // 보안 질문이 없는 경우, 경고창을 표시
+      showNoQuestionAlert.value = true;
+      securityQuestion.value = '';
+    }
+  } catch (error) {
+    securityQuestion.value = '';
+  } finally {
+    securityQuestionLoading.value = false;
+  }
+};
+
+/**
+ * 보안 질문 답변 확인
+ */
+const verifySecurityAnswer = async () => {
+  if (!securityAnswer.value) {
+    ElMessage.error('답변을 입력해주세요.');
+    return;
+  }
+  try {
+    // [API 호출] 아이디와 답변을 서버로 보내 유효성을 검증하고, 성공 시 토큰을 받습니다.
+    const response = await Api.post(ApiUrls.VALIDATE_PASSWORD_HINT, {
+      userId: formData.userId,
+      passwordHintAnswer: securityAnswer.value,
+    });
+
+    if (response.data && response.data.token) {
+      token.value = response.data.token;
+      currentStep.value = 2; // 비밀번호 재설정 단계로 이동
+      ElMessage.success('본인 확인이 완료되었습니다.');
+      nextTick(() => {
+        newPassword.value.focus();
+      });
+    } else {
+      ElMessage.error('답변이 일치하지 않습니다.');
+    }
+  } catch (error) {
+    ElMessage.error('답변 확인 중 오류가 발생했습니다.');
+  }
+};
+
 
 /**
  * 인증번호 전송 함수
@@ -233,6 +313,41 @@ const goToFindId = () => {
 };
 
 /**
+ * 처음 단계(방법 선택)로 돌아가는 함수
+ */
+const goToFirstStep = () => {
+  // 모든 상태를 초기화합니다.
+  currentStep.value = 0;
+  findMethod.value = null;
+  Object.assign(formData, {
+    userId: '',
+    userName: '',
+    email: '',
+    authCode: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  securityQuestion.value = '';
+  securityAnswer.value = '';
+  isCodeSent.value = false;
+  showNoQuestionAlert.value = false;
+  if (state.timerId) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+};
+
+/**
+ * ✨ 보안 질문 인증 실패 시, 이메일 인증으로 전환하는 함수
+ */
+const switchToEmailMethod = () => {
+  findMethod.value = 'email';
+  showNoQuestionAlert.value = false; // 경고창 숨기기
+  securityQuestion.value = '';
+  securityAnswer.value = '';
+};
+
+/**
  * 이메일이 오지 않나요?
  */
 const alertDescription = ref('메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.');
@@ -264,8 +379,31 @@ const checklist = ref([
   <div class="find-password-container">
     <el-card class="find-password-card" shadow="never">
 
-      <!-- Step 1: 본인 인증 -->
-      <div v-if="currentStep === 1">
+      <!-- Step 0: 방법 선택 -->
+      <div v-if="currentStep === 0">
+        <h2 class="title">비밀번호 찾기</h2>
+        <p class="description">비밀번호를 찾을 방법을 선택해주세요.</p>
+        <div class="method-selection">
+          <el-button
+              type="primary"
+              class="action-button"
+              @click="selectMethod('email')"
+          >
+            이메일로 찾기
+          </el-button>
+          <el-button
+              type="success"
+              class="action-button"
+              @click="selectMethod('security')"
+          >
+            보안 질문으로 찾기
+          </el-button>
+        </div>
+      </div>
+
+
+      <!-- Step 1: 본인 인증 (이메일) -->
+      <div v-if="currentStep === 1 && findMethod === 'email'">
         <h2 class="title">비밀번호 찾기</h2>
         <p class="description">가입 시 등록한 정보로 본인인증을 진행합니다.</p>
 
@@ -363,6 +501,72 @@ const checklist = ref([
         </el-button>
       </div>
 
+      <!-- Step 1: 본인 인증 (보안 질문) -->
+      <div v-if="currentStep === 1 && findMethod === 'security'">
+        <h2 class="title">보안 질문으로 찾기</h2>
+        <p class="description">가입 시 설정한 보안 질문에 답변해주세요.</p>
+
+        <!-- 보안 질문이 없는 경우 표시되는 경고창 -->
+        <el-alert
+            v-if="showNoQuestionAlert"
+            title="설정된 보안 질문이 없습니다"
+            type="warning"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 20px;"
+        >
+          <div class="alert-content">
+            <span>이 아이디에는 보안 질문이 없습니다.</span>
+            <el-button link @click="switchToEmailMethod">
+              <el-text style="font-weight: bold; margin-top: 4px;">
+                <el-icon><Right /></el-icon>
+                이메일로 찾기
+              </el-text>
+            </el-button>
+          </div>
+        </el-alert>
+
+        <el-form class="find-form" label-position="top" :model="formData">
+          <el-form-item label="아이디">
+            <el-input
+                v-model="formData.userId"
+                ref="userId"
+                placeholder="아이디를 입력하세요."
+                size="large"
+                :prefix-icon="User"
+                class="input-with-button"
+            >
+              <template #append>
+                <el-button @click="fetchUserSecurityQuestion" :loading="securityQuestionLoading">질문 확인</el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="보안 질문">
+            <el-input
+                v-model="securityQuestion"
+                placeholder="아이디 입력 후 '질문 확인'을 눌러주세요."
+                size="large"
+                readonly
+                :prefix-icon="QuestionFilled"
+            />
+          </el-form-item>
+          <el-form-item label="답변">
+            <el-input
+                v-model="securityAnswer"
+                placeholder="보안 질문에 대한 답변을 입력하세요."
+                size="large"
+                :disabled="!securityQuestion"
+                @keyup.enter="verifySecurityAnswer"
+            />
+          </el-form-item>
+        </el-form>
+
+        <el-button type="primary" class="action-button" @click="verifySecurityAnswer" :disabled="!securityQuestion || !securityAnswer">
+          답변 확인
+        </el-button>
+      </div>
+
+
       <!-- Step 2: 비밀번호 재설정 -->
       <div v-if="currentStep === 2">
         <h2 class="title">비밀번호 재설정</h2>
@@ -424,6 +628,11 @@ const checklist = ref([
         <el-button type="info" link @click="goToLogin">로그인</el-button>
         <el-divider direction="vertical" />
         <el-button type="info" link @click="goToFindId">아이디 찾기</el-button>
+        <!-- '처음으로' 버튼은 인증 단계(step 1)에서만 표시 -->
+        <template v-if="currentStep === 1">
+          <el-divider direction="vertical" />
+          <el-button type="info" link @click="goToFirstStep">처음으로</el-button>
+        </template>
       </div>
     </el-card>
   </div>
@@ -460,7 +669,7 @@ const checklist = ref([
 }
 /* 폼 스타일 */
 .find-form { margin-top: 15px; }
-.find-form .el-form-item { margin-bottom: 8px; }
+.find-form .el-form-item { margin-bottom: 18px; }
 .find-form :deep(.el-form-item__label) {
   font-size: 14px;
   color: var(--el-color-primary);
@@ -517,4 +726,20 @@ const checklist = ref([
   margin-right: 1px;
   vertical-align: middle;
 }
+
+/* 추가된 스타일 */
+.method-selection {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+.method-selection .action-button {
+  margin-top: 0;
+  margin-left: 0 !important;
+}
+.method-selection .action-button:first-child {
+  margin-bottom: 15px;
+}
+
 </style>

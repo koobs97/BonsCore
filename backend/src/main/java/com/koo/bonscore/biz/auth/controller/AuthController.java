@@ -296,6 +296,25 @@ public class AuthController {
     }
 
     /**
+     * 사용자 아이디로 보안질문 조회
+     *
+     * @param request 사용자 ID
+     * @param httpRequest HTTP 요청 객체
+     * @return 보안질문
+     */
+    @UserActivityLog(activityType = "GET_HINT", userIdField = "#request.userId")
+    @PostMapping("/search-hint")
+    public String searchPasswordHintById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+        try {
+            return authService.searchPasswordHintById(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
+
+    /**
      * 비밀번호 찾기 후 비밀번호 업데이트
      *
      * @param request 인증 토큰과 새로운 비밀번호를 담은 요청 DTO

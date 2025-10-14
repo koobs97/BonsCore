@@ -111,7 +111,7 @@
        SELECT /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.getSecurityQuestion */
               QUESTION_CODE                         /* 질문 고유 코드 */
             , QUESTION_TEXT                         /* 질문 내용 */
-         FROM SECURITY_QUESTION                     /* 유저정보 테이블 */
+         FROM SECURITY_QUESTION                     /* 보안 질문 마스터 테이블 */
         WHERE USE_YN = 'Y'                          /* 사용 여부 */
         ORDER BY DISPLAY_ORDER
     </select>

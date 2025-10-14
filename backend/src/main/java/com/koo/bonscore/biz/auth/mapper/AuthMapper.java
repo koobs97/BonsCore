@@ -97,6 +97,20 @@ public interface AuthMapper {
     UserInfoSearchDto findUserByNameMail(UserInfoSearchDto userInfoSearchDto);
 
     /**
+     * 사용자 아이디로 보안질문 조회
+     * @param userInfoSearchDto 유저 ID
+     * @return 질문텍스트
+     */
+    String findPasswordHintById(UserInfoSearchDto userInfoSearchDto);
+
+    /**
+     * 보안질문 정답 조회
+     * @param userInfoSearchDto 유저 ID
+     * @return 정답
+     */
+    String findHintAnswerById(UserInfoSearchDto userInfoSearchDto);
+
+    /**
      * 비밀번호 업데이트
      * @param userInfoSearchDto 아이디
      */

@@ -330,6 +330,30 @@ public class AuthService {
     }
 
     /**
+     * 사용자 아이디로 보안질문 조회
+     * @param request 유저 ID
+     * @return 질문텍스트
+     */
+    public String searchPasswordHintById(UserInfoSearchDto request) {
+        return authMapper.findPasswordHintById(request);
+    }
+
+    /**
+     * 보안질문 정답 조회
+     * @param request 유저 ID
+     * @return 정답 결과
+     */
+    public boolean searchHintAnswerById(UserInfoSearchDto request) throws Exception {
+        String passwordHintAnswer = authMapper.findHintAnswerById(request);
+        if(StringUtils.isEmpty(passwordHintAnswer))
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INTERNAL_SERVER_ERROR
+                    , "답변이 올바르지 않습니다.");
+        return encryptionService.decrypt(passwordHintAnswer).equals(request.getPasswordHintAnswer());
+    }
+
+    /**
      * 비밀번호 업데이트
      *
      * @param token 인증 토큰
