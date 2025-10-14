@@ -12,7 +12,7 @@ import JSEncrypt from 'jsencrypt';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import {ElMessageBox} from "element-plus";
-import {h} from "vue";
+import { h, CSSProperties } from "vue";
 import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 
 export class Common {
@@ -54,27 +54,48 @@ export class Common {
         }
     }
 
-    public static customConfirm = async (title: string, message: string, confirmButtonText: string, cancelButtonText: string) => {
-        await ElMessageBox.confirm(
-            // 1. message 옵션에 h() 함수를 사용하여 커스텀 컴포넌트를 렌더링합니다.
-            h(SignUpConfirm, {
-                // CustomConfirm 컴포넌트에 props 전달
+    /**
+     * 커스텀 UI를 사용하는 확인 MessageBox를 표시
+     * @param title - 커스텀 컴포넌트에 표시될 제목
+     * @param message - 커스텀 컴포넌트에 표시될 메시지
+     * @param confirmButtonText - 확인 버튼의 텍스트
+     * @param cancelButtonText - 취소 버튼의 텍스트
+     * @param width - MessageBox의 전체 너비 (기본값: '490px')
+     * @returns Promise<boolean> - 사용자의 선택 결과 (확인: true, 취소: false)
+     */
+    public static customConfirm = async (title: string, message: string, confirmButtonText: string, cancelButtonText: string, width: string = '490px') => {
+
+        // 고유한 ID와 클래스 이름 생성
+        const uniqueId = `dynamic-message-box-${Date.now()}`;
+        const styleId = `style-for-${uniqueId}`;
+
+        // 주입할 <style> 엘리먼트 생성
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+            .${uniqueId}.el-message-box {
+                width: ${width} !important;
+                max-width: none !important; /* 기존 max-width를 무시 */
+            }`;
+        // <head>에 스타일 주입
+        document.head.appendChild(style);
+
+        await ElMessageBox({
+            customClass: uniqueId,
+
+            message: h(SignUpConfirm, {
                 title: title,
                 message: message,
             }),
-            // 2. 기본 title은 사용하지 않으므로 빈 문자열로 둡니다.
-            '',
-            {
-                confirmButtonText: confirmButtonText,
-                cancelButtonText: cancelButtonText,
-                // 3. 커스텀 클래스를 추가하여 세부 스타일을 조정할 수 있습니다.
-                customClass: 'custom-message-box',
-                // 4. CustomConfirm 컴포넌트가 자체 아이콘과 UI를 가지므로,
-                //    MessageBox의 기본 UI 요소들은 비활성화합니다.
-                showClose: false, // 오른쪽 위 'X' 닫기 버튼 숨김
-                type: '', // 기본 'warning' 아이콘 숨김
-            }
-        );
+
+            showConfirmButton: true,
+            showCancelButton: true,
+            confirmButtonText: confirmButtonText,
+            cancelButtonText: cancelButtonText,
+
+            title: '',
+            showClose: false,
+        });
     }
 
 }

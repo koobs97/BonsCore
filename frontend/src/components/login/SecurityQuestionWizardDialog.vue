@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import { ElMessage, ElNotification } from 'element-plus';
-import type { FormInstance, FormRules } from 'element-plus';
-import { ArrowRight, CircleCheck } from '@element-plus/icons-vue';
-import { Api } from "@/api/axiosInstance";
-import { ApiUrls } from "@/api/apiUrls";
+import {h, reactive, ref} from 'vue';
+import {ElMessageBox, FormInstance, FormRules} from 'element-plus';
+import {ElMessage, ElNotification} from 'element-plus';
+import {ArrowRight, CircleCheck} from '@element-plus/icons-vue';
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
 import {Common} from "@/common/common";
 
 // --- Props & Emits ---
@@ -24,18 +24,23 @@ const form = reactive({
   currentPassword: '',
 });
 
-// 검증된 표준 보안 질문 목록
-const securityQuestions = [
-  { value: 'Q1', label: '오래 기억하고 있는 첫사랑의 이름은 무엇인가요?' },
-  { value: 'Q2', label: '처음으로 키웠던 반려동물의 이름은 무엇인가요?' },
-  { value: 'Q3', label: '졸업한 초등학교의 이름은 무엇인가요?' },
-  { value: 'Q4', label: '가장 기억에 남는 여행지는 어디인가요?' },
-  { value: 'Q5', label: '나의 출생지는 어디인가요?' },
-  { value: 'Q6', label: '가장 친한 친구의 이름은 무엇인가요?' },
-  { value: 'Q7', label: '가장 감명 깊게 읽은 책의 제목은 무엇인가요?' },
-  { value: 'Q8', label: '나의 좌우명이나 신조는 무엇인가요?' },
-  { value: 'Q9', label: '가장 존경하는 인물의 이름은 무엇인가요?' },
-];
+// 보안 질문 목록
+const securityQuestions = ref<{ value: string; label: string; }[]>([]);
+
+/**
+ * 보안질문 목록 가져오기
+ */
+const fetchSecurityQuestions = async () => {
+  const response = await Api.post(ApiUrls.GET_PASSWORD_HINT, {});
+  if (response.data && Array.isArray(response.data)) {
+    securityQuestions.value = response.data.map((item: any) => {
+      return {
+        value: item.questionCode,
+        label: item.questionText,
+      };
+    });
+  }
+};
 
 // --- 유효성 검사 규칙 ---
 const rules = reactive<FormRules>({
@@ -48,8 +53,6 @@ const rules = reactive<FormRules>({
     { required: true, message: '현재 비밀번호를 입력해주세요.', trigger: 'blur' }
   ],
 });
-
-// --- 로직(Logic) ---
 
 // 폼 상태를 초기화하는 함수
 const resetForm = () => {
@@ -78,6 +81,8 @@ const handleNext = async () => {
     if(response.data) {
       ElMessage.success('본인 확인이 완료되었습니다.');
       activeStep.value++;
+
+      await fetchSecurityQuestions();
     }
     else {
       ElMessage.error('비밀번호가 일치하지 않습니다.');
@@ -95,6 +100,14 @@ const handleSubmit = async () => {
     formEl.validateField('question'),
     formEl.validateField('answer')
   ]);
+
+  await Common.customConfirm(
+      '질문/답변 설정',
+      '입력하신 질문과 답변을 저장하시겠습니까?',
+      '저장하기',
+      '취소',
+      '460px',
+  );
 
   isSubmitting.value = true;
   const payload = { passwordHint: form.question, passwordHintAnswer: form.answer };

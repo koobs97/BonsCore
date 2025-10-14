@@ -236,7 +236,7 @@ const goToFindPassword = () => {
 </template>
 <style>
 .change-password-dialog {
-  padding: 24px !important;
+  padding: 20px !important;
 }
 </style>
 

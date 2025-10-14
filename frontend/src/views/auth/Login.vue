@@ -81,7 +81,7 @@ onMounted(async () => {
   }
 
   resetState();
-})
+});
 
 /**
  * 화면상태 세팅

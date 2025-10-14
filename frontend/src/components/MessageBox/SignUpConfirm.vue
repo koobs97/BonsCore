@@ -2,7 +2,7 @@
   <div class="custom-confirm-container">
     <!-- 왼쪽 아이콘 영역 -->
     <div class="icon-wrapper">
-      <el-icon :size="48" color="#409EFC">
+      <el-icon :size="32">
         <CircleCheckFilled />
       </el-icon>
     </div>
@@ -32,33 +32,97 @@ defineProps({
 </script>
 
 <style scoped>
+/* 애니메이션 정의 */
+@keyframes container-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes icon-pop-in {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes text-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* 전체 컨테이너 스타일 */
 .custom-confirm-container {
   display: flex;
   align-items: center;
-  gap: 20px; /* 아이콘과 텍스트 사이의 간격 */
-  padding: 10px 5px; /* 내부 여백 */
+  gap: 24px; /* 아이콘과 텍스트 사이 간격 증가 */
+  padding: 24px; /* 내부 여백 증가 */
+  background-color: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 부드러운 그림자 효과 */
+  animation: container-fade-in 0.4s ease-out forwards;
 }
 
+/* 아이콘 래퍼 스타일 */
 .icon-wrapper {
-  /* 아이콘이 텍스트가 길어져도 찌그러지지 않도록 함 */
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%; /* 완벽한 원 */
+  background-color: var(--el-color-success-light-8); /* Element Plus 성공 색상의 연한 버전 */
+  animation: icon-pop-in 0.5s ease-out 0.1s backwards; /* 0.1초 뒤에 시작 */
 }
 
+/* 아이콘 색상 변경 */
+.icon-wrapper .el-icon {
+  color: var(--el-color-success); /* Element Plus 성공 색상 */
+}
+
+/* 텍스트 콘텐츠 영역 */
 .content-wrapper {
   text-align: left;
+  animation: text-slide-up 0.5s ease-out 0.2s backwards;
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 19px; /* 폰트 크기 증가 */
+  font-weight: 700; /* 폰트 굵기 증가 */
   color: var(--el-text-color-primary);
-  margin: 0 0 8px 0; /* 위/오른쪽/아래/왼쪽 마진 */
+  margin: 0 0 8px 0;
 }
 
 .message {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
+  font-size: 15px; /* 폰트 크기 증가 */
+  color: var(--el-text-color-secondary); /* 본문은 약간 연한 색으로 */
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6; /* 줄 간격 조정 */
+}
+</style>
+<style>
+.el-message-box__message {
+  width: 100%;
 }
 </style>

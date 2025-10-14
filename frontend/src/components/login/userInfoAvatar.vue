@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, onMounted, h } from 'vue';
 import { userStore, userState } from '@/store/userStore';
-import { CopyDocument, Female, Male, Setting, UserFilled } from "@element-plus/icons-vue";
+import {CopyDocument, Delete, Female, Male, Setting, UserFilled} from "@element-plus/icons-vue";
 import { ElLoading, ElMessage, ElMessageBox } from "element-plus";
 import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
 import UserEditForm from '@/components/login/UserEditForm.vue';
@@ -247,9 +247,9 @@ const copyEmail = (email: string) => {
 
           <el-popover
               :width="338"
-              v-model:visible="buttonRef"
-              trigger="manual"
+              :visible="buttonRef"
               placement="right-start"
+              persistent
               popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 12px;"
           >
             <template #reference>
@@ -318,8 +318,21 @@ const copyEmail = (email: string) => {
                         src='https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
                     />
                   </div>
-                  <div style="margin: 0 0 0 0;">
-                    <el-text tag="mark" style="font-weight: bold; color: var(--el-overlay-color)">@{{ state.User.userName }}</el-text>
+                  <div style="display: flex; align-items: center; justify-content: center; margin-top: 6px; margin-left: 32px;">
+                    <el-text tag="mark" style="font-weight: bold; color: var(--el-overlay-color); font-size: 14px;">
+                      @{{ state.User.userName }}
+                    </el-text>
+                    <el-tooltip content="회원탈퇴" placement="right-end" :hide-after="0">
+                      <el-button
+                          type="danger"
+                          :icon="Delete"
+                          text
+                          bg
+                          circle
+                          @click.stop="onClickWithdraw"
+                          style="width: 24px; height: 24px; margin-left: 8px; outline: none;"
+                      />
+                    </el-tooltip>
                   </div>
                   <el-descriptions
                       style="margin-top: 12px;"
@@ -401,14 +414,6 @@ const copyEmail = (email: string) => {
                         style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
                         @click="onClickLogOut"
                     >로그아웃</el-button>
-                    <el-button
-                        type="danger"
-                        icon="Delete"
-                        style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
-                        @click="onClickWithdraw"
-                    >
-                      회원탈퇴
-                    </el-button>
                   </div>
                 </div>
               </template>
@@ -419,8 +424,8 @@ const copyEmail = (email: string) => {
       </div>
     </template>
     <div style="text-align: left; margin-top: 2px; height: 30px;">
-      <el-tag type="info" effect="Light" style="margin-left: 4px; width: 82px;">로그인일시</el-tag>
-      <el-tag type="info" effect="Light" style="margin-left: 4px; width: 136px;">{{ state.User.loginTime }}</el-tag>
+      <el-tag type="info" effect="light" style="margin-left: 4px; width: 82px;">로그인일시</el-tag>
+      <el-tag type="info" effect="light" style="margin-left: 4px; width: 136px;">{{ state.User.loginTime }}</el-tag>
     </div>
     <UserEditForm
         v-model:visible="editDialogVisible"

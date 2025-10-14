@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, reactive, watch, defineProps, defineEmits, h } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus'
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { User, Phone, Key, Message, Calendar, RefreshRight, QuestionFilled } from '@element-plus/icons-vue'
 import ChangePasswordDialog from "@/components/login/ChangePasswordDialog.vue";
-import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 import SecurityQuestionWizardDialog from "@/components/login/SecurityQuestionWizardDialog.vue";
+import { Common } from "@/common/common";
 
 const changePasswordDialogVisible = ref(false);
 const securityQuestionDialogVisible = ref(false);
@@ -107,25 +107,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       if(editForm.userEmailCheckStatus === 'success') {
         try {
 
-          await ElMessageBox.confirm(
-              // 1. message 옵션에 h() 함수를 사용하여 커스텀 컴포넌트를 렌더링합니다.
-              h(SignUpConfirm, {
-                // CustomConfirm 컴포넌트에 props 전달
-                title: '회원정보 변경',
-                message: '입력하신 정보로 회원정보를 변경하시겠습니까?',
-              }),
-              // 2. 기본 title은 사용하지 않으므로 빈 문자열로 둡니다.
-              '',
-              {
-                confirmButtonText: '변경하기',
-                cancelButtonText: '취소',
-                // 3. 커스텀 클래스를 추가하여 세부 스타일을 조정할 수 있습니다.
-                customClass: 'custom-message-box',
-                // 4. CustomConfirm 컴포넌트가 자체 아이콘과 UI를 가지므로,
-                //    MessageBox의 기본 UI 요소들은 비활성화합니다.
-                showClose: false, // 오른쪽 위 'X' 닫기 버튼 숨김
-                type: '', // 기본 'warning' 아이콘 숨김
-              }
+          await Common.customConfirm(
+              '회원정보 변경',
+              '입력하신 정보로 회원정보를 변경하시겠습니까?',
+              '변경하기',
+              '취소',
+              '485px',
           );
 
           const payload = {

@@ -11,7 +11,7 @@
  */
 import { ref, reactive, computed, onMounted, nextTick, h } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
-import { ElAlert, ElLoading, ElMessage, ElMessageBox } from 'element-plus';
+import { ElAlert, ElLoading, ElMessage } from 'element-plus';
 import {
   User,
   Lock,
@@ -24,7 +24,6 @@ import {
 } from '@element-plus/icons-vue';
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
-import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 import { Common } from '@/common/common';
 
 // Vue 라우터 인스턴스
@@ -190,7 +189,9 @@ const resetPassword = async () => {
         '비밀번호 변경'
         , '비밀번호를 변경하시겠습니까?'
         , '확인'
-        , '취소')
+        , '취소'
+        , '420px'
+    )
 
     // 비밀번호 암호화
     const encryptedPassword = await Common.encryptPassword(formData.newPassword);

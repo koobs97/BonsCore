@@ -7,7 +7,7 @@ import draggable from 'vuedraggable';
 import {Api} from "@/api/axiosInstance";
 import {ApiUrls} from "@/api/apiUrls";
 import { userStore } from "@/store/userStore";
-import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
+import {Common} from "@/common/common";
 
 // FileUpload.vue에서 반환하는 파일 정보 타입 (FileResponse와 동일)
 interface UploadedFileResponse {
@@ -148,11 +148,15 @@ const handleSubmit = async () => {
     if (valid) {
       isSubmitting.value = true;
       try {
-        await ElMessageBox.confirm(
-            h(SignUpConfirm, { title: '저장소 기록', message: '기록을 등록하시겠습니까?' }),
-            '',
-            { confirmButtonText: '등록하기', cancelButtonText: '취소', customClass: 'custom-message-box', showClose: false, type: '' }
+
+        await Common.customConfirm(
+            '저장소 기록',
+            '기록을 등록하시겠습니까?',
+            '등록하기',
+            '취소',
+            '420px',
         );
+
         const finalPayload = {
           recordId: formData.value.id,
           name: formData.value.name,
@@ -162,7 +166,7 @@ const handleSubmit = async () => {
           memo: formData.value.memo,
           referenceUrl: formData.value.referenceUrl,
           userId: userStoreObj.getUserInfo.userId,
-          images: formData.value.images.map((image, index) => ({
+          images: formData.value.images.map((image: any, index: any) => ({
             imageId: image.imageId || null, // 기존 이미지의 ID를 전달
             originalFileName: image.originalFileName,
             storedFileName: image.storedFileName,

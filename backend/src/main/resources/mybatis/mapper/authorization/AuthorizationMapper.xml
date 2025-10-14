@@ -106,6 +106,16 @@
         WHERE USER_ID          = #{userId}          /* 아이디 */
     </update>
 
+    <!-- 보안질문 리스트 조회 -->
+    <select id="getSecurityQuestion" resultType="com.koo.bonscore.biz.authorization.dto.res.SecurityQuestionDto">
+       SELECT /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.getSecurityQuestion */
+              QUESTION_CODE                         /* 질문 고유 코드 */
+            , QUESTION_TEXT                         /* 질문 내용 */
+         FROM SECURITY_QUESTION                     /* 유저정보 테이블 */
+        WHERE USE_YN = 'Y'                          /* 사용 여부 */
+        ORDER BY DISPLAY_ORDER
+    </select>
+
     <!-- 비밀번호 질문 및 답변 입력 -->
     <update id="updateHintWithAns" parameterType="com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto">
        UPDATE /* com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper.updateHintWithAns */

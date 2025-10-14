@@ -6,10 +6,7 @@ import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
 import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
 import com.koo.bonscore.biz.authorization.dto.req.UserReqDto;
-import com.koo.bonscore.biz.authorization.dto.res.ActivityResponseDto;
-import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
-import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
-import com.koo.bonscore.biz.authorization.dto.res.UserResDto;
+import com.koo.bonscore.biz.authorization.dto.res.*;
 import com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import lombok.RequiredArgsConstructor;
@@ -89,7 +86,7 @@ public class AuthorizationService {
      * @param request LogReqDto
      * @return List<LogResDto>
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public List<LogResDto> getUserLog(LogReqDto request) {
 
         if(StringUtils.isEmpty(request.getStartDt())) {
@@ -135,6 +132,7 @@ public class AuthorizationService {
      * @return Boolean result
      * @throws Exception ex
      */
+    @Transactional(readOnly = true)
     public boolean passwordValidate(UpdateUserDto request) throws Exception {
 
         // 받아온 password
@@ -153,6 +151,7 @@ public class AuthorizationService {
      * @param request UpdateUserDto
      * @throws Exception e
      */
+    @Transactional
     public void updatePassword(UpdateUserDto request) throws Exception {
 
         UpdateUserDto item = UpdateUserDto.builder()
@@ -166,12 +165,20 @@ public class AuthorizationService {
     }
 
     /**
+     * 보안질문 리스트 조회
+     * @return 보안질문 리스트
+     */
+    public List<SecurityQuestionDto> getSecurityQuestion() {
+        return authorizationMapper.getSecurityQuestion();
+    }
+
+    /**
      * 비밀번호 질문 및 답변 입력
      *
      * @param request 비밀번호 질문 및 답변 정보
-     * @throws Exception e
      */
-    public void updateHintWithAns(UpdateUserDto request) throws Exception {
+    @Transactional
+    public void updateHintWithAns(UpdateUserDto request) {
 
         UpdateUserDto item = UpdateUserDto.builder()
                 .userId(request.getUserId())
@@ -186,10 +193,10 @@ public class AuthorizationService {
     /**
      * 회원탈퇴
      * 개인 식별 정보(PII)는 즉시 NULL 값이나 빈 문자열로 변경하여 식별이 불가능하도록 처리
-     * @param userId 유저 id
-     * @throws Exception e
+     * @param userId 유저 ID
      */
-    public void updateWithdrawn(String userId) throws Exception {
+    @Transactional
+    public void updateWithdrawn(String userId) {
 
         UpdateUserDto item = UpdateUserDto.builder()
                 .userId(userId)

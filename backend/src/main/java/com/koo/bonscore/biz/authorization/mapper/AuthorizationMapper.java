@@ -6,6 +6,7 @@ import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
 import com.koo.bonscore.biz.authorization.dto.req.UserReqDto;
 import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
 import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
+import com.koo.bonscore.biz.authorization.dto.res.SecurityQuestionDto;
 import com.koo.bonscore.biz.authorization.dto.res.UserResDto;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -75,6 +76,12 @@ public interface AuthorizationMapper {
      * @param updateUserDto 업데이트할 정보(비밀번호)
      */
     void updatePassword(UpdateUserDto updateUserDto);
+
+    /**
+     * 보안질문 리스트 조회
+     * @return 보안질문 리스트
+     */
+    List<SecurityQuestionDto> getSecurityQuestion();
 
     /**
      * 비밀번호 질문 및 답변 입력

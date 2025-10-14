@@ -18,7 +18,6 @@ import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { userStore } from "@/store/userStore";
 import { Common } from '@/common/common';
-import SignUpConfirm from "@/components/MessageBox/SignUpConfirm.vue";
 
 // router
 const router = useRouter();
@@ -463,25 +462,13 @@ const onClickSignUp = async () => {
     // 아이디 및 이메일이 유효할 때
     if(state.userEmailCheckStatus === 'success' && state.userIdCheckStatus === 'success') {
       try {
-        await ElMessageBox.confirm(
-            // 1. message 옵션에 h() 함수를 사용하여 커스텀 컴포넌트를 렌더링합니다.
-            h(SignUpConfirm, {
-              // CustomConfirm 컴포넌트에 props 전달
-              title: '회원가입 확인',
-              message: '입력하신 정보로 회원가입을 완료하시겠습니까?',
-            }),
-            // 2. 기본 title은 사용하지 않으므로 빈 문자열로 둡니다.
-            '',
-            {
-              confirmButtonText: '가입하기',
-              cancelButtonText: '취소',
-              // 3. 커스텀 클래스를 추가하여 세부 스타일을 조정할 수 있습니다.
-              customClass: 'custom-message-box',
-              // 4. CustomConfirm 컴포넌트가 자체 아이콘과 UI를 가지므로,
-              //    MessageBox의 기본 UI 요소들은 비활성화합니다.
-              showClose: false, // 오른쪽 위 'X' 닫기 버튼 숨김
-              type: '', // 기본 'warning' 아이콘 숨김
-            }
+
+        await Common.customConfirm(
+            '회원가입 확인',
+            '입력하신 정보로 회원가입을 완료하시겠습니까?',
+            '가입하기',
+            '취소',
+            '485px',
         );
 
         // 서버에서 공개키 get

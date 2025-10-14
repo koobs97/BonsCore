@@ -5,10 +5,7 @@ import com.koo.bonscore.biz.authorization.dto.req.AuthorizationDto;
 import com.koo.bonscore.biz.authorization.dto.req.LogReqDto;
 import com.koo.bonscore.biz.authorization.dto.req.UpdateUserDto;
 import com.koo.bonscore.biz.authorization.dto.req.UserReqDto;
-import com.koo.bonscore.biz.authorization.dto.res.ActivityResponseDto;
-import com.koo.bonscore.biz.authorization.dto.res.LogResDto;
-import com.koo.bonscore.biz.authorization.dto.res.MenuByRoleDto;
-import com.koo.bonscore.biz.authorization.dto.res.UserResDto;
+import com.koo.bonscore.biz.authorization.dto.res.*;
 import com.koo.bonscore.biz.authorization.service.AuthorizationService;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
@@ -43,6 +40,7 @@ public class AuthorizationController {
 
     /**
      * 로그인 후 권한에 맞는 메뉴 조회
+     *
      * @param request UpdateUserDto
      * @param httpRequest HttpServletRequest
      * @param httpResponse HttpServletResponse
@@ -63,6 +61,7 @@ public class AuthorizationController {
 
     /**
      * 사용자 관리 사용자 정보 조회
+     *
      * @param request UserReqDto
      * @param httpRequest HttpServletRequest
      * @param httpResponse HttpServletResponse
@@ -83,6 +82,7 @@ public class AuthorizationController {
 
     /**
      * 검색조건에 쓰일 코드 조회
+     *
      * @param request UpdateUserDto
      * @param httpRequest HttpServletRequest
      * @param httpResponse HttpServletResponse
@@ -102,6 +102,7 @@ public class AuthorizationController {
 
     /**
      * 로그 데이터 조회
+     *
      * @param request UpdateUserDto
      * @param httpRequest HttpServletRequest
      * @param httpResponse HttpServletResponse
@@ -122,6 +123,7 @@ public class AuthorizationController {
 
     /**
      * 유저 정보 업데이트
+     *
      * @param request UpdateUserDto
      * @param httpRequest HttpServletRequest
      * @param httpResponse HttpServletResponse
@@ -180,6 +182,23 @@ public class AuthorizationController {
     }
 
     /**
+     * 보안질문 리스트 조회
+     *
+     * @param httpRequest HTTP 요청 객체
+     * @return 보안질문 리스트
+     */
+    @PostMapping("/getSecurityQuestion")
+    public List<SecurityQuestionDto> getSecurityQuestion(HttpServletRequest httpRequest) {
+        try {
+            return authorizationService.getSecurityQuestion();
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
+
+    /**
      * 비밀번호 질문 및 답변 입력
      *
      * @param request UpdateUserDto
@@ -201,6 +220,7 @@ public class AuthorizationController {
 
     /**
      * 회원탈퇴
+     *
      * @param userDetail Security 유저정보
      * @param httpRequest HttpServletRequest
      * @param httpResponse HttpServletResponse
