@@ -314,6 +314,18 @@ public class AuthController {
         }
     }
 
+    @UserActivityLog(activityType = "VALIDATE_ANSWER", userIdField = "#request.userId")
+    @PostMapping("/validate-answer")
+    public UserInfoSearchDto searchHintAnswerById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+        try {
+            return authService.searchHintAnswerById(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
+    }
+
     /**
      * 비밀번호 찾기 후 비밀번호 업데이트
      *

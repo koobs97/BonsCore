@@ -138,13 +138,12 @@ const verifySecurityAnswer = async () => {
     return;
   }
   try {
-    // [API 호출] 아이디와 답변을 서버로 보내 유효성을 검증하고, 성공 시 토큰을 받습니다.
     const response = await Api.post(ApiUrls.VALIDATE_PASSWORD_HINT, {
       userId: formData.userId,
       passwordHintAnswer: securityAnswer.value,
     });
 
-    if (response.data && response.data.token) {
+    if (response.data) {
       token.value = response.data.token;
       currentStep.value = 2; // 비밀번호 재설정 단계로 이동
       ElMessage.success('본인 확인이 완료되었습니다.');

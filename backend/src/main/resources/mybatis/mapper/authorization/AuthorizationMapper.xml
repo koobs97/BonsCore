@@ -31,12 +31,11 @@
             , ACCOUNT_LOCKED                                        /* 휴먼 계정 여부 */
             , WITHDRAWN                                             /* 탈퇴 여부 */
          FROM USER_INFO                                             /* 유저정보 테이블 */
-        WHERE USER_ID           LIKE '%' || #{userId} || '%'
-          AND USER_NAME         LIKE '%' || #{userName} || '%'
-          AND NVL(EMAIL, ' ')   LIKE '%' || #{email} || '%'
-          AND ACCOUNT_LOCKED    LIKE '%' || #{accountLocked} || '%'
-          AND WITHDRAWN         LIKE '%' || #{withdrawn} || '%'
-        ORDER BY USER_ID DESC
+        WHERE USER_ID               LIKE '%' || #{userId} || '%'
+          AND NVL(EMAIL_HASH, ' ')  LIKE '%' || #{email} || '%'
+          AND ACCOUNT_LOCKED        LIKE '%' || #{accountLocked} || '%'
+          AND WITHDRAWN             LIKE '%' || #{withdrawn} || '%'
+     ORDER BY USER_ID DESC
     </select>
 
     <!-- 활동 유형 조회 -->
@@ -71,7 +70,7 @@
           AND A.USER_ID 		LIKE '%' || #{userId} || '%'
           AND A.ACTIVITY_TYPE 	LIKE '%' || #{activityType} || '%'
           AND A.ACTIVITY_RESULT LIKE '%' || #{activityResult} || '%'
-        ORDER BY A.LOG_ID
+     ORDER BY A.LOG_ID DESC
     </select>
 
     <!-- 유저 정보 업데이트 -->
@@ -93,7 +92,7 @@
               PASSWORD_HASH                         /* 비밀번호 해시 */
          FROM USER_INFO                             /* 유저정보 테이블 */
         WHERE USER_ID = #{userId}                   /* 사용자 ID */
-        ORDER BY USER_ID DESC
+     ORDER BY USER_ID DESC
     </select>
 
     <!-- 비밀번호 변경 -->
@@ -113,7 +112,7 @@
             , QUESTION_TEXT                         /* 질문 내용 */
          FROM SECURITY_QUESTION                     /* 보안 질문 마스터 테이블 */
         WHERE USE_YN = 'Y'                          /* 사용 여부 */
-        ORDER BY DISPLAY_ORDER
+     ORDER BY DISPLAY_ORDER
     </select>
 
     <!-- 비밀번호 질문 및 답변 입력 -->

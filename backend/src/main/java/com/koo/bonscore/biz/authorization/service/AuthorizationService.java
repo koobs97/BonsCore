@@ -57,13 +57,24 @@ public class AuthorizationService {
      */
     @Transactional(readOnly = true)
     public List<UserResDto> getUserInfos(UserReqDto request) {
-        return authorizationMapper.getUserInfos(request)
+
+        UserReqDto input = UserReqDto.builder()
+                .userId(request.getUserId())
+                .email(request.getEmail().isEmpty() ? "" : encryptionService.hashWithSalt(request.getEmail()))
+                .accountLocked(request.getAccountLocked())
+                .withdrawn(request.getWithdrawn())
+                .build();
+
+        return authorizationMapper.getUserInfos(input)
                 .stream()
                 .peek(item -> {
                     item.setUserName(encryptionService.decrypt(item.getUserName()));
                     item.setEmail(encryptionService.decrypt(item.getEmail()));
                     item.setPhoneNumber(encryptionService.decrypt(item.getPhoneNumber()));
                 })
+                .filter(item ->
+                        StringUtils.isEmpty(request.getUserName()) || request.getUserName().equals(item.getUserName())
+                )
                 .collect(Collectors.toList());
     }
 

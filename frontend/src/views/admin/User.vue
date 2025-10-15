@@ -13,7 +13,7 @@
         </div>
 
         <el-card shadow="never" style="margin-top: 4px;">
-          <el-form-item style="margin-top: 8px;">
+          <el-form-item style="margin-top: 8px;" @keyup.enter="onSearch">
             <el-input v-model="searchParams.userId" placeholder="사용자 ID" clearable style="width: 150px; margin-right: 4px;" />
             <el-input v-model="searchParams.userName" placeholder="이름" clearable style="width: 120px; margin-right: 4px;" />
             <el-input v-model="searchParams.email" placeholder="이메일" clearable style="width: 220px; margin-right: 4px;" />
@@ -133,7 +133,7 @@ const fetchUsers = async () => {
 };
 const onSearch = () => fetchUsers();
 const onReset = () => {
-  Object.assign(searchParams, { keyword: '', accountStatus: '' });
+  Object.assign(searchParams, { userId: '', userName: '', email: '', accountStatus: '' });
   fetchUsers();
 };
 onMounted(() => { fetchUsers(); });

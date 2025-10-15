@@ -250,6 +250,7 @@ const copyEmail = (email: string) => {
               :visible="buttonRef"
               placement="right-start"
               persistent
+              trigger="manual"
               popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 12px;"
           >
             <template #reference>

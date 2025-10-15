@@ -343,14 +343,24 @@ public class AuthService {
      * @param request 유저 ID
      * @return 정답 결과
      */
-    public boolean searchHintAnswerById(UserInfoSearchDto request) throws Exception {
+    public UserInfoSearchDto searchHintAnswerById(UserInfoSearchDto request) {
         String passwordHintAnswer = authMapper.findHintAnswerById(request);
         if(StringUtils.isEmpty(passwordHintAnswer))
             throw new BsCoreException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR
                     , ErrorCode.INTERNAL_SERVER_ERROR
                     , "답변이 올바르지 않습니다.");
-        return encryptionService.decrypt(passwordHintAnswer).equals(request.getPasswordHintAnswer());
+        if(encryptionService.decrypt(passwordHintAnswer).equals(request.getPasswordHintAnswer()))
+            return UserInfoSearchDto.builder()
+                    .userId(request.getUserId())
+                    // 만료시간 15분 -> 비밀번호 찾기 -> 비밀번호 변경에서 사용할 토큰
+                    .token(jwtTokenProvider.createToken(request.getUserId(), JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
+                    .build();
+        else
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INTERNAL_SERVER_ERROR
+                    , "답변이 올바르지 않습니다.");
     }
 
     /**

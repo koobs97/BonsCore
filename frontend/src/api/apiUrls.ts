@@ -12,6 +12,7 @@ export enum ApiUrls {
     CHECK_CODE = '/api/auth/verify-email',
     COPY_ID = '/api/auth/copy-id',
     GET_USER_PASSWORD_HINT = '/api/auth/search-hint',
+    VALIDATE_PASSWORD_HINT = '/api/auth/validate-answer',
     UPDATE_PASSWORD = '/api/auth/update-password',
 
     // users
