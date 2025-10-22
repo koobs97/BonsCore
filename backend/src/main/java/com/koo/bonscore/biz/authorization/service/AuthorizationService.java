@@ -11,6 +11,7 @@ import com.koo.bonscore.biz.authorization.mapper.AuthorizationMapper;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

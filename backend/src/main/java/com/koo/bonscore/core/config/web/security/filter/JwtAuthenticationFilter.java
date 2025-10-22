@@ -1,25 +1,33 @@
 package com.koo.bonscore.core.config.web.security.filter;
-
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
-import java.rmi.server.ExportException;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @Order(1)
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -55,7 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 2. 토큰 유효성 검증
                 if (jwtTokenProvider.validateToken(token)) {
-                    Authentication auth = jwtTokenProvider.getAuthentication(token);
+                    Authentication auth = this.getAuthenticationWithRoles(token);
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } else {
                     // 만료되거나 잘못된 토큰인 경우
@@ -69,5 +77,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             handlerExceptionResolver.resolveException(request, response, null, e);
         }
 
+    }
+
+    private Authentication getAuthenticationWithRoles(String token) {
+        Claims claims = jwtTokenProvider.getClaims(token);
+        List<String> roles = claims.get("roles", List.class);
+        Collection<? extends GrantedAuthority> authorities = roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
+        String userId = claims.getSubject();
+
+        // 비밀번호는 이미 인증되었으므로 빈 문자열(""), 혹은 "PROTECTED" 등으로 채웁니다.
+        UserDetails principal = new User(userId, "", authorities);
+
+        return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
 }

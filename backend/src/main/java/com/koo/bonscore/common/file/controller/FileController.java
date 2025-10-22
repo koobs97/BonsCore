@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,7 @@ public class FileController {
     private static final Logger logger = LoggerFactory.getLogger(FileController.class);
 
     @PostMapping("/upload")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public FileResponse uploadFile(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal UserDetails userDetail) {
         try {
             String originalFileName = file.getOriginalFilename();

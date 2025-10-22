@@ -17,6 +17,7 @@ import { userStore } from '@/store/userStore';
 import { h } from "vue";
 import type { Router } from 'vue-router';
 import SessionExpiredAlert from "@/components/MessageBox/SessionExpiredAlert.vue";
+import {Common} from "@/common/common";
 
 let routerInstance: Router | null = null;
 
@@ -64,6 +65,19 @@ axiosInstance.interceptors.response.use(
 
         // 403 - FORBIDDEN
         if (error.response && error.response.status === 403 && !originalRequest._retry) {
+
+            // 403-메소드 접근제어
+            if(error.response.data.code === 'ER_005') {
+                // 메시지 박스 호출
+                await Common.customConfirm(
+                    '접근제어',
+                    error.response.data.message,
+                    '확인',
+                    '취소',
+                    '463px',
+                    'warning'
+                );
+            }
 
             originalRequest._retry = true;
 

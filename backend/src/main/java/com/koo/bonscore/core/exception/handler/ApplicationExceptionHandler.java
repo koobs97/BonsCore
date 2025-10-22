@@ -7,6 +7,7 @@ import com.koo.bonscore.core.exception.response.ErrorResponse;
 import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -65,6 +66,34 @@ public class ApplicationExceptionHandler {
                 HttpStatus.UNAUTHORIZED.value(),                                                // status: 기본 HTTP 상태 코드 (500)
                 HttpStatus.UNAUTHORIZED.getReasonPhrase(),                                      // error: 기본 HTTP 상태 설명
                 ErrorCode.DUPLICATE_LOGIN.getCode(),                                            // code: 중복 로그인
+                ex.getMessage(),                                                                // message: 예외 메시지
+                request.getDescription(false).replace("uri=", "") // path: 요청 경로
+        );
+
+        ApiResponse<Object> apiResponse = ApiResponse.failure(
+                ErrorCode.UNAUTHORIZED.getCode(),
+                ex.getMessage(),
+                errorResponse
+        );
+
+        return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * 권한제어 관련 에러
+     *
+     * @param ex        AccessDeniedException
+     * @param request   HTTP 요청과 관련된 정보를 제공하는 인터페이스
+     * @return          ResponseEntity<Object>
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),                                                            // timestamp : 발생시각
+                HttpStatus.UNAUTHORIZED.value(),                                                // status: 기본 HTTP 상태 코드 (500)
+                HttpStatus.UNAUTHORIZED.getReasonPhrase(),                                      // error: 기본 HTTP 상태 설명
+                ErrorCode.ACCESS_DENIED.getCode(),                                              // code: 중복 로그인
                 ex.getMessage(),                                                                // message: 예외 메시지
                 request.getDescription(false).replace("uri=", "") // path: 요청 경로
         );

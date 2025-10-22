@@ -8,6 +8,8 @@ import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import org.apache.catalina.User;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 /**
  * <pre>
  * AuthMapper.java
@@ -35,6 +37,13 @@ public interface AuthMapper {
      * @return 유저 정보
      */
     UserDto findByUserId(LoginDto loginDto);
+
+    /**
+     * 유저 권한 조회
+     * @param String 사용자 ID
+     * @return 유저 권한
+     */
+    List<String> findRoleByUserId(String userId);
 
     /**
      * 로그인일시 업데이트

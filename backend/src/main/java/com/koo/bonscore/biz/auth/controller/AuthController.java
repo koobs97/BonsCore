@@ -5,6 +5,7 @@ import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
+import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.biz.auth.service.AuthService;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <pre>
@@ -43,6 +45,8 @@ public class AuthController {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
+
+    private final AuthMapper authMapper;
 
     /**
      * 로그인
@@ -134,8 +138,11 @@ public class AuthController {
         // Refresh Token에서 사용자 정보 추출
         String userId = jwtTokenProvider.getUserId(refreshToken);
 
+        // 유저 권한 조회
+        List<String> roles = authMapper.findRoleByUserId(userId);
+
         // 새로운 Access Token 생성
-        String newAccessToken = jwtTokenProvider.createToken(userId, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
+        String newAccessToken = jwtTokenProvider.createToken(userId, roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
 
         // 새로운 Access Token 반환
         return ResponseEntity.ok(ApiResponse.success("Token refreshed", newAccessToken));

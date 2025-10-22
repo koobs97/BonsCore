@@ -17,7 +17,7 @@ import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
 import { Common } from '@/common/common';
 import { useRouter } from 'vue-router';
 import { userState, userStore } from '@/store/userStore';
-import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
+import DuplicationLoginConfirm from "@/components/MessageBox/DuplicationLoginConfirm.vue";
 import DormantAccountNotice from "@/components/MessageBox/DormantAccountNotice.vue";
 
 // router
@@ -184,7 +184,7 @@ const onClickLogin = async (isForced: boolean) => {
 
           await ElMessageBox.confirm(
               // message 옵션에 h(컴포넌트, props) 전달
-              h(CustomConfirm, {
+              h(DuplicationLoginConfirm, {
                 title: '중복 로그인 감지',
                 message: res.data.message, // 서버에서 받은 메시지 ("...<br>...")
               }),
@@ -367,19 +367,23 @@ const showResolutionInfo = () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 100px);
+  height: 100%;
+  width: 100%;
+  padding: 20px; /* 상하좌우 여백 추가 */
+  box-sizing: border-box; /* padding이 너비/높이에 포함되도록 설정 */
 }
 /* 로그인 카드 */
 .login-card {
-  width: 380px;
+  width: 100%; /* 너비를 100%로 설정하여 유연하게 만듦 */
+  max-width: 380px; /* 최대 너비를 380px로 제한 */
+  box-sizing: border-box;
   padding: 4px;
-  box-sizing: border-box; /* 패딩이 너비에 영향을 주지 않도록 설정 */
 }
 .login-title {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   letter-spacing: 1px;
-  font-size: 28px;
+  font-size: 1.75rem; /* 28px -> rem 단위로 변경 */
   color: var(--el-color-primary);
   text-align: center;
   margin-bottom: 30px;
@@ -394,7 +398,7 @@ const showResolutionInfo = () => {
 }
 .login-input {
   height: 45px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   margin-bottom: 8px;
 }
 /* Element Plus의 내부 스타일을 덮어쓰기 위해 더 구체적인 선택자 사용 */
@@ -405,7 +409,7 @@ const showResolutionInfo = () => {
   width: 100%;
   height: 48px;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 1rem;
   margin-top: 16px;
   color: var(--el-bg-color);
 }
@@ -438,7 +442,7 @@ const showResolutionInfo = () => {
 }
 .caps-lock-warning {
   color: #f56c6c;
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease;
@@ -454,9 +458,27 @@ const showResolutionInfo = () => {
 }
 
 .extra-info-links .el-button {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--el-text-color-secondary);
   outline: none;
+}
+
+@media (max-width: 768px) {
+  .login-container {
+    /* 모바일에서는 위쪽으로 살짝 붙도록 정렬 변경 */
+    justify-content: flex-start;
+    padding-top: 10vh; /* 화면 높이의 10%만큼 위에서 띄움 */
+  }
+
+  .login-title {
+    font-size: 1.5rem; /* 24px, 모바일에서 제목 크기 살짝 줄임 */
+    margin-bottom: 24px;
+  }
+
+  .login-card {
+    /* 모바일에서는 그림자 효과를 주어 입체감 부여 */
+    box-shadow: var(--el-box-shadow-light);
+  }
 }
 </style>
 <style>
@@ -536,9 +558,11 @@ html.dark .el-checkbox__input .el-checkbox__inner {
 }
 
 .resolution-info-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
   color: var(--el-text-color-regular);
-  text-align: left;
-  line-height: 1.7;
 }
 
 .resolution-info-content p {
@@ -607,5 +631,11 @@ html.dark .el-checkbox__input .el-checkbox__inner {
 
 .resolution-info-box .el-message-box__btns {
   margin-top: 24px; /* 내용과 버튼 사이 간격 */
+}
+@media (max-width: 768px) {
+  .resolution-info-box {
+    /* 모바일에서는 너비를 화면 너비의 90%로 설정 */
+    --el-messagebox-width: 90vw;
+  }
 }
 </style>

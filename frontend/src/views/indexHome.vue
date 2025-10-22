@@ -439,6 +439,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin: 32px auto;
 }
 
 .main-header {
@@ -572,7 +573,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 }
 .content-card {
   width: 100%;
-  height: 680px;
+  height: 650px;
   min-height: 600px;
   border-radius: 4px;
   box-sizing: border-box;

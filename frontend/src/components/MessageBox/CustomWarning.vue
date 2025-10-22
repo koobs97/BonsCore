@@ -1,9 +1,9 @@
 <template>
-  <div class="custom-confirm-container">
+  <div class="custom-warning-container">
     <!-- 왼쪽 아이콘 영역 -->
     <div class="icon-wrapper">
       <el-icon :size="32">
-        <CircleCheckFilled />
+        <WarnTriangleFilled />
       </el-icon>
     </div>
 
@@ -16,7 +16,8 @@
 </template>
 
 <script setup lang="ts">
-import { CircleCheckFilled } from '@element-plus/icons-vue';
+// 아이콘을 @element-plus/icons-vue에서 가져옵니다.
+import { WarnTriangleFilled } from '@element-plus/icons-vue';
 
 // 부모로부터 제목과 메시지를 props로 받습니다.
 defineProps({
@@ -32,7 +33,7 @@ defineProps({
 </script>
 
 <style scoped>
-/* 애니메이션 정의 */
+/* 애니메이션 정의 (기존과 동일) */
 @keyframes container-fade-in {
   from {
     opacity: 0;
@@ -71,15 +72,15 @@ defineProps({
 
 
 /* 전체 컨테이너 스타일 */
-.custom-confirm-container {
+.custom-warning-container {
   display: flex;
   align-items: center;
-  gap: 24px; /* 아이콘과 텍스트 사이 간격 증가 */
-  padding: 24px; /* 내부 여백 증가 */
+  gap: 24px;
+  padding: 24px;
   background-color: var(--el-fill-color-lighter);
   border-radius: 8px;
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 부드러운 그림자 효과 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   animation: container-fade-in 0.4s ease-out forwards;
 }
 
@@ -91,38 +92,34 @@ defineProps({
   justify-content: center;
   width: 60px;
   height: 60px;
-  border-radius: 50%; /* 완벽한 원 */
-  background-color: var(--el-color-success-light-8); /* Element Plus 성공 색상의 연한 버전 */
-  animation: icon-pop-in 0.5s ease-out 0.1s backwards; /* 0.1초 뒤에 시작 */
+  border-radius: 50%;
+  background-color: var(--el-color-danger-light-9);
+  animation: icon-pop-in 0.5s ease-out 0.1s backwards;
 }
 
 /* 아이콘 색상 변경 */
 .icon-wrapper .el-icon {
-  color: var(--el-color-success); /* Element Plus 성공 색상 */
+  /* 아이콘 색상을 warning 계열로 변경 */
+  color: var(--el-color-danger);
 }
 
-/* 텍스트 콘텐츠 영역 */
+/* 텍스트 콘텐츠 영역 (기존과 동일) */
 .content-wrapper {
   text-align: left;
   animation: text-slide-up 0.5s ease-out 0.2s backwards;
 }
 
 .title {
-  font-size: 19px; /* 폰트 크기 증가 */
-  font-weight: 700; /* 폰트 굵기 증가 */
+  font-size: 19px;
+  font-weight: 700;
   color: var(--el-text-color-primary);
   margin: 0 0 8px 0;
 }
 
 .message {
-  font-size: 15px; /* 폰트 크기 증가 */
-  color: var(--el-text-color-secondary); /* 본문은 약간 연한 색으로 */
+  font-size: 15px;
+  color: var(--el-text-color-secondary);
   margin: 0;
-  line-height: 1.6; /* 줄 간격 조정 */
-}
-</style>
-<style>
-.el-message-box__message {
-  width: 100%;
+  line-height: 1.6;
 }
 </style>

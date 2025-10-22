@@ -37,8 +37,10 @@ public class JwtTokenProvider {
     private static final String PREFIX = "Bearer ";
 
     // 토큰 생성
-    public String createToken(String userId, long expirationMillis) {
+    public String createToken(String userId, List<String> roles, long expirationMillis) {
         Claims claims = Jwts.claims().setSubject(userId);
+        claims.put("roles", roles);
+
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMillis);
 
@@ -88,6 +90,19 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    /**
+     * 토큰에서 Claims 정보를 추출하는 메서드
+     * @param token
+     * @return Claims 정보
+     */
+    public Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key) // 토큰 생성 시 사용한 secretKey
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     public Claims getClaimsFromToken(String token) {

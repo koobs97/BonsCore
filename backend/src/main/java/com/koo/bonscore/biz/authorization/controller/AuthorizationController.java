@@ -13,6 +13,7 @@ import com.koo.bonscore.log.annotaion.UserActivityLog;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,6 +50,7 @@ public class AuthorizationController {
      */
     @UserActivityLog(activityType = "GET_MENUS")
     @PostMapping("/getMenus")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public List<MenuByRoleDto> getMenus(@RequestBody AuthorizationDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             return authorizationService.getMenuByRole(request);
@@ -70,6 +72,7 @@ public class AuthorizationController {
      */
     @UserActivityLog(activityType = "GET_USER_INFOS")
     @PostMapping("/getUserInfos")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public List<UserResDto> getUserInfos(@RequestBody UserReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             return authorizationService.getUserInfos(request);
@@ -90,6 +93,7 @@ public class AuthorizationController {
      * @return 코드 리스트
      */
     @PostMapping("/geActivityCds")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ActivityResponseDto geActivityCds(@RequestBody LogReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             return authorizationService.getActivityCd(request);
@@ -111,6 +115,7 @@ public class AuthorizationController {
      */
     @UserActivityLog(activityType = "GET_LOGS")
     @PostMapping("/getLogs")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public List<LogResDto> getLogs(@RequestBody LogReqDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             return authorizationService.getUserLog(request);
@@ -131,6 +136,7 @@ public class AuthorizationController {
      */
     @UserActivityLog(activityType = "UPDATE_USER")
     @PostMapping("/updateUserInfo")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public void updateUserInfo(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
             authorizationService.updateUserInfo(request);
@@ -151,6 +157,7 @@ public class AuthorizationController {
      */
     @UserActivityLog(activityType = "VALIDATE_PASSWORD")
     @PostMapping("/validatePassword")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public boolean validatePassword(@RequestBody UpdateUserDto request, @AuthenticationPrincipal UserDetails userDetail, HttpServletRequest httpRequest) throws Exception {
         try {
             request.setUserId(userDetail.getUsername());
@@ -171,6 +178,7 @@ public class AuthorizationController {
      */
     @UserActivityLog(activityType = "UPDATE_PASSWORD_AF_LOGIN")
     @PostMapping("/updatePassword")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public void updatePassword(@RequestBody UpdateUserDto request, HttpServletRequest httpRequest) throws Exception {
         try {
             authorizationService.updatePassword(request);
@@ -188,6 +196,7 @@ public class AuthorizationController {
      * @return 보안질문 리스트
      */
     @PostMapping("/getSecurityQuestion")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public List<SecurityQuestionDto> getSecurityQuestion(HttpServletRequest httpRequest) {
         try {
             return authorizationService.getSecurityQuestion();

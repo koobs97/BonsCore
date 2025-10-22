@@ -101,34 +101,33 @@ const onClickLogOut = async () => {
         }
     );
 
-    // '로그아웃' 버튼을 눌렀을 때 실행될 로직
+    try {
+      await Api.post(ApiUrls.LOGOUT, {}, true);
+    } catch (error) {
+      console.warn("Logout API failed, proceeding with client-side cleanup anyway.", error);
+    } finally {
+      const loading = ElLoading.service({
+        lock: true,
+        text: 'Loading',
+        background: 'rgba(0, 0, 0, 0.7)',
+      })
 
-    await Api.post(ApiUrls.LOGOUT, {}, true);
+      setTimeout(() => {
+        // 1. 사용자 정보 삭제
+        userStore().delUserInfo();
+        sessionStorage.clear();
 
-    const loading = ElLoading.service({
-      lock: true,
-      text: 'Loading',
-      background: 'rgba(0, 0, 0, 0.7)',
-    })
+        // 2. 로그인 페이지로 이동
+        router.push("/login");
 
-    setTimeout(() => {
-      // 1. 사용자 정보 삭제
-      userStore().delUserInfo();
-      sessionStorage.clear();
-
-      // 2. 로그인 페이지로 이동
-      router.push("/login");
-
-      // 3. 성공 메시지 표시 및 로딩 종료
-      ElMessage.success('성공적으로 로그아웃되었습니다.');
-      loading.close();
-    }, 1000);
+        // 3. 성공 메시지 표시 및 로딩 종료
+        ElMessage.success('성공적으로 로그아웃되었습니다.');
+        loading.close();
+      }, 1000);
+    }
 
   } catch (error) {
-    if (error === 'cancel') {
-      console.log('로그아웃이 취소되었습니다.');
-      ElMessage.info('로그아웃을 취소했습니다.');
-    }
+    if (error === 'cancel') {}
   }
 }
 

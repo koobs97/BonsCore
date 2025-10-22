@@ -76,8 +76,8 @@ public class PreventDoubleClickAspect {
     }
 
     /**
-     * **파라미터를 제외하고** 요청을 고유하게 식별하기 위한 키를 생성합니다.
-     * 암호화된 값 등 매번 바뀌는 파라미터가 있는 경우에 이 방법을 사용합니다.
+     * **파라미터를 제외하고** 요청을 고유하게 식별하기 위한 키를 생성.
+     * 암호화된 값 등 매번 바뀌는 파라미터가 있는 경우에 이 방법을 사용.
      * 키 조합: [사용자 식별자]:[클래스명].[메서드명]
      *
      * @param joinPoint the join point
@@ -111,6 +111,11 @@ public class PreventDoubleClickAspect {
         return null;
     }
 
+    /**
+     * 요청이 들어온 IP 반환
+     * @param request HttpServletRequest 객체
+     * @return IP
+     */
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {

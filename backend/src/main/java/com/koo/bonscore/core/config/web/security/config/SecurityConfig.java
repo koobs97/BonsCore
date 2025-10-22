@@ -2,10 +2,12 @@ package com.koo.bonscore.core.config.web.security.config;
 
 import com.koo.bonscore.core.config.web.security.filter.JwtAuthenticationFilter;
 import com.koo.bonscore.core.config.web.security.filter.RedirectValidationFilter;
+import com.koo.bonscore.core.config.web.security.handler.CustomAccessDeniedHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -35,12 +37,14 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity // 오토와이어링할 수 없습니다. 'HttpSecurity' 타입의 bean을 찾을 수 없습니다. 해결
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
     private final HandlerExceptionResolver handlerExceptionResolver;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     /**
      * 생성자
@@ -52,11 +56,14 @@ public class SecurityConfig {
     public SecurityConfig(JwtTokenProvider jwtTokenProvider,
                           LoginSessionManager loginSessionManager,
                           @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver, // <-- 여기에 직접 @Qualifier 추가
-                          JwtAuthenticationFilter jwtAuthenticationFilter) {
+                          JwtAuthenticationFilter jwtAuthenticationFilter,
+                          CustomAccessDeniedHandler customAccessDeniedHandler
+    ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.loginSessionManager = loginSessionManager;
         this.handlerExceptionResolver = handlerExceptionResolver;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
     }
 
     /**
@@ -98,6 +105,9 @@ public class SecurityConfig {
                         .requestMatchers("/images/**").permitAll() // 이미지 다운 url
                         .anyRequest().authenticated()                   // 나머지는 인증 필요
                 )
+                .exceptionHandling(exception ->
+                        exception.accessDeniedHandler(customAccessDeniedHandler)
+                )
                 .build();
     }
 
@@ -120,15 +130,4 @@ public class SecurityConfig {
         return source;
     }
 
-    /**
-     * Spring Security의 자동 유저 생성을 막기 위한 용도
-     * - 혹시라도 어떤 경로로 이 Bean이 호출되더라도 예외를 발생시키므로 의도치 않은 동작을 방지
-     * @return UserDetailsService의 익명 구현체
-     */
-    @Bean
-    public UserDetailsService userDetailService() {
-        return username -> {
-            throw new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username);
-        };
-    }
 }

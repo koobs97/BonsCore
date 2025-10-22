@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * <pre>
@@ -122,10 +123,14 @@ public class AuthService {
         // 로그인일시 업데이트
         authMapper.updateLoginAt(request);
 
+        // 유저 권한 조회
+        List<String> roles = authMapper.findRoleByUserId(request.getUserId());
+        log.info("사용자 '{}'의 권한 조회 결과: {}", request.getUserId(), roles);
+
         // Access Token: 15분
-        String accessToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
+        String accessToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
         // Refresh Token: 7일
-        String refreshToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
+        String refreshToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), List.of("ROLE_REFRESH"), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
 
         response.setSuccess(true);
         response.setMessage("로그인 성공");
@@ -307,7 +312,7 @@ public class AuthService {
             return UserInfoSearchDto.builder()
                     .userId(userId)
                     // 만료시간 15분 -> 비밀번호 찾기 -> 비밀번호 변경에서 사용할 토큰
-                    .token(jwtTokenProvider.createToken(userId, JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
+                    .token(jwtTokenProvider.createToken(userId, List.of("ROLE_REFRESH"), JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
                     .build();
         } else {
             throw new BsCoreException(
@@ -354,7 +359,7 @@ public class AuthService {
             return UserInfoSearchDto.builder()
                     .userId(request.getUserId())
                     // 만료시간 15분 -> 비밀번호 찾기 -> 비밀번호 변경에서 사용할 토큰
-                    .token(jwtTokenProvider.createToken(request.getUserId(), JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
+                    .token(jwtTokenProvider.createToken(request.getUserId(), List.of("ROLE_REFRESH"), JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
                     .build();
         else
             throw new BsCoreException(

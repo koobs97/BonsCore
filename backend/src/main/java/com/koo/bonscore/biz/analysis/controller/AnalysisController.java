@@ -18,6 +18,7 @@ import com.koo.bonscore.common.api.naver.NaverDataLabService;
 import com.koo.bonscore.common.api.naver.dto.datalab.DataLabResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,6 +50,7 @@ public class AnalysisController {
     private final GooglePlacesService googlePlacesService;
 
     @PostMapping("/random-recommendations")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public List<RecommendedStoreDto> getRandomRecommendations() {
         return storeRecommendationService.getRecommendedStores();
     }
@@ -59,6 +61,7 @@ public class AnalysisController {
      * @return          초기 가게 검색 목록 (네이버 api 결과 )
      */
     @PostMapping("/stores")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public List<SimpleStoreInfoDto> searchInitialStores(@RequestBody SearchRequestDto request) {
         return analysisService.searchStoresAndAnalyze(request.getQuery());
     }
@@ -69,6 +72,7 @@ public class AnalysisController {
      * @return          블로그 리뷰 수, 시간/요일 기반 점수 등
      */
     @PostMapping("/details")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public StoreAnalysisResultDto getStoreDetailsAndAnalysis(@RequestBody StoreDetailRequestDto request) {
         return analysisService.analyzeStoreDetails(request);
     }
@@ -79,6 +83,7 @@ public class AnalysisController {
      * @return          오늘 날씨
      */
     @PostMapping("/weather")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public WeatherResponseDto getTodayWeather(@RequestBody StoreDetailRequestDto request) {
         return weatherService.getTodayWeather(request.getSimpleAddress());
     }
@@ -88,6 +93,7 @@ public class AnalysisController {
      * @return 공휴일 정보
      */
     @PostMapping("/holiday-status")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public HolidayResponseDto getTodayHolidayInfo() {
         return holidayService.getTodayHolidayInfo();
     }
@@ -98,6 +104,7 @@ public class AnalysisController {
      * @return          4개월간 검색추이
      */
     @PostMapping("/search-trend")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public DataLabResponseDto getSearchTrend(@RequestBody SearchRequestDto request) {
         return naverDataLabService.getSearchTrend(request.getQuery());
     }
@@ -108,6 +115,7 @@ public class AnalysisController {
      * @return          가게 영업 정보 데이터
      */
     @PostMapping("/openingInfo")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public StoreHoursResponseDto getStoreOpeningHours(@RequestBody StoreDetailRequestDto request) {
         return googlePlacesService.getStoreOpeningHours(request.getName(), request.getSimpleAddress());
     }
@@ -118,6 +126,7 @@ public class AnalysisController {
      * @return          주변 상권 데이터
      */
     @PostMapping("/surroundings")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public SurroundingDataDto getSurroundingData(@RequestBody StoreDetailRequestDto request) {
         return analysisService.getSurroundingData(request);
     }

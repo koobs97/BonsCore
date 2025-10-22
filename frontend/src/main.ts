@@ -84,10 +84,3 @@ app
     .directive('byte-limit', byteLimit)
     .component('AgGridVue', AgGridVue)
     .mount('#app')
-
-const footerApp = createApp(TheFooter);
-footerApp.mount('#footer-container');
-
-// 아래 로직들은 위로 이동했습니다.
-// // 새로고침 시 로그인 정보 복원
-// // 화면 모드 설정 유지

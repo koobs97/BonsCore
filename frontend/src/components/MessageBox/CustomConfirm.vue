@@ -1,40 +1,42 @@
-<script setup lang="ts">
-import { defineProps } from 'vue';
-import { WarningFilled } from '@element-plus/icons-vue'; // Element Plus 아이콘 사용
-
-defineProps<{
-  title: string;
-  message: string;
-}>();
-</script>
-
 <template>
   <div class="custom-confirm-container">
-    <!-- 1. 아이콘 -->
+    <!-- 왼쪽 아이콘 영역 -->
     <div class="icon-wrapper">
       <el-icon :size="32">
-        <WarningFilled />
+        <CircleCheckFilled />
       </el-icon>
     </div>
 
-    <!-- 2. 텍스트 영역 -->
-    <div class="text-wrapper">
-      <h3 class="custom-title">{{ title }}</h3>
-      <!-- v-html을 사용하여 서버에서 받은 <br> 태그 등을 렌더링 -->
-      <p class="custom-message" v-html="message"></p>
-      <p class="custom-guide">
-        '로그인'을 선택하면 다른 기기에서의 접속이 종료됩니다.
-      </p>
+    <!-- 오른쪽 텍스트 콘텐츠 영역 -->
+    <div class="content-wrapper">
+      <h2 class="title">{{ title }}</h2>
+      <p class="message">{{ message }}</p>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { CircleCheckFilled } from '@element-plus/icons-vue';
+
+// 부모로부터 제목과 메시지를 props로 받습니다.
+defineProps({
+  title: {
+    type: String,
+    required: true,
+  },
+  message: {
+    type: String,
+    required: true,
+  },
+});
+</script>
 
 <style scoped>
 /* 애니메이션 정의 */
 @keyframes container-fade-in {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -44,7 +46,7 @@ defineProps<{
 
 @keyframes icon-pop-in {
   0% {
-    transform: scale(0.5);
+    transform: scale(0.6);
     opacity: 0;
   }
   60% {
@@ -59,7 +61,7 @@ defineProps<{
 @keyframes text-slide-up {
   from {
     opacity: 0;
-    transform: translateY(15px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -67,17 +69,18 @@ defineProps<{
   }
 }
 
+
 /* 전체 컨테이너 스타일 */
 .custom-confirm-container {
   display: flex;
-  align-items: flex-start; /* 아이콘이 길어질 경우를 대비해 시작점으로 정렬 */
-  gap: 20px;
-  padding: 16px 0 12px 12px;
-  background-color: var(--el-bg-color-overlay); /* 배경색을 살짝 어둡게 하여 컨텐츠 강조 */
-  border-radius: 8px; /* 모서리를 더 둥글게 */
+  align-items: center;
+  gap: 24px; /* 아이콘과 텍스트 사이 간격 증가 */
+  padding: 24px; /* 내부 여백 증가 */
+  background-color: var(--el-fill-color-lighter);
+  border-radius: 8px;
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05); /* 그림자를 더 부드럽고 넓게 */
-  animation: container-fade-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 부드러운 그림자 효과 */
+  animation: container-fade-in 0.4s ease-out forwards;
 }
 
 /* 아이콘 래퍼 스타일 */
@@ -86,53 +89,40 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background-color: var(--el-color-warning-light-9); /* Element Plus 경고 색상의 연한 버전 */
-  animation: icon-pop-in 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.1s backwards;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%; /* 완벽한 원 */
+  background-color: var(--el-color-success-light-8); /* Element Plus 성공 색상의 연한 버전 */
+  animation: icon-pop-in 0.5s ease-out 0.1s backwards; /* 0.1초 뒤에 시작 */
 }
 
-/* 아이콘 색상 */
+/* 아이콘 색상 변경 */
 .icon-wrapper .el-icon {
-  color: var(--el-color-warning); /* Element Plus 경고 색상 */
+  color: var(--el-color-success); /* Element Plus 성공 색상 */
 }
 
-/* 텍스트 영역 */
-.text-wrapper {
+/* 텍스트 콘텐츠 영역 */
+.content-wrapper {
   text-align: left;
-  padding-top: 4px; /* 아이콘과 텍스트의 시각적 높이를 맞추기 위한 미세 조정 */
   animation: text-slide-up 0.5s ease-out 0.2s backwards;
 }
 
-.custom-title {
-  font-size: 19px;
-  font-weight: 700; /* 폰트를 더 굵게 하여 강조 */
+.title {
+  font-size: 19px; /* 폰트 크기 증가 */
+  font-weight: 700; /* 폰트 굵기 증가 */
   color: var(--el-text-color-primary);
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
 }
 
-.custom-message {
-  font-size: 15px;
-  color: var(--el-text-color-regular);
-  line-height: 1.7; /* 줄 간격을 넓혀 가독성 향상 */
-  margin: 0 0 16px 0;
-}
-
-.custom-guide {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  background-color: var(--el-fill-color-light); /* 배경색 변경으로 구분감 부여 */
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-extra-light);
+.message {
+  font-size: 15px; /* 폰트 크기 증가 */
+  color: var(--el-text-color-secondary); /* 본문은 약간 연한 색으로 */
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.6; /* 줄 간격 조정 */
 }
 </style>
 <style>
-.el-message-box {
-  width: 488px;
-  max-width: 488px;
+.el-message-box__message {
+  width: 100%;
 }
 </style>

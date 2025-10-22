@@ -869,7 +869,7 @@ const formatBirthDate = (value: string) => {
 .privacy-scroll-content { flex-grow: 1; overflow-y: auto; padding: 20px 24px; }
 .privacy-table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; margin-bottom: 20px; }
 .privacy-table th, .privacy-table td { border: 1px solid #ebeef5; padding: 12px 14px; vertical-align: middle; }
-.privacy-table thead { background-color: #f5f7fa; font-weight: 600; color: #606266; }
+.privacy-table thead { background-color: var(--agree-info-color); font-weight: 600; color: #606266; }
 .privacy-table td { color: #303133; line-height: 1.6; }
 .refusal-info { font-size: 13px; color: #909399; line-height: 1.6; margin: 0; }
 .privacy-agreement-footer { flex-shrink: 0; padding: 16px 24px; background-color: var(--agree-info-color); border-top: 1px solid #ebeef5; }
@@ -933,11 +933,12 @@ const formatBirthDate = (value: string) => {
   flex-direction: column;
   align-items: center;
   min-height: 70vh;
-  padding: 20px;
+  padding: 50px 20px;
 }
 .signup-card {
   width: 100%;
-
+  max-width: 700px;
+  height: 950px;
 }
 .card-header {
   font-family: 'Poppins', sans-serif;
@@ -1048,7 +1049,8 @@ const formatBirthDate = (value: string) => {
 .agreement-error-alert {
   visibility: hidden;
   opacity: 0;
-  margin-top: 15px;
+  margin-top: 12px;
+  margin-bottom: 12px;
   height: 0;
   padding-top: 0;
   padding-bottom: 0;

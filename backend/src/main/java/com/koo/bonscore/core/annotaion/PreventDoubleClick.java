@@ -6,6 +6,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * <pre>
+ * PreventDoubleClick.java
+ * 설명 : 중복요청 방지를 위한 annotation
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-06-26
+ */
 @Target(ElementType.METHOD) // 메서드에만 적용 가능
 @Retention(RetentionPolicy.RUNTIME) // 런타임까지 어노테이션 정보 유지
 public @interface PreventDoubleClick {
