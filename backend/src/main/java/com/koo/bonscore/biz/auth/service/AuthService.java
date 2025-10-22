@@ -243,7 +243,11 @@ public class AuthService {
                         , "아이디를 입력해주세요.");
 
             UserInfoSearchDto result = authMapper.findUserById(request);
-            vertifyUser(request, result);
+            if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()) || !encryptionService.decrypt(result.getEmail()).equals(request.getEmail()))
+                throw new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR
+                        , ErrorCode.INVALID_INPUT
+                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
 
         } // PW
 
@@ -255,7 +259,11 @@ public class AuthService {
                     .build();
 
             UserInfoSearchDto result = authMapper.findUserByNameMail(input);
-            vertifyUser(request, result);
+            if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()))
+                throw new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR
+                        , ErrorCode.INVALID_INPUT
+                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
         }
 
         // 메일 전송
@@ -265,24 +273,6 @@ public class AuthService {
         String key = VERIFICATION_PREFIX + request.getEmail();
         redisTemplate.opsForValue().set(key, authCode, Duration.ofMinutes(EXPIRATION_MINUTES));
 
-    }
-
-    /**
-     * 유저체크
-     * @param request 이메일 주소 등 사용자 정보를 담은 요청 DTO
-     * @param result 사용자 조회 결과
-     */
-    private void vertifyUser(UserInfoSearchDto request, UserInfoSearchDto result) {
-        if(result != null) {
-            result.setUserName(encryptionService.decrypt(result.getUserName()));
-            result.setEmail(encryptionService.decrypt(result.getEmail()));
-            if(!result.getUserName().equals(request.getUserName()) || !result.getEmail().equals(request.getEmail())) {
-                throw new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR
-                        , ErrorCode.INVALID_INPUT
-                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
-            }
-        }
     }
 
     /**

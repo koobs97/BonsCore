@@ -11,10 +11,6 @@
 import JSEncrypt from 'jsencrypt';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import {ElMessageBox} from "element-plus";
-import { h, CSSProperties } from "vue";
-import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
-import CustomWarning from "@/components/MessageBox/CustomWarning.vue";
 
 export class Common {
 
@@ -53,58 +49,6 @@ export class Common {
             console.error("Password encryption failed:", error);
             return ''; // 예외 발생 시 빈 문자열 반환
         }
-    }
-
-    /**
-     * 커스텀 UI를 사용하는 확인 MessageBox를 표시
-     * @param title - 커스텀 컴포넌트에 표시될 제목
-     * @param message - 커스텀 컴포넌트에 표시될 메시지
-     * @param confirmButtonText - 확인 버튼의 텍스트
-     * @param cancelButtonText - 취소 버튼의 텍스트
-     * @param width - MessageBox의 전체 너비 (기본값: '490px')
-     * @param type - confirm / warning
-     * @returns Promise<boolean> - 사용자의 선택 결과 (확인: true, 취소: false)
-     */
-    public static customConfirm = async (
-        title: string,
-        message: string,
-        confirmButtonText: string,
-        cancelButtonText: string,
-        width: string = '490px',
-        type: string = 'confirm'
-    ) => {
-
-        // 고유한 ID와 클래스 이름 생성
-        const uniqueId = `dynamic-message-box-${Date.now()}`;
-        const styleId = `style-for-${uniqueId}`;
-
-        // 주입할 <style> 엘리먼트 생성
-        const style = document.createElement('style');
-        style.id = styleId;
-        style.innerHTML = `
-            .${uniqueId}.el-message-box {
-                width: ${width} !important;
-                max-width: none !important; /* 기존 max-width를 무시 */
-            }`;
-        // <head>에 스타일 주입
-        document.head.appendChild(style);
-
-        await ElMessageBox({
-            customClass: uniqueId,
-
-            message: h(type === 'confirm' ? CustomConfirm : CustomWarning, {
-                title: title,
-                message: message,
-            }),
-
-            showConfirmButton: true,
-            showCancelButton: type === 'confirm',
-            confirmButtonText: confirmButtonText,
-            cancelButtonText: cancelButtonText,
-
-            title: '',
-            showClose: false,
-        });
     }
 
 }

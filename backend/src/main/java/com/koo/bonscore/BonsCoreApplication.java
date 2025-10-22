@@ -1,17 +1,19 @@
 package com.koo.bonscore;
 
-import com.koo.bonscore.common.api.naver.config.NaverProperties;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * BonsCoreApplication
- * sdf
+ * <pre>
+ * BonsCoreApplication.java
+ * </pre>
  *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-01-07
  */
 @EnableAsync // 로깅을 위한 비동기처리 활성화
 @EnableScheduling

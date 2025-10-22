@@ -7,6 +7,7 @@ import StoreFormDialog from '@/components/biz/StoreFormDialog.vue';
 import { Api } from '@/api/axiosInstance';
 import { ApiUrls } from '@/api/apiUrls';
 import { userStore } from "@/store/userStore";
+import {Dialogs} from "@/common/dialogs";
 
 // --- 상태 (State) ---
 const userStoreObj = userStore();
@@ -71,18 +72,19 @@ const fetchStores = async () => {
   } catch (error) { } finally { isLoading.value = false; }
 };
 
-const handleDelete = (storeId: number) => {
-  ElMessageBox.confirm('이 기록을 정말로 삭제하시겠습니까?', '삭제 확인', {
-    confirmButtonText: '삭제', cancelButtonText: '취소', type: 'warning',
-  }).then(async () => {
-    try {
-      ElMessage.success('기록이 삭제되었습니다.');
-      await fetchStores();
-    } catch (error) {
-      console.error("삭제 처리 실패:", error);
-      ElMessage.error('삭제 중 오류가 발생했습니다.');
-    }
-  }).catch(() => {});
+const handleDelete = async (storeId: number) => {
+
+  await Dialogs.customConfirm(
+      '삭제 확인',
+      '이 기록을 정말로 삭제하시겠습니까?',
+      '삭제',
+      '취소',
+      '460px',
+  )
+
+  ElMessage.success('기록이 삭제되었습니다.');
+  await fetchStores();
+
 };
 
 onMounted(fetchStores);

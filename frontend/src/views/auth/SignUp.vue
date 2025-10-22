@@ -18,6 +18,7 @@ import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { userStore } from "@/store/userStore";
 import { Common } from '@/common/common';
+import { Dialogs } from "@/common/dialogs";
 
 // router
 const router = useRouter();
@@ -463,7 +464,7 @@ const onClickSignUp = async () => {
     if(state.userEmailCheckStatus === 'success' && state.userIdCheckStatus === 'success') {
       try {
 
-        await Common.customConfirm(
+        await Dialogs.customConfirm(
             '회원가입 확인',
             '입력하신 정보로 회원가입을 완료하시겠습니까?',
             '가입하기',

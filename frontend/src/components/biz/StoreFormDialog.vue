@@ -1,13 +1,13 @@
 <!-- src/components/StoreFormDialog.vue -->
 <script setup lang="ts">
-import {ref, watch, nextTick, h} from 'vue';
-import {ElMessage, ElMessageBox, FormInstance, FormRules} from 'element-plus';
-import { Shop, CollectionTag, Calendar, EditPen, Star, Check, StarFilled, Link, Upload, Delete } from '@element-plus/icons-vue';
+import { ref, watch, nextTick } from 'vue';
+import { ElMessage, FormInstance, FormRules } from 'element-plus';
+import { Shop, CollectionTag, Calendar, EditPen, Check, StarFilled, Link, Upload, Delete } from '@element-plus/icons-vue';
 import draggable from 'vuedraggable';
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
 import { userStore } from "@/store/userStore";
-import {Common} from "@/common/common";
+import { Dialogs } from "@/common/dialogs";
 
 // FileUpload.vue에서 반환하는 파일 정보 타입 (FileResponse와 동일)
 interface UploadedFileResponse {
@@ -149,7 +149,7 @@ const handleSubmit = async () => {
       isSubmitting.value = true;
       try {
 
-        await Common.customConfirm(
+        await Dialogs.customConfirm(
             '저장소 기록',
             '기록을 등록하시겠습니까?',
             '등록하기',

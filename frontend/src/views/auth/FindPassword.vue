@@ -22,9 +22,10 @@ import {
   MoreFilled,
   Promotion, Right
 } from '@element-plus/icons-vue';
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
 import { Common } from '@/common/common';
+import { Dialogs } from "@/common/dialogs";
 
 // Vue 라우터 인스턴스
 const router = useRouter();
@@ -264,7 +265,7 @@ const resetPassword = async () => {
 
   try {
 
-    await Common.customConfirm(
+    await Dialogs.customConfirm(
         '비밀번호 변경'
         , '비밀번호를 변경하시겠습니까?'
         , '확인'

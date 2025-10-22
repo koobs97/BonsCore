@@ -156,10 +156,10 @@
     <select id="findUserByNameMail" resultType="com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto" parameterType="com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto">
         SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.findUserByNameMail */
                USER_ID                               /* 사용자 ID */
+             , USER_NAME                             /* 사용자명 */
              , EMAIL                                 /* 이메일 */
           FROM USER_INFO                             /* 유저정보 테이블 */
-         WHERE USER_NAME  = #{userName}
-           AND EMAIL_HASH = #{email}
+         WHERE EMAIL_HASH = #{email}
     </select>
 
     <!-- 사용자 아이디로 보안질문 조회 -->

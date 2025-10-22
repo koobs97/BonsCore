@@ -9,7 +9,7 @@
  * 작성일자 : 2025-01-30
  * ========================================
  */
-import { Hide, Monitor, View, ZoomIn } from "@element-plus/icons-vue";
+import { Hide, QuestionFilled, View } from "@element-plus/icons-vue";
 import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
@@ -17,8 +17,7 @@ import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
 import { Common } from '@/common/common';
 import { useRouter } from 'vue-router';
 import { userState, userStore } from '@/store/userStore';
-import DuplicationLoginConfirm from "@/components/MessageBox/DuplicationLoginConfirm.vue";
-import DormantAccountNotice from "@/components/MessageBox/DormantAccountNotice.vue";
+import { Dialogs } from "@/common/dialogs";
 
 // router
 const router = useRouter();
@@ -177,69 +176,26 @@ const onClickLogin = async (isForced: boolean) => {
         await router.push("/");
 
       } else {
-        console.log('login failed -> {}', res);
 
         // 중복 로그인 시
         if(res.data.reason === 'DUPLICATE_LOGIN') {
-
-          await ElMessageBox.confirm(
-              // message 옵션에 h(컴포넌트, props) 전달
-              h(DuplicationLoginConfirm, {
-                title: '중복 로그인 감지',
-                message: res.data.message, // 서버에서 받은 메시지 ("...<br>...")
-              }),
-              // title 옵션은 빈 문자열로 두거나, h()를 사용하면 무시됨
-              '',
-              {
-                // 버튼 텍스트는 그대로 유지
-                confirmButtonText: '로그인',
-                cancelButtonText: '취소',
-
-                // 추가적인 스타일링을 위한 클래스
-                customClass: 'custom-message-box',
-
-                // 아이콘을 컴포넌트 안에서 직접 그리므로, 기본 아이콘은 숨김
-                showClose: false,
-                distinguishCancelAndClose: true, // ESC나 닫기 버튼을 취소와 구분
-                type: '' // 기본 'warning' 타입 아이콘을 숨기기 위해 빈 값으로 설정
-              }
-          ).then(() => {
+          Dialogs.showDuplicateLoginConfirm(res.data.message)
+          .then(() => {
             // '로그인' 버튼 클릭 시
             state.isProcessing = false;
             onClickLogin(true);
-          }).catch((action) => {
-            // '취소' 버튼 클릭 또는 ESC, 닫기 버튼 클릭
-            if (action === 'cancel') {
-              ElMessage.info('로그인을 취소했습니다.');
-            }
-          }).finally(() => {
+          }).catch((action) => {}).finally(() => {
             state.isProcessing = false;
           });
         }
-        else if (res.data.reason === 'DORMANT_ACCOUNT') {
-          await ElMessageBox.confirm(
-              h(DormantAccountNotice, { // 새로 만든 컴포넌트 사용
-                title: '휴면 계정 안내',
-                message: res.data.message // 서버에서 받은 메시지
-              }),
-              '',
-              {
-                confirmButtonText: '본인인증 하러가기',
-                cancelButtonText: '닫기',
-                customClass: 'custom-message-box',
-                showClose: false,
-                distinguishCancelAndClose: true,
-                type: ''
-              }
-          ).then(() => {
+
+        // 휴먼 계정일 시
+        if (res.data.reason === 'DORMANT_ACCOUNT') {
+          Dialogs.showDormantAccountNotice(res.data.message)
+          .then(() => {
             // '본인인증' 버튼 클릭 시
             router.push('/VerifyIdentity'); // 본인인증 페이지로 이동
-          }).catch((action) => {
-            // '닫기' 버튼 클릭 또는 ESC, 닫기 버튼 클릭
-            if (action === 'cancel') {
-              ElMessage.info('로그인을 취소했습니다.');
-            }
-          });
+          }).catch((action) => {});
         }
 
       }
@@ -256,33 +212,12 @@ const onClickLogin = async (isForced: boolean) => {
 const onClickToGoPage = (param: string) => {
   router.push("/" + param);
 }
+
+/**
+ * 권장 해상도 및 브라우저 배율 안내 다이얼로그를 표시
+ */
 const showResolutionInfo = () => {
-  ElMessageBox.alert(
-      // h() 함수를 사용하여 아이콘과 텍스트가 포함된 복잡한 구조를 생성
-      h('div', { class: 'resolution-info-content' }, [
-        h('div', { class: 'info-item' }, [
-          h(ElIcon, { class: 'info-icon', size: 20 }, () => h(Monitor)), // 모니터 아이콘
-          h('div', { class: 'info-text' }, [
-            h('span', { class: 'info-label' }, '최적 해상도'),
-            h('span', { class: 'info-value' }, '1920 x 1080'),
-          ]),
-        ]),
-        h('div', { class: 'info-item' }, [
-          h(ElIcon, { class: 'info-icon', size: 20 }, () => h(ZoomIn)), // 돋보기(배율) 아이콘
-          h('div', { class: 'info-text' }, [
-            h('span', { class: 'info-label' }, '브라우저 배율'),
-            h('span', { class: 'info-value' }, '125%'),
-          ]),
-        ]),
-      ]),
-      '권장 사용 환경', // Title
-      {
-        confirmButtonText: '확인',
-        center: true,
-        customClass: 'resolution-info-box', // 커스텀 스타일 클래스,
-        showClose: false,
-      }
-  )
+  Dialogs.showResolutionInfo();
 }
 </script>
 

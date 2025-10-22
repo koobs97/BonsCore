@@ -131,8 +131,8 @@ defineProps<{
 }
 </style>
 <style>
-.el-message-box {
-  width: 488px;
-  max-width: 488px;
+.el-message-box.custom-message-box {
+  width: 488px !important;
+  max-width: none;
 }
 </style>

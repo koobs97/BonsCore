@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import {h, reactive, ref} from 'vue';
-import {ElMessageBox, FormInstance, FormRules} from 'element-plus';
-import {ElMessage, ElNotification} from 'element-plus';
-import {ArrowRight, CircleCheck} from '@element-plus/icons-vue';
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
-import {Common} from "@/common/common";
+import { reactive, ref} from 'vue';
+import { FormInstance, FormRules } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
+import { ArrowRight, CircleCheck } from '@element-plus/icons-vue';
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
+import { Common } from "@/common/common";
+import { Dialogs } from "@/common/dialogs";
 
 // --- Props & Emits ---
 const props = defineProps({
@@ -101,7 +102,7 @@ const handleSubmit = async () => {
     formEl.validateField('answer')
   ]);
 
-  await Common.customConfirm(
+  await Dialogs.customConfirm(
       '질문/답변 설정',
       '입력하신 질문과 답변을 저장하시겠습니까?',
       '저장하기',

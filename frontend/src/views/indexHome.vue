@@ -573,7 +573,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 }
 .content-card {
   width: 100%;
-  height: 650px;
+  height: 670px;
   min-height: 600px;
   border-radius: 4px;
   box-sizing: border-box;
@@ -614,6 +614,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 .admin-content-container {
   flex-grow: 1;
   overflow-y: auto;
+  height: 670px;
 }
 .tab-content-placeholder {
   height: 620px;

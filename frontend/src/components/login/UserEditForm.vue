@@ -7,7 +7,7 @@ import { ApiUrls } from "@/api/apiUrls";
 import { User, Phone, Key, Message, Calendar, RefreshRight, QuestionFilled } from '@element-plus/icons-vue'
 import ChangePasswordDialog from "@/components/login/ChangePasswordDialog.vue";
 import SecurityQuestionWizardDialog from "@/components/login/SecurityQuestionWizardDialog.vue";
-import { Common } from "@/common/common";
+import { Dialogs } from "@/common/dialogs";
 
 const changePasswordDialogVisible = ref(false);
 const securityQuestionDialogVisible = ref(false);
@@ -107,7 +107,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       if(editForm.userEmailCheckStatus === 'success') {
         try {
 
-          await Common.customConfirm(
+          await Dialogs.customConfirm(
               '회원정보 변경',
               '입력하신 정보로 회원정보를 변경하시겠습니까?',
               '변경하기',
