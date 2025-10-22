@@ -60,6 +60,9 @@ dependencies {
     // @ConfigurationProperties 애노테이션을 분석하여 자동으로 메타데이터 파일(spring-configuration-metadata.json)을 생성
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
+    // env
+    implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+
 }
 
 tasks.named('test') {

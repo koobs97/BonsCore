@@ -1,6 +1,7 @@
 package com.koo.bonscore;
 
 import com.koo.bonscore.common.api.naver.config.NaverProperties;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,6 +19,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class BonsCoreApplication {
 
     public static void main(String[] args) {
+
+        // .env 적용
+        Dotenv dotenv = Dotenv.configure()
+                .directory("./backend")
+                .systemProperties()
+                .load();
+
         SpringApplication.run(BonsCoreApplication.class, args);
     }
 
