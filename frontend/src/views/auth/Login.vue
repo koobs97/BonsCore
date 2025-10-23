@@ -15,12 +15,13 @@ import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
 import { Common } from '@/common/common';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { userState, userStore } from '@/store/userStore';
 import { Dialogs } from "@/common/dialogs";
 
 // router
 const router = useRouter();
+const route = useRoute();
 
 /*
  * 패스워드는 ref(반응형 변수)로 새로고침하면 사라짐
@@ -58,13 +59,17 @@ onMounted(async () => {
 
   // ElMessage clear
   await nextTick();
-  setTimeout(() => {
-    ElMessageBox.close();
-    ElMessage.closeAll();
-    console.log("Login page mounted: All previous messages have been cleared.");
+  ElMessageBox.close();
+  ElMessage.closeAll();
+  console.log("Login page mounted: All previous messages have been cleared.");
 
-  }, 0);
+  // 로그아웃 시 meesage
+  if (route.query.status === 'logged-out') {
+    await nextTick();
+    ElMessage.success('성공적으로 로그아웃되었습니다.');
+  }
 
+  // 로그인되어있는 경우 로그아웃
   const isLoggedIn = userStore().isLoggedIn;
   if (isLoggedIn) {
     try {

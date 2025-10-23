@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, h } from 'vue';
+import {computed, reactive, ref, onMounted, h, nextTick} from 'vue';
 import { userStore, userState } from '@/store/userStore';
 import {CopyDocument, Delete, Female, Male, Setting, UserFilled} from "@element-plus/icons-vue";
 import { ElLoading, ElMessage, ElMessageBox } from "element-plus";
@@ -10,6 +10,7 @@ import { ApiUrls } from "@/api/apiUrls";
 import router from "../../../router";
 import WithdrawConfirm from "@/components/MessageBox/WithdrawConfirm.vue";
 import FinalConfirm from "@/components/MessageBox/FinalConfirm.vue";
+import {Dialogs} from "@/common/dialogs";
 
 const userStoreObj = userStore();
 
@@ -80,55 +81,35 @@ const handleUpdateSuccess = () => {
   // 또는, 받은 데이터로 직접 업데이트 할 수도 있습니다.
   console.log('사용자 정보가 업데이트 되었습니다. 상태를 갱신합니다.');
 };
-
 /**
  * 로그아웃
  */
 const onClickLogOut = async () => {
   try {
-    await ElMessageBox.confirm(
-        // message에 커스텀 컴포넌트를 렌더링
-        h(LogOutConfirm),
-        // title은 컴포넌트가 자체적으로 가지고 있으므로 비워둠
-        {
-          confirmButtonText: '로그아웃',
-          cancelButtonText: '취소',
+    await Dialogs.showLogoutConfirm();
 
-          // --- 스타일링을 위한 옵션 ---
-          customClass: 'logout-confirm-box',
-          type: '', // 기본 아이콘 숨기기
-          showClose: false, // X 닫기 버튼 숨기기
-        }
-    );
+    const loading = ElLoading.service({
+      lock: true,
+      text: '로그아웃 중...',
+      background: 'rgba(0, 0, 0, 0.7)',
+    });
 
     try {
-      await Api.post(ApiUrls.LOGOUT, {}, true);
+      await Api.post(ApiUrls.LOGOUT, {}, false);
     } catch (error) {
       console.warn("Logout API failed, proceeding with client-side cleanup anyway.", error);
-    } finally {
-      const loading = ElLoading.service({
-        lock: true,
-        text: 'Loading',
-        background: 'rgba(0, 0, 0, 0.7)',
-      })
-
-      setTimeout(() => {
-        // 1. 사용자 정보 삭제
-        userStore().delUserInfo();
-        sessionStorage.clear();
-
-        // 2. 로그인 페이지로 이동
-        router.push("/login");
-
-        // 3. 성공 메시지 표시 및 로딩 종료
-        ElMessage.success('성공적으로 로그아웃되었습니다.');
-        loading.close();
-      }, 1000);
     }
 
-  } catch (error) {
-    if (error === 'cancel') {}
-  }
+    setTimeout(async () => {
+      userStore().delUserInfo();
+      sessionStorage.clear();
+      loading.close();
+
+      await nextTick();
+      await router.push({ path: '/login', query: { status: 'logged-out' } });
+    }, 1500);
+  //
+  } catch (error) {}
 }
 
 /**
