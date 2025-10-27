@@ -66,11 +66,23 @@ axiosInstance.interceptors.response.use(
         if (error.response && error.response.status === 403 && !originalRequest._retry) {
 
             // 403-메소드 접근제어
-            if(error.response.data.code === 'ER_005') {
+            if(error.response.data.code === 'ER_105') {
                 // 메시지 박스 호출
                 await Dialogs.customConfirm(
                     '접근제어',
                     error.response.data.message,
+                    '확인',
+                    '취소',
+                    '463px',
+                    'warning'
+                );
+            }
+
+            if(error.response.data.data.code === 'ER_106') {
+                // 메시지 박스 호출
+                await Dialogs.customConfirm(
+                    '계정잠김',
+                    error.response.data.message || '로그인 시도 횟수 초과로 계정이 잠겼습니다.',
                     '확인',
                     '취소',
                     '463px',

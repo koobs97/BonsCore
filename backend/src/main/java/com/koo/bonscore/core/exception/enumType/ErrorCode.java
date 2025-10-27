@@ -21,7 +21,8 @@ public enum ErrorCode {
     INVALID_ACCESS_TOKEN("ER_003", "엑세스 토큰이 유효하지 않습니다."),
     UNAUTHORIZED("ER_004", "권한이 없습니다."),
     DUPLICATE_LOGIN("ER_104", "중복 로그인이 감지되어 강제 로그아웃 됩니다."),
-    ACCESS_DENIED("ER_005", "이 리소스에 접근할 수 있는 권한이 없습니다."),
+    ACCESS_DENIED("ER_105", "이 리소스에 접근할 수 있는 권한이 없습니다."),
+    ACCOUNT_LOCKED("ER_106", "로그인 시도 횟수 초과로 계정이 잠겼습니다."),
 
     // 로그인 관련 에러
     INVALID_CREDENTIALS("ER_005", "잘못된 사용자 이름 또는 비밀번호입니다."),

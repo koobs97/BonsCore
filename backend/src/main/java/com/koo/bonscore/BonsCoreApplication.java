@@ -3,6 +3,7 @@ package com.koo.bonscore;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -15,6 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @version : 1.0
  * @since   : 2025-01-07
  */
+@EnableCaching
 @EnableAsync // 로깅을 위한 비동기처리 활성화
 @EnableScheduling
 @SpringBootApplication

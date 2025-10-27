@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * <pre>
@@ -53,6 +54,7 @@ public class AuthService {
 
     // 인증 컴포넌트
     private final JwtTokenProvider jwtTokenProvider;
+    private final LoginAttemptService loginAttemptService;
 
     /* 메일 인증 관련 서비스 */
     private final MailService mailService;
@@ -69,48 +71,93 @@ public class AuthService {
     @Transactional
     public LoginResponseDto login(LoginDto request) throws Exception {
 
-        LoginResponseDto response = new LoginResponseDto();
+        // 계정 잠금 여부 확인
+        checkAccountLock(request.getUserId());
 
-        // RSA 복호화
+        // 2. 사용자 정보 및 비밀번호 유효성 검증
         String decryptedPassword = rsaController.decrypt(request.getPassword());
+        LoginCheckDto loginCheckDto = validateCredentials(request, decryptedPassword);
 
-        // bcrypt 해싱 후 검증
-        String hashedPassword = passwordEncoder.encode(decryptedPassword);
-
-        // userId의 해싱된 passwd get
-        LoginCheckDto loginCheckDto = authMapper.login(request);
-        if(loginCheckDto == null) {
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INVALID_CREDENTIALS
-                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
+        // 3. 휴면 계정 여부 확인
+        if (isDormantAccount(loginCheckDto)) {
+            return createDormantAccountResponse();
         }
 
-        String getHasedPassword = loginCheckDto.getPasswordHash();
+        // 4. 로그인 성공 처리
+        processLoginSuccess(request);
 
-        // 비밀번호 비교는 matches 함수 사용
-        boolean isMatch = passwordEncoder.matches(decryptedPassword, getHasedPassword);
+        // 5. 토큰 발급 및 최종 응답 생성
+        return createSuccessResponse(request);
+    }
+
+    /**
+     * 1. 계정잠김 여부 확인
+     */
+    private void checkAccountLock(String userId) {
+        if (loginAttemptService.isBlocked(userId)) {
+            throw new BsCoreException(
+                    HttpStatusCode.FORBIDDEN,
+                    ErrorCode.ACCOUNT_LOCKED,
+                    "로그인 시도 횟수 초과로 계정이 잠겼습니다. 5분 후에 다시 시도해주세요.");
+        }
+    }
+
+    /**
+     * 2. 사용자 자격 증명을 확인
+     */
+    private LoginCheckDto validateCredentials(LoginDto request, String decryptedPassword) {
+        LoginCheckDto loginCheckDto = Optional.ofNullable(authMapper.login(request))
+                .orElseThrow(() -> new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR,
+                        ErrorCode.INVALID_CREDENTIALS,
+                        ErrorCode.INVALID_CREDENTIALS.getMessage()));
+
+        // 비밀번호 비교
+        boolean isMatch = passwordEncoder.matches(decryptedPassword, loginCheckDto.getPasswordHash());
 
         if (!isMatch) {
-            response.setSuccess(Boolean.FALSE);
-            response.setMessage(ErrorCode.INVALID_CREDENTIALS.getMessage());
-
+            loginAttemptService.loginFailed(request.getUserId());
             throw new BsCoreException(
-                      HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INVALID_CREDENTIALS
-                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
+                    HttpStatusCode.INTERNAL_SERVER_ERROR,
+                    ErrorCode.INVALID_CREDENTIALS,
+                    ErrorCode.INVALID_CREDENTIALS.getMessage());
         }
 
-        // 휴먼계정인경우
-        if(loginCheckDto.getAccountLocked().equals("Y")) {
-            response.setSuccess(false);
-            response.setReason("DORMANT_ACCOUNT");
-            response.setMessage("장기간 미접속으로 계정이 휴면 상태로 전환되었습니다.<br>본인인증을 통해 계정을 활성화할 수 있습니다.");
-            return response;
-        }
+        return loginCheckDto;
+    }
 
-        // 유저정보 세팅
+    /**
+     * 3. 휴먼계정인지 확인
+     */
+    private boolean isDormantAccount(LoginCheckDto loginCheckDto) {
+        return "Y".equals(loginCheckDto.getAccountLocked());
+    }
+
+    /**
+     * 3-1. 휴먼계정 응답객체 생성
+     */
+    private LoginResponseDto createDormantAccountResponse() {
+        LoginResponseDto response = new LoginResponseDto();
+        response.setSuccess(false);
+        response.setReason("DORMANT_ACCOUNT");
+        response.setMessage("장기간 미접속으로 계정이 휴면 상태로 전환되었습니다.<br>본인인증을 통해 계정을 활성화할 수 있습니다.");
+        return response;
+    }
+
+    /**
+     * 4. 로그인 성공처리 수행
+     */
+    private void processLoginSuccess(LoginDto request) {
+        authMapper.updateLoginAt(request);
+        loginAttemptService.loginSucceeded(request.getUserId());
+    }
+
+    /**
+     * 5. 최종 성공 응답과 토큰을 생성
+     */
+    private LoginResponseDto createSuccessResponse(LoginDto request) throws Exception {
         UserDto user = authMapper.findByUserId(request);
+        // 복호화 로직은 그대로 유지
         UserDto decryptedUser = UserDto.builder()
                 .userId(user.getUserId())
                 .userName(encryptionService.decrypt(user.getUserName()))
@@ -119,23 +166,18 @@ public class AuthService {
                 .birthDate(encryptionService.decrypt(user.getBirthDate()))
                 .genderCode(user.getGenderCode())
                 .build();
-        
-        // 로그인일시 업데이트
-        authMapper.updateLoginAt(request);
 
-        // 유저 권한 조회
         List<String> roles = authMapper.findRoleByUserId(request.getUserId());
         log.info("사용자 '{}'의 권한 조회 결과: {}", request.getUserId(), roles);
 
-        // Access Token: 15분
         String accessToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
-        // Refresh Token: 7일
         String refreshToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), List.of("ROLE_REFRESH"), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
 
+        LoginResponseDto response = new LoginResponseDto();
         response.setSuccess(true);
         response.setMessage("로그인 성공");
         response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken); // 임시 저장
+        response.setRefreshToken(refreshToken);
 
         return response;
     }
