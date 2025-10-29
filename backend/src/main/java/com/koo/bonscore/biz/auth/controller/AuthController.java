@@ -1,5 +1,6 @@
 package com.koo.bonscore.biz.auth.controller;
 
+import com.koo.bonscore.biz.auth.dto.LoginHistoryDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
@@ -7,6 +8,8 @@ import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.biz.auth.service.AuthService;
+import com.koo.bonscore.biz.auth.service.GeoIpLocationService;
+import com.koo.bonscore.common.util.web.WebUtils;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
@@ -14,10 +17,14 @@ import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
 import com.koo.bonscore.log.annotaion.UserActivityLog;
+import com.maxmind.geoip2.exception.AddressNotFoundException;
+import com.maxmind.geoip2.model.CityResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -37,6 +44,7 @@ import java.util.List;
  * @version : 1.0
  * @since   : 2025-08-01
  */
+@Slf4j
 @RestController
 @RequestMapping("api/auth")
 @RequiredArgsConstructor
@@ -45,6 +53,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
+    private final GeoIpLocationService geoIpLocationService;
 
     private final AuthMapper authMapper;
 
@@ -62,11 +71,14 @@ public class AuthController {
     @UserActivityLog(activityType = "LOGIN", userIdField = "#request.userId")
     @PreventDoubleClick
     @PostMapping("/login")
-    public LoginResponseDto login(@RequestBody LoginDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+    public LoginResponseDto login(@Valid @RequestBody LoginDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
         try {
 
+            // 클라이언트 정보 추출
+            LoginHistoryDto clientInfo = getClientInfo(request, httpRequest);
+
             // 실제 로그인 처리
-            LoginResponseDto responseDto = authService.login(request);
+            LoginResponseDto responseDto = authService.login(request, clientInfo);
 
             // 로그인 성공 시 세션 처리
             if (responseDto.getSuccess()) {
@@ -108,6 +120,47 @@ public class AuthController {
             httpRequest.setAttribute("errorMessage", e.getMessage());
             throw (e);
         }
+    }
+
+    /**
+     * 클라이언트 접속정보 추출
+     *
+     * @param request 로그인 시도 정보
+     * @param httpRequest HttpServletRequest
+     * @return 로그인 로그 기록 dto
+     */
+    private LoginHistoryDto getClientInfo(LoginDto request, HttpServletRequest httpRequest) {
+
+        String ip = WebUtils.getClientIP(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        CityResponse location = null;
+        String country = "N/A"; // 기본값 설정
+        String city = "Localhost"; // 기본값 설정
+
+        // Localhost IP (IPv6, IPv4) 제외
+        if ("0:0:0:0:0:0:0:1".equals(ip) || "127.0.0.1".equals(ip)) {
+            city = "Localhost";
+        } else {
+            try {
+                location = geoIpLocationService.getLocation(ip);
+            } catch (AddressNotFoundException e) {
+                log.warn("GeoIP database does not contain the address: {}", ip);
+            } catch (Exception e) {
+                log.error("GeoIP location lookup failed unexpectedly for IP: {}", ip, e);
+            }
+        }
+
+        if (location != null) {
+            if (location.getCountry() != null) {
+                country = location.getCountry().getIsoCode();
+            }
+            if (location.getCity() != null) {
+                city = location.getCity().getName();
+            }
+        }
+
+        return new LoginHistoryDto(request.getUserId(), ip, userAgent, country, city);
     }
 
     /**

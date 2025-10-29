@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
-import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router';
 import { ElAlert, ElMessage } from 'element-plus';
 import { MoreFilled, Promotion, QuestionFilled, Timer } from "@element-plus/icons-vue";
 import { ApiUrls } from "@/api/apiUrls";
 import { Api } from "@/api/axiosInstance";
 
 const router = useRouter();
+const route = useRoute();
 
 // 본인인증 관련 상태 변수 (예시)
 const userName = ref('');
@@ -15,6 +16,24 @@ const verificationCode = ref('');
 const isCodeSent = ref(false);
 const isVerifying = ref(false);
 const isCardLoading = ref(false);
+
+const verifyType = computed(() => {
+  return route.query.type === 'ABNORMAL' ? 'ABNORMAL' : 'DORMANT';
+});
+
+const pageTitle = computed(() => {
+  return verifyType.value === 'ABNORMAL' ? '비정상 로그인 인증' : '휴면 계정 활성화';
+});
+
+const pageDescription = computed(() => {
+  return verifyType.value === 'ABNORMAL'
+      ? '회원님의 계정 보호를 위해 본인인증이 필요합니다.'
+      : '본인인증을 통해 안전하게 계정을 다시 활성화하세요.';
+});
+
+const submitButtonText = computed(() => {
+  return verifyType.value === 'ABNORMAL' ? '인증 확인' : '확인 및 계정 활성화';
+});
 
 // 타이머 상태관리
 const state = reactive({
@@ -130,11 +149,7 @@ const verifyAndActivate = async () => {
 
   isVerifying.value = true;
   try {
-    // TODO: 서버로 인증번호 확인 및 계정 활성화 API 호출
-    console.log(`Verifying code: ${verificationCode.value}`);
-    await new Promise(resolve => setTimeout(resolve, 500)); // API 호출 시뮬레이션
-
-
+    const result = await Api.post(ApiUrls.CHECK_CODE, { email: email.value, code: verificationCode.value });
     ElMessage.success('본인인증이 완료되었습니다. 계정이 활성화되었습니다.');
 
     isCardLoading.value = true;
@@ -171,10 +186,8 @@ const goToLogin = () => {
         v-loading="isCardLoading"
         element-loading-text="잠시 후 로그인 페이지로 이동합니다..."
     >
-      <h2 class="verify-title">휴면 계정 활성화</h2>
-      <p class="verify-description">
-        본인인증을 통해 안전하게 계정을 다시 활성화하세요.
-      </p>
+      <h2 class="verify-title">{{ pageTitle }}</h2>
+      <p class="verify-description">{{ pageDescription }}</p>
 
       <el-form class="verify-form" @submit.prevent>
         <el-input
@@ -248,7 +261,7 @@ const goToLogin = () => {
               :loading="isVerifying"
               @click="verifyAndActivate"
           >
-            확인 및 계정 활성화
+            {{ submitButtonText }}
           </el-button>
         </template>
 

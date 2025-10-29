@@ -67,6 +67,9 @@ onMounted(async () => {
   if (route.query.status === 'logged-out') {
     await nextTick();
     ElMessage.success('성공적으로 로그아웃되었습니다.');
+
+    const newUrl = window.location.pathname;
+    history.replaceState({}, '', newUrl);
   }
 
   // 로그인되어있는 경우 로그아웃
@@ -153,6 +156,8 @@ const onClickLogin = async (isForced: boolean) => {
     const encryptedPassword = await Common.encryptPassword(password.value);
     state.isProcessing = true;
 
+    console.log(encryptedPassword)
+
     try {
       const res = await Api.post(ApiUrls.LOGIN, { userId : userId.value, password : encryptedPassword, force: isForced });
       if(res.data.success) {
@@ -196,11 +201,20 @@ const onClickLogin = async (isForced: boolean) => {
 
         // 휴먼 계정일 시
         if (res.data.reason === 'DORMANT_ACCOUNT') {
-          Dialogs.showDormantAccountNotice(res.data.message)
+          Dialogs.showDormantAccountNotice('휴면 계정 안내', res.data.message)
           .then(() => {
             // '본인인증' 버튼 클릭 시
-            router.push('/VerifyIdentity'); // 본인인증 페이지로 이동
+            router.push({ path: '/VerifyIdentity', query: { type: 'DORMANT' } });
           }).catch((action) => {});
+        }
+
+        // 비정상 로그인 탐지 시
+        if(res.data.reason === 'ACCOUNT_VERIFICATION_REQUIRED') {
+          Dialogs.showDormantAccountNotice('비정상 로그인 감지', res.data.message)
+              .then(() => {
+                // '본인인증' 버튼 클릭 시
+                router.push({ path: '/VerifyIdentity', query: { type: 'ABNORMAL' } });
+              }).catch((action) => {});
         }
 
       }

@@ -8,11 +8,16 @@ import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 전역 예외 처리 핸들러 클래스
@@ -49,6 +54,45 @@ public class ApplicationExceptionHandler {
         );
 
         return new ResponseEntity<>(apiResponse, ex.getStatusCode().getHttpStatus());
+    }
+
+    /**
+     * @Valid 어노테이션을 사용한 DTO의 유효성 검사 실패 시 발생하는 예외를 처리.
+     *
+     * @param ex      MethodArgumentNotValidException
+     * @param request WebRequest
+     * @return        필드별 에러 메시지를 담은 ResponseEntity
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Object> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
+        BindingResult bindingResult = ex.getBindingResult();
+
+        // 기본 메시지
+        String representativeErrorMessage = "입력값이 유효하지 않습니다."; // 기본 메시지
+
+        // 에러가 있다면 첫 번째 에러의 메시지를 대표 메시지로 설정
+        if (bindingResult.hasErrors()) {
+            FieldError fieldError = bindingResult.getFieldError();
+            if (fieldError != null) {
+                representativeErrorMessage = fieldError.getDefaultMessage();
+            }
+        }
+
+        Map<String, String> errors = new HashMap<>();
+
+        bindingResult.getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+
+        ApiResponse<Object> apiResponse = ApiResponse.failure(
+                ErrorCode.INVALID_INPUT.getCode(),
+                representativeErrorMessage,
+                errors
+        );
+
+        return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
     }
 
     /**

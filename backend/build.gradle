@@ -26,6 +26,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // mybatis
     implementation 'org.mybatis:mybatis:3.5.13'
@@ -62,6 +63,9 @@ dependencies {
 
     // env
     implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+
+    // IP 주소를 지리적 위치로 변환해주는 라이브러리
+    implementation 'com.maxmind.geoip2:geoip2:4.3.1'
 
 }
 

@@ -1,6 +1,7 @@
 package com.koo.bonscore.biz.auth.mapper;
 
 import com.koo.bonscore.biz.auth.dto.LoginCheckDto;
+import com.koo.bonscore.biz.auth.dto.LoginHistoryDto;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
@@ -40,16 +41,35 @@ public interface AuthMapper {
 
     /**
      * 유저 권한 조회
-     * @param String 사용자 ID
+     * @param userId 사용자 ID
      * @return 유저 권한
      */
     List<String> findRoleByUserId(String userId);
+
+    /**
+     * 사용자의 최근 접속 국가 목록 조회
+     * @param userId 사용자 ID
+     * @return 사용자의 최근 접속 국가 목록
+     */
+    List<String> findRecentLoginCountries(String userId);
+
+    /**
+     * 비정상 로그인으로 계정잠금
+     * @param loginDto 로그인 시도 정보
+     */
+    void updateRequiresYn(LoginDto loginDto);
 
     /**
      * 로그인일시 업데이트
      * @param loginDto 사용자 ID
      */
     void updateLoginAt(LoginDto loginDto);
+
+    /**
+     * 로그인 기록 저장
+     * @param history 사용자 접속 기록
+     */
+    void insertLoginHistory(LoginHistoryDto history);
 
     /**
      * 아이디 중복 체크
@@ -124,4 +144,10 @@ public interface AuthMapper {
      * @param userInfoSearchDto 아이디
      */
     void updatePassword(UserInfoSearchDto userInfoSearchDto);
+
+    /**
+     * 계정잠김 해제
+     * @param userInfoSearchDto 아이디
+     */
+    void updateUnLocked(UserInfoSearchDto userInfoSearchDto);
 }

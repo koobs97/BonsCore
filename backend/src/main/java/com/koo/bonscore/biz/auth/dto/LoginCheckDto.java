@@ -18,4 +18,5 @@ import lombok.Setter;
 public class LoginCheckDto {
     private String passwordHash;
     private String accountLocked;
+    private String requiresVerificationYn;
 }

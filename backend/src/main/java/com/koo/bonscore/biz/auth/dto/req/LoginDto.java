@@ -1,5 +1,6 @@
 package com.koo.bonscore.biz.auth.dto.req;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 /**
@@ -18,7 +19,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginDto {
+    @NotBlank(message = "아이디를 입력해주세요.")
     private String userId;
+    @NotBlank(message = "비밀번호를 입력해주세요.")
     private String password;
     private boolean force = false; // 중복로그인 시 강제로그인 여부
 }

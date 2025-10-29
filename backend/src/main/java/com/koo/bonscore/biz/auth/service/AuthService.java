@@ -2,6 +2,7 @@ package com.koo.bonscore.biz.auth.service;
 
 import com.koo.bonscore.biz.auth.controller.RSAController;
 import com.koo.bonscore.biz.auth.dto.LoginCheckDto;
+import com.koo.bonscore.biz.auth.dto.LoginHistoryDto;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
@@ -27,7 +28,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * <pre>
@@ -55,6 +55,7 @@ public class AuthService {
     // 인증 컴포넌트
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginAttemptService loginAttemptService;
+    private final GeoIpLocationService geoIpLocationService;
 
     /* 메일 인증 관련 서비스 */
     private final MailService mailService;
@@ -69,9 +70,9 @@ public class AuthService {
      * @throws Exception 로그인 과정에서 발생하는 모든 예외
      */
     @Transactional
-    public LoginResponseDto login(LoginDto request) throws Exception {
+    public LoginResponseDto login(LoginDto request, LoginHistoryDto clientInfo) throws Exception {
 
-        // 계정 잠금 여부 확인
+        // 1. 계정 잠금 여부 확인
         checkAccountLock(request.getUserId());
 
         // 2. 사용자 정보 및 비밀번호 유효성 검증
@@ -83,10 +84,17 @@ public class AuthService {
             return createDormantAccountResponse();
         }
 
-        // 4. 로그인 성공 처리
-        processLoginSuccess(request);
+        // 4. 비정상 로그인 탐지
+        boolean isAbnormal = checkAbnormalLogin(request, clientInfo, loginCheckDto);
+        if (isAbnormal) {
+            // 비정상 로그인 시, 추가 인증 요구 응답 반환
+            return createAbnormalLoginResponse(request.getUserId());
+        }
 
-        // 5. 토큰 발급 및 최종 응답 생성
+        // 5. 로그인 성공 처리
+        processLoginSuccess(request, clientInfo);
+
+        // 6. 토큰 발급 및 최종 응답 생성
         return createSuccessResponse(request);
     }
 
@@ -106,21 +114,24 @@ public class AuthService {
      * 2. 사용자 자격 증명을 확인
      */
     private LoginCheckDto validateCredentials(LoginDto request, String decryptedPassword) {
-        LoginCheckDto loginCheckDto = Optional.ofNullable(authMapper.login(request))
-                .orElseThrow(() -> new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR,
-                        ErrorCode.INVALID_CREDENTIALS,
-                        ErrorCode.INVALID_CREDENTIALS.getMessage()));
+        LoginCheckDto loginCheckDto = authMapper.login(request);
+        if(loginCheckDto == null) {
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INVALID_CREDENTIALS
+                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
+        }
 
-        // 비밀번호 비교
-        boolean isMatch = passwordEncoder.matches(decryptedPassword, loginCheckDto.getPasswordHash());
+        String getHasedPassword = loginCheckDto.getPasswordHash();
+
+        // 비밀번호 비교는 matches 함수 사용
+        boolean isMatch = passwordEncoder.matches(decryptedPassword, getHasedPassword);
 
         if (!isMatch) {
-            loginAttemptService.loginFailed(request.getUserId());
             throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR,
-                    ErrorCode.INVALID_CREDENTIALS,
-                    ErrorCode.INVALID_CREDENTIALS.getMessage());
+                    HttpStatusCode.INTERNAL_SERVER_ERROR
+                    , ErrorCode.INVALID_CREDENTIALS
+                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
         }
 
         return loginCheckDto;
@@ -130,32 +141,102 @@ public class AuthService {
      * 3. 휴먼계정인지 확인
      */
     private boolean isDormantAccount(LoginCheckDto loginCheckDto) {
-        return "Y".equals(loginCheckDto.getAccountLocked());
+        return loginCheckDto.getAccountLocked().equals("Y");
     }
 
     /**
      * 3-1. 휴먼계정 응답객체 생성
      */
     private LoginResponseDto createDormantAccountResponse() {
-        LoginResponseDto response = new LoginResponseDto();
-        response.setSuccess(false);
-        response.setReason("DORMANT_ACCOUNT");
-        response.setMessage("장기간 미접속으로 계정이 휴면 상태로 전환되었습니다.<br>본인인증을 통해 계정을 활성화할 수 있습니다.");
-        return response;
+        return LoginResponseDto.builder()
+                .success(false)
+                .reason("DORMANT_ACCOUNT")
+                .message("장기간 미접속으로 계정이 휴면 상태로 전환되었습니다.<br>본인인증을 통해 계정을 활성화할 수 있습니다.")
+                .build();
     }
 
     /**
-     * 4. 로그인 성공처리 수행
+     * 4. 비정상 로그인 탐지
      */
-    private void processLoginSuccess(LoginDto request) {
+    private boolean checkAbnormalLogin(LoginDto loginDto, LoginHistoryDto clientInfo, LoginCheckDto loginCheckDto) {
+        try {
+            // 비정상 로그인으로 계정이 잠겨있는지 확인
+            if("Y".equals(loginCheckDto.getRequiresVerificationYn())) {
+                return true;
+            }
+
+            // Redis에서 최근 접속 국가 정보 조회
+            String redisKey = "last_login_country:" + loginDto.getUserId();
+            String lastCountry = redisTemplate.opsForValue().get(redisKey);
+            log.info("redisKey: {}, lastCountry: {}", redisKey, lastCountry);
+
+            if (lastCountry != null && lastCountry.equals(clientInfo.getCountryCode())) {
+                return false; // 최근 접속 국가와 동일하면 정상으로 간주
+            }
+
+            // Redis에 정보가 없거나 국가가 다르면 DB에서 전체 기록 조회
+            List<String> recentCountries = authMapper.findRecentLoginCountries(loginDto.getUserId()); // Mapper에 추가 필요
+            log.info("recentCountries: {}", recentCountries);
+            log.info("clientInfo.getCountryCode(): {}", clientInfo.getCountryCode());
+
+            if (recentCountries.isEmpty() || !recentCountries.contains(clientInfo.getCountryCode())) {
+                // 계정 잠금 처리
+                authMapper.updateRequiresYn(loginDto);
+                log.warn("비정상 로그인 시도 감지: User ID = {}, IP = {}, Country = {}", loginDto.getUserId(), clientInfo.getIpAddress(), clientInfo.getCountryCode());
+
+                return true;
+            }
+
+            return false;
+        } catch (Exception e) {
+            // IP 조회 실패 등 예외 발생 시 일단 정상으로 처리하여 로그인 흐름을 막지 않음
+            log.error("비정상 로그인 탐지 중 오류 발생", e);
+            return false;
+        }
+    }
+
+    /**
+     * 4-2. 비정상 로그인 시 응답 객체 생성
+     */
+    private LoginResponseDto createAbnormalLoginResponse(String userId) {
+        return LoginResponseDto.builder()
+                .success(false)
+                .reason("ACCOUNT_VERIFICATION_REQUIRED")
+                .message("다른 환경에서의 로그인이 감지되었습니다.<br>계정 보호를 위해 본인인증을 진행해주세요.")
+                .build();
+    }
+
+    /**
+     * 5. 로그인 성공처리 수행
+     */
+    private void processLoginSuccess(LoginDto request, LoginHistoryDto clientInfo) {
         authMapper.updateLoginAt(request);
         loginAttemptService.loginSucceeded(request.getUserId());
+
+        saveLoginHistory(request.getUserId(), clientInfo);
     }
 
     /**
-     * 5. 최종 성공 응답과 토큰을 생성
+     * 5-1. 로그인 로그 저장
      */
-    private LoginResponseDto createSuccessResponse(LoginDto request) throws Exception {
+    private void saveLoginHistory(String userId, LoginHistoryDto history) {
+        try {
+            // Mapper에 전달할 DTO나 Map 생성
+            authMapper.insertLoginHistory(history); // Mapper에 추가 필요
+
+            // Redis에 최근 접속 국가 정보 업데이트 (TTL 설정 가능)
+            String redisKey = "last_login_country:" + userId;
+            redisTemplate.opsForValue().set(redisKey, history.getCountryCode(), Duration.ofDays(30)); // 예: 30일간 유지
+
+        } catch (Exception e) {
+            log.error("로그인 기록 저장 중 오류 발생", e);
+        }
+    }
+
+    /**
+     * 6. 최종 성공 응답과 토큰을 생성
+     */
+    private LoginResponseDto createSuccessResponse(LoginDto request) {
         UserDto user = authMapper.findByUserId(request);
         // 복호화 로직은 그대로 유지
         UserDto decryptedUser = UserDto.builder()
@@ -173,13 +254,12 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
         String refreshToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), List.of("ROLE_REFRESH"), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
 
-        LoginResponseDto response = new LoginResponseDto();
-        response.setSuccess(true);
-        response.setMessage("로그인 성공");
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-
-        return response;
+        return LoginResponseDto.builder()
+                .success(true)
+                .message("로그인 성공")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 
     /**
@@ -209,7 +289,6 @@ public class AuthService {
      */
     @Transactional
     public void signup(SignUpDto request) throws Exception {
-        // 회원가입 컬럼 조립
         // 암호화 대상 : 유저명, 패스워드, 이메일, 전화번호, 생년월일
         SignUpDto item = SignUpDto.builder()
                 .userId(request.getUserId())
@@ -238,9 +317,8 @@ public class AuthService {
      * 아이디/비밀번호 찾기 서비스
      *
      * @param request 이메일 주소 등 사용자 정보를 담은 요청 DTO
-     * @throws Exception 이메일 발송 실패 또는 사용자 정보 부재 시
      */
-    public void searchIdBySendMail(UserInfoSearchDto request) throws Exception {
+    public void searchIdBySendMail(UserInfoSearchDto request) {
 
         String type = request.getType();
 
@@ -333,13 +411,18 @@ public class AuthService {
             // 인증 성공 시, 즉시 코드를 삭제하여 재사용을 방지.
             redisTemplate.delete(key);
 
-            // 2. 유저 조회
+            // 유저 조회
             UserInfoSearchDto input = UserInfoSearchDto.builder()
                     .email(encryptionService.hashWithSalt(email))
+                    .updatedAt(LocalDateTime.now())
                     .build();
 
             // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
             String userId = authMapper.findUserIdByMail(input);
+            input.setUserId(userId);
+
+            // 계정잠김 해제
+            authMapper.updateUnLocked(input);
 
             return UserInfoSearchDto.builder()
                     .userId(userId)

@@ -192,7 +192,7 @@ const sendAuthCode = async () => {
 
 /**
  * 인증번호 확인 및 다음 단계로 이동 함수며
- * 실제로는 API를 호출하여 인증번호의 유효성을 검증합니다.
+ * 실제로는 API를 호출하여 인증번호의 유효성을 검증.
  */
 const verifyAndProceed = async () => {
   if (!formData.authCode) {
@@ -206,7 +206,7 @@ const verifyAndProceed = async () => {
   currentStep.value = 2; // 비밀번호 재설정 단계로 이동
   clearInterval(state.timerId);
   state.isVerified = true;
-  nextTick(() => {
+  await nextTick(() => {
     newPassword.value.focus();
   })
 };

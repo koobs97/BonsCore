@@ -95,11 +95,11 @@ export class Dialogs {
      * @param message - 서버로부터 받은 동적 메시지
      * @returns Promise<string> - ElMessageBox.confirm의 Promise 객체
      */
-    public static showDormantAccountNotice = (message: string) => {
+    public static showDormantAccountNotice = (header: string, message: string) => {
         return ElMessageBox.confirm(
             // message 옵션: 렌더링할 Vue 컴포넌트와 props 전달
             h(DormantAccountNotice, { // 새로 만든 컴포넌트 사용
-                title: '휴면 계정 안내',
+                title: header,
                 message: message // 서버에서 받은 메시지
             }),
             '',
