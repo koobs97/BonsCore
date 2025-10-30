@@ -13,9 +13,9 @@
             , B.PARENT_MENU_ID                      /* 상위 메뉴 ID */
             , B.SORT_ORDER                          /* 메뉴 표시 순서 */
             , B.IS_VISIBLE                          /* 화면 표시 여부 */
-         FROM TB_ROLE_MENU A                        /* 권한-메뉴 매핑 테이블 */
-            , TB_MENU      B                        /* 메뉴 정보 테이블 */
-        WHERE A.ROLE_ID = ( SELECT A.ROLE_ID FROM TB_USER_ROLE A WHERE A.USER_ID = #{userId} )
+         FROM ROLE_MENU A                           /* 권한/메뉴 매핑 테이블 */
+            , MENU      B                           /* 메뉴 정보 테이블 */
+        WHERE A.ROLE_ID = ( SELECT A.ROLE_ID FROM ROLE_USER A WHERE A.USER_ID = #{userId} )
           AND A.MENU_ID = B.MENU_ID
         ORDER BY B.SORT_ORDER
     </select>

@@ -89,6 +89,8 @@ const state = reactive({
   showAgreementError: false,
   userIdCheckStatus: '' as '' | 'success' | 'error',
   userEmailCheckStatus: '' as '' | 'success' | 'error',
+  isPasswordPwned: false, // 비밀번호 유출 여부 상태
+  isCheckingPwned: false, // 유출 여부 확인 중 로딩 상태
 });
 
 // 화면진입 시
@@ -226,6 +228,38 @@ const handleFieldFocus = (fieldName: any) => {
 }
 
 /**
+ * 비밀번호 유출 여부를 확인하는 API를 호출한다.
+ */
+const checkPwnedPassword = async () => {
+  if (!state.data.password || state.complexity.status === 'exception') {
+    state.isPasswordPwned = false;
+    return;
+  }
+
+  state.isCheckingPwned = true;
+  state.isPasswordPwned = false; // 검사 시작 시 초기화
+
+  try {
+    // 비밀번호를 암호화하여 전송 (기존 Common.encryptPassword 사용)
+    const encryptedPassword = await Common.encryptPassword(state.data.password);
+    const response = await Api.post(ApiUrls.CHECK_PWNED_PASSWORD, { password: encryptedPassword });
+
+    if (response.data) {
+      state.isPasswordPwned = true;
+      // 유효성 검사 규칙에 에러 메시지를 동적으로 설정
+      state.rules.password.message = '이 비밀번호는 유출된 이력이 있습니다.<br>다른 비밀번호를 사용해주세요.';
+      state.visible.password = true; // 에러 팝오버 표시
+    } else {
+      state.isPasswordPwned = false;
+    }
+  } catch (error) {
+    state.isPasswordPwned = false;
+  } finally {
+    state.isCheckingPwned = false;
+  }
+};
+
+/**
  * validation 체크
  * @param fieldName
  */
@@ -261,6 +295,10 @@ const handleFieldValidation = (fieldName: any) => {
         state.userEmailCheckStatus = 'success';
       }
 
+    }
+    // 비밀번호 필드 유효성 검사 통과 후, 유출 여부 검사 실행
+    if (fieldName === 'password' && isValid) {
+      await checkPwnedPassword();
     }
   })
 }
@@ -431,8 +469,23 @@ const onClickSignUp = async () => {
     }
   }
 
+  // 유출된 비밀번호인지 최종 확인
+  if (state.isPasswordPwned) {
+    state.visible['password'] = true;
+    state.rules.password.message = '이 비밀번호는 유출된 이력이 있습니다.<br>다른 비밀번호를 사용해주세요.';
+    ElMessage({ message: '안전하지 않은 비밀번호입니다. 다른 비밀번호를 사용해주세요.', grouping: true, type: 'error' })
+    return;
+  }
+
+  // 비밀번호 생성규칙 검사
+  if(state.complexity.status === 'exception') {
+    state.visible['password'] = true;
+    state.rules.password.message = '비밀번호 생성규칙을 확인해주세요.';
+    return;
+  }
+
   // 약관 동의 여부 검사
-  const allRequiredAgreed = requiredAgreements.value.every(agreed => agreed === true);
+  const allRequiredAgreed = requiredAgreements.value.every(agreed => agreed);
   state.showAgreementError = !allRequiredAgreed;
 
   // 최종 제출 조건 확인
@@ -616,11 +669,11 @@ const formatBirthDate = (value: string) => {
         <el-popover
             popper-class="custom-error-popover"
             :popper-style="popoverStyle"
-            :content="state.rules.password.message"
             placement="right-start"
             width="250"
             :visible="state.visible.password"
         >
+          <div v-html="state.rules.password.message"></div>
           <template #reference>
             <el-form-item label="비밀번호" prop="password" required>
               <el-input

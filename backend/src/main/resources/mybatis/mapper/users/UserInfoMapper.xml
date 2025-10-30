@@ -13,12 +13,13 @@
              , GENDER_CODE                      /* 성별 코드 */
           FROM USER_INFO                        /* 유저정보 테이블 */
          WHERE USER_ID = #{userId}              /* 사용자 ID */
-         ORDER BY USER_ID DESC
+      ORDER BY USER_ID DESC
     </select>
 
+    <!-- 유저 권한 조회 -->
     <select id="getUserRole" resultType="com.koo.bonscore.biz.users.dto.res.UserInfoDto" parameterType="String">
         SELECT ROLE_ID                          /* 권한 ID */
-          FROM TB_USER_ROLE                     /* 사용자와 권한 매핑 테이블 */
+          FROM ROLE_USER                        /* 사용자/권한 매핑 */
          WHERE USER_ID = #{userId}              /* 사용자 ID */
     </select>
 

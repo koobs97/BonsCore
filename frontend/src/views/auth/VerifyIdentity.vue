@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
-import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router';
+import { computed, reactive, ref, onMounted } from 'vue';
+import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ElAlert, ElMessage } from 'element-plus';
 import { MoreFilled, Promotion, QuestionFilled, Timer } from "@element-plus/icons-vue";
 import { ApiUrls } from "@/api/apiUrls";
 import { Api } from "@/api/axiosInstance";
 
 const router = useRouter();
-const route = useRoute();
 
 // 본인인증 관련 상태 변수 (예시)
 const userName = ref('');
@@ -17,22 +16,42 @@ const isCodeSent = ref(false);
 const isVerifying = ref(false);
 const isCardLoading = ref(false);
 
-const verifyType = computed(() => {
-  return route.query.type === 'ABNORMAL' ? 'ABNORMAL' : 'DORMANT';
+const verificationType = ref('');
+
+onMounted(() => {
+  console.log('111111')
+  let type = history.state.type;
+
+  if (!type) {
+    type = sessionStorage.getItem('verificationType');
+  }
+
+
+
+  sessionStorage.removeItem('verificationType');
+
+  // type 값이 유효한지('DORMANT' 또는 'ABNORMAL') 확인
+  if (type === 'DORMANT' || type === 'ABNORMAL') {
+    verificationType.value = type;
+  } else {
+    // 유효한 type이 없으면 비정상적인 접근으로 간주하고 로그인 페이지로 리다이렉트
+    ElMessage.error('잘못된 접근입니다. 로그인 페이지로 이동합니다.');
+    router.replace('/login');
+  }
 });
 
 const pageTitle = computed(() => {
-  return verifyType.value === 'ABNORMAL' ? '비정상 로그인 인증' : '휴면 계정 활성화';
+  return verificationType.value === 'ABNORMAL' ? '비정상 로그인 인증' : '휴면 계정 활성화';
 });
 
 const pageDescription = computed(() => {
-  return verifyType.value === 'ABNORMAL'
+  return verificationType.value === 'ABNORMAL'
       ? '회원님의 계정 보호를 위해 본인인증이 필요합니다.'
       : '본인인증을 통해 안전하게 계정을 다시 활성화하세요.';
 });
 
 const submitButtonText = computed(() => {
-  return verifyType.value === 'ABNORMAL' ? '인증 확인' : '확인 및 계정 활성화';
+  return verificationType.value === 'ABNORMAL' ? '인증 확인' : '확인 및 계정 활성화';
 });
 
 // 타이머 상태관리

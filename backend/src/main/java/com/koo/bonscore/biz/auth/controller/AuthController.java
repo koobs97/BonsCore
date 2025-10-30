@@ -9,6 +9,7 @@ import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.biz.auth.service.AuthService;
 import com.koo.bonscore.biz.auth.service.GeoIpLocationService;
+import com.koo.bonscore.biz.auth.service.PwnedPasswordService;
 import com.koo.bonscore.common.util.web.WebUtils;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
@@ -30,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -50,10 +52,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private final RSAController rsaController;
+
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
     private final GeoIpLocationService geoIpLocationService;
+    private final PwnedPasswordService pwnedPasswordService;
 
     private final AuthMapper authMapper;
 
@@ -274,6 +279,17 @@ public class AuthController {
     @PostMapping("/isDuplicateEmail")
     public boolean isDuplicateEmail(@RequestBody SignUpDto request) {
         return authService.isDuplicateEmail(request);
+    }
+
+    /**
+     * 유출된 비밀번호인지 확인. (실시간 검증용)
+     * @param request 비밀번호가 포함된 DTO
+     * @return 유출된 경우 true, 아닌 경우 false
+     */
+    @PostMapping("/check-pwned-password")
+    public Mono<Boolean> checkPwnedPassword(@RequestBody SignUpDto request) throws Exception {
+        String decryptedPassword = rsaController.decrypt(request.getPassword());
+        return pwnedPasswordService.isPasswordPwned(decryptedPassword);
     }
 
     /**

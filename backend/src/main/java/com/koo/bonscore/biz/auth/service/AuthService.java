@@ -55,9 +55,9 @@ public class AuthService {
     // 인증 컴포넌트
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginAttemptService loginAttemptService;
-    private final GeoIpLocationService geoIpLocationService;
+    private final PwnedPasswordService pwnedPasswordService;
 
-    /* 메일 인증 관련 서비스 */
+    // 메일 인증 관련 서비스
     private final MailService mailService;
     private final StringRedisTemplate redisTemplate;
     private static final String VERIFICATION_PREFIX = "verification:";
@@ -289,6 +289,18 @@ public class AuthService {
      */
     @Transactional
     public void signup(SignUpDto request) throws Exception {
+        // 1. 비밀번호 복호화
+        String decryptedPassword = rsaController.decrypt(request.getPassword());
+
+        // 2. 유출된 비밀번호인지 서버 측에서 최종 확인
+        boolean isPwned = Boolean.TRUE.equals(pwnedPasswordService.isPasswordPwned(decryptedPassword).block()); // 비동기 결과를 동기적으로 기다림
+        if (isPwned) {
+            throw new BsCoreException(
+                    HttpStatusCode.BAD_REQUEST,
+                    ErrorCode.WEAK_PASSWORD,
+                    "이 비밀번호는 유출된 이력이 있어 사용할 수 없습니다. 다른 비밀번호를 사용해주세요.");
+        }
+
         // 암호화 대상 : 유저명, 패스워드, 이메일, 전화번호, 생년월일
         SignUpDto item = SignUpDto.builder()
                 .userId(request.getUserId())

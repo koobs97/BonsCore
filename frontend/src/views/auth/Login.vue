@@ -156,8 +156,6 @@ const onClickLogin = async (isForced: boolean) => {
     const encryptedPassword = await Common.encryptPassword(password.value);
     state.isProcessing = true;
 
-    console.log(encryptedPassword)
-
     try {
       const res = await Api.post(ApiUrls.LOGIN, { userId : userId.value, password : encryptedPassword, force: isForced });
       if(res.data.success) {
@@ -204,7 +202,7 @@ const onClickLogin = async (isForced: boolean) => {
           Dialogs.showDormantAccountNotice('휴면 계정 안내', res.data.message)
           .then(() => {
             // '본인인증' 버튼 클릭 시
-            router.push({ path: '/VerifyIdentity', query: { type: 'DORMANT' } });
+            router.push({ path: '/VerifyIdentity', state: { type: 'DORMANT' } });
           }).catch((action) => {});
         }
 
@@ -213,7 +211,7 @@ const onClickLogin = async (isForced: boolean) => {
           Dialogs.showDormantAccountNotice('비정상 로그인 감지', res.data.message)
               .then(() => {
                 // '본인인증' 버튼 클릭 시
-                router.push({ path: '/VerifyIdentity', query: { type: 'ABNORMAL' } });
+                router.push({ path: '/VerifyIdentity', state: { type: 'ABNORMAL' } });
               }).catch((action) => {});
         }
 

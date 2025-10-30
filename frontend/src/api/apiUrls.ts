@@ -7,6 +7,7 @@ export enum ApiUrls {
     LOGOUT = '/api/auth/logout',
     CHECK_ID = '/api/auth/isDuplicateId',
     CHECK_EMAIL = '/api/auth/isDuplicateEmail',
+    CHECK_PWNED_PASSWORD = '/api/auth/check-pwned-password',
     SIGN_UP = '/api/auth/signup',
     SEND_MAIL = '/api/auth/sendmail',
     CHECK_CODE = '/api/auth/verify-email',
