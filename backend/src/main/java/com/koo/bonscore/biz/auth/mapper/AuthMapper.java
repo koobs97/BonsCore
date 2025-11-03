@@ -126,6 +126,13 @@ public interface AuthMapper {
     UserInfoSearchDto findUserByNameMail(UserInfoSearchDto userInfoSearchDto);
 
     /**
+     * 휴면 정보 테이블에서 이름과 이메일 해시로 사용자 존재 여부를 확인
+     * @param userInfoSearchDto 사용자 이름, 이메일
+     * @return 사용자 ID, 이메일
+     */
+    UserInfoSearchDto findDormantUserByNameAndEmail(UserInfoSearchDto userInfoSearchDto);
+
+    /**
      * 사용자 아이디로 보안질문 조회
      * @param userInfoSearchDto 유저 ID
      * @return 질문텍스트

@@ -24,6 +24,7 @@ public enum ErrorCode {
     ACCESS_DENIED("ER_105", "이 리소스에 접근할 수 있는 권한이 없습니다."),
     ACCOUNT_LOCKED("ER_106", "로그인 시도 횟수 초과로 계정이 잠겼습니다."),
     WEAK_PASSWORD("ER_107", "이 비밀번호는 유출된 이력이 있어 사용할 수 없습니다."),
+    USER_NOT_FOUND("ER_108", "휴면 상태 정보를 찾을 수 없습니다"),
 
     // 로그인 관련 에러
     INVALID_CREDENTIALS("ER_005", "잘못된 사용자 이름 또는 비밀번호입니다."),

@@ -18,6 +18,7 @@ export enum ApiUrls {
 
     // users
     GET_USER = '/api/users/me',
+    ACTIVATE_DORMANT = '/api/users/activate-dormant',
 
     // authorization
     GET_MENUS = '/api/authorization/getMenus',

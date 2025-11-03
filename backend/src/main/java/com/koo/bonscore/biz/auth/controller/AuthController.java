@@ -301,53 +301,33 @@ public class AuthController {
     @UserActivityLog(activityType = "SIGNUP", userIdField = "#request.userId")
     @PreventDoubleClick
     @PostMapping("/signup")
-    public void signup(@RequestBody SignUpDto request,HttpServletRequest httpRequest) throws Exception {
-        try {
-            authService.signup(request);
-        } catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw (e);
-        }
+    public void signup(@RequestBody SignUpDto request) throws Exception {
+        authService.signup(request);
     }
 
     /**
      * 인증 이메일 발송 서비스
      *
      * @param request 이메일 주소 등 사용자 정보를 담은 요청 DTO
-     * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
-     * @throws Exception 이메일 발송 실패 또는 사용자 정보 부재 시
      */
     @UserActivityLog(activityType = "SEND_MAIL", userIdField = "#request.email")
+    @PreventDoubleClick
     @PostMapping("/sendmail")
-    public void sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
-        try {
-            authService.searchIdBySendMail(request);
-        } catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw (e);
-        }
+    public void sendMail(@RequestBody UserInfoSearchDto request) {
+        authService.searchIdBySendMail(request);
     }
 
     /**
      * 이메일 인증번호 인증
      *
      * @param request 이메일과 사용자가 입력한 인증코드를 담은 요청 DTO
-     * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
      * @return 인증 성공 시 다음 단계 진행을 위한 정보(예: 임시 토큰)를 담은 DTO
-     * @throws Exception 인증번호 불일치 또는 만료 시
      */
     @UserActivityLog(activityType = "CHECK_CODE", userIdField = "#request.email")
+    @PreventDoubleClick
     @PostMapping("/verify-email")
-    public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
-        try {
-            return authService.verifyCode(request.getEmail(), request.getCode());
-        } catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw (e);
-        }
+    public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request) {
+        return authService.verifyCode(request.getEmail(), request.getCode(), request.getType());
     }
 
     /**
@@ -357,68 +337,47 @@ public class AuthController {
      * @param request 이메일 정보를 담은 요청 DTO
      * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
      * @return 조회된 사용자 아이디
-     * @throws Exception 사용자 정보를 찾을 수 없을 때
      */
     @UserActivityLog(activityType = "COPY_ID", userIdField = "#request.email")
     @PostMapping("/copy-id")
-    public String searchIdByMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
-        try {
-            return authService.searchIdByMail(request);
-        } catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw (e);
-        }
+    public String searchIdByMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+        return authService.searchIdByMail(request);
     }
 
     /**
      * 사용자 아이디로 보안질문 조회
      *
      * @param request 사용자 ID
-     * @param httpRequest HTTP 요청 객체
      * @return 보안질문
      */
     @UserActivityLog(activityType = "GET_HINT", userIdField = "#request.userId")
     @PostMapping("/search-hint")
-    public String searchPasswordHintById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
-        try {
-            return authService.searchPasswordHintById(request);
-        } catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw (e);
-        }
+    public String searchPasswordHintById(@RequestBody UserInfoSearchDto request) {
+        return authService.searchPasswordHintById(request);
     }
 
+    /**
+     * 보안질문 정답 입력
+     *
+     * @param request 유저 ID
+     * @return 유저 ID
+     */
     @UserActivityLog(activityType = "VALIDATE_ANSWER", userIdField = "#request.userId")
     @PostMapping("/validate-answer")
-    public UserInfoSearchDto searchHintAnswerById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
-        try {
-            return authService.searchHintAnswerById(request);
-        } catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw (e);
-        }
+    public UserInfoSearchDto searchHintAnswerById(@RequestBody UserInfoSearchDto request) {
+        return authService.searchHintAnswerById(request);
     }
 
     /**
      * 비밀번호 찾기 후 비밀번호 업데이트
      *
      * @param request 인증 토큰과 새로운 비밀번호를 담은 요청 DTO
-     * @param httpRequest 사용자 활동 로그에 실패 정보를 기록하기 위한 HTTP 요청 객체
      * @throws Exception 토큰 검증 실패 또는 비밀번호 업데이트 실패 시
      */
     @UserActivityLog(activityType = "UPDATE_PWD", userIdField = "#request.userId")
     @PostMapping("/update-password")
-    public void updatePassowrd(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
-        try {
-            authService.resetPasswordWithToken(request.getToken(), request.getPassword());
-        } catch (Exception e) {
-            httpRequest.setAttribute("activityResult", "FAILURE");
-            httpRequest.setAttribute("errorMessage", e.getMessage());
-            throw (e);
-        }
+    public void updatePassowrd(@RequestBody UserInfoSearchDto request) throws Exception {
+        authService.resetPasswordWithToken(request.getToken(), request.getPassword());
     }
 
 }

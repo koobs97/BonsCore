@@ -15,18 +15,16 @@ const verificationCode = ref('');
 const isCodeSent = ref(false);
 const isVerifying = ref(false);
 const isCardLoading = ref(false);
+const isSendingCode = ref(false);
 
 const verificationType = ref('');
 
 onMounted(() => {
-  console.log('111111')
   let type = history.state.type;
 
   if (!type) {
     type = sessionStorage.getItem('verificationType');
   }
-
-
 
   sessionStorage.removeItem('verificationType');
 
@@ -147,12 +145,22 @@ const sendVerificationCode = async () => {
     return;
   }
 
-  await Api.post(ApiUrls.SEND_MAIL, { userName: userName.value, email: email.value, type: 'LOCKED' });
-  ElMessage({ message: '이메일이 전송되었습니다.', grouping: true, type: 'success' });
+  isSendingCode.value = true;
+  try {
 
-  isCodeSent.value = true;
-  ElMessage.success('인증번호가 발송되었습니다. 이메일을 확인해주세요.');
-  startTimer();
+    await Api.post(ApiUrls.SEND_MAIL, {
+      userName: userName.value,
+      email: email.value,
+      type: verificationType.value // <-- 'DORMANT' 또는 'ABNORMAL'
+    });
+
+    ElMessage({ message: '이메일이 전송되었습니다.', grouping: true, type: 'success' });
+    isCodeSent.value = true;
+    startTimer();
+
+  } catch (error) { } finally {
+    isSendingCode.value = false;
+  }
 
 };
 
@@ -166,10 +174,24 @@ const verifyAndActivate = async () => {
     return;
   }
 
-  isVerifying.value = true;
+
   try {
-    const result = await Api.post(ApiUrls.CHECK_CODE, { email: email.value, code: verificationCode.value });
-    ElMessage.success('본인인증이 완료되었습니다. 계정이 활성화되었습니다.');
+    const result = await Api.post(ApiUrls.CHECK_CODE, { email: email.value, code: verificationCode.value, type: verificationType.value });
+
+    // 휴먼계정인 경우 테이블 데이터 원복
+    if(verificationType.value === 'DORMANT') {
+      ElMessage.info('본인인증 완료. 계정을 활성화합니다...');
+      await Api.post(ApiUrls.ACTIVATE_DORMANT, { email: email.value }, // body 데이터
+          true,
+          { // Axios 요청 설정 객체
+            headers: {
+              'Authorization': `Bearer ${result.data.token}`
+            }
+          });
+    }
+    else {
+      ElMessage.success('본인인증이 완료되었습니다. 계정이 활성화되었습니다.');
+    }
 
     isCardLoading.value = true;
 
@@ -227,6 +249,7 @@ const goToLogin = () => {
             class="verify-button"
             @click="sendVerificationCode"
             v-if="!isCodeSent"
+            :loading="isSendingCode"
         >
           인증번호 발송
         </el-button>

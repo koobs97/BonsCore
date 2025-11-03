@@ -225,9 +225,13 @@ const onClickLogin = async (isForced: boolean) => {
 /**
  * 화면이동
  * @param param
+ * @param state
  */
-const onClickToGoPage = (param: string) => {
-  router.push("/" + param);
+const onClickToGoPage = (param: string, state?: string) => {
+  if(state !== undefined)
+    router.push({ path: '/VerifyIdentity', state: { type: 'DORMANT' } });
+  else
+    router.push("/" + param);
 }
 
 /**
@@ -300,7 +304,8 @@ const showResolutionInfo = () => {
         <el-button type="info" link @click="onClickToGoPage('FindId')">아이디 찾기</el-button>
         <el-divider direction="vertical" />
         <el-button type="info" link @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
-
+        <el-divider direction="vertical" />
+        <el-button type="info" link @click="onClickToGoPage('VerifyIdentity', 'DORMANT')">휴면 계정 해제</el-button>
       </div>
     </el-card>
 

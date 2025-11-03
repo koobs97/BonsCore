@@ -112,7 +112,7 @@ axiosInstance.interceptors.response.use(
 
                 sessionStorage.removeItem('token');
                 if(error.response.data.message) {
-                    ElMessage.error(error.response.data.message);
+                    ElMessage({ message: error.response.data.message, grouping: true, type: 'error' })
                 }
 
                 await router.push('/login');
@@ -193,6 +193,11 @@ axiosInstance.interceptors.response.use(
     }
 );
 
+interface PostOptions {
+    loading?: boolean;
+    headers?: Record<string, string>; // 헤더 객체 타입 정의
+}
+
 export class Api {
 
     /**
@@ -202,7 +207,7 @@ export class Api {
      * @param loadingOption // loading 옵션 사용 여부
      * @returns
      */
-    public static post = async (url: ApiUrls, params: Object, loadingOption?: Boolean): Promise<any> => {
+    public static post = async (url: ApiUrls, params: Object, loadingOption?: Boolean, options: PostOptions = {}): Promise<any> => {
         let loading: any;
         if(loadingOption) {
             loading = ElLoading.service({
@@ -214,7 +219,7 @@ export class Api {
 
         try {
 
-            const retData = await axiosInstance.post(url, params)
+            const retData = await axiosInstance.post(url, params, { headers: options.headers })
             const returnData = retData.data
 
             if(loadingOption) loading.close();
@@ -227,7 +232,7 @@ export class Api {
             if(error.response.status !== 401 && error.response.status !== 403) {
                 // 에러 response message 출력Error
                 if(error.response.data.message) {
-                    ElMessage.error(error.response.data.message);
+                    ElMessage({ message: error.response.data.message, grouping: true, type: 'error' })
                 }
 
                 // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음

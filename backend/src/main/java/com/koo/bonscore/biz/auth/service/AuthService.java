@@ -116,6 +116,8 @@ public class AuthService {
     private LoginCheckDto validateCredentials(LoginDto request, String decryptedPassword) {
         LoginCheckDto loginCheckDto = authMapper.login(request);
         if(loginCheckDto == null) {
+            // 실패기록-redis
+            loginAttemptService.loginFailed(request.getUserId());
             throw new BsCoreException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR
                     , ErrorCode.INVALID_CREDENTIALS
@@ -383,14 +385,29 @@ public class AuthService {
 
         } // PW
 
-        /* 휴먼계정 풀기 */
-        if("LOCKED".equals(type)) {
+        /* 비정상 접근 계정 풀기 */
+        if("ABNORMAL".equals(type)) {
             // 존재(Existence) 검증
             UserInfoSearchDto input = UserInfoSearchDto.builder()
                     .email(encryptionService.hashWithSalt(request.getEmail()))
                     .build();
 
             UserInfoSearchDto result = authMapper.findUserByNameMail(input);
+            if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()))
+                throw new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR
+                        , ErrorCode.INVALID_INPUT
+                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
+        }
+
+        /* 휴먼계정 풀기 */
+        if("DORMANT".equals(type)) {
+            // 존재(Existence) 검증
+            UserInfoSearchDto input = UserInfoSearchDto.builder()
+                    .email(encryptionService.hashWithSalt(request.getEmail()))
+                    .build();
+
+            UserInfoSearchDto result = authMapper.findDormantUserByNameAndEmail(input);
             if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()))
                 throw new BsCoreException(
                         HttpStatusCode.INTERNAL_SERVER_ERROR
@@ -414,10 +431,11 @@ public class AuthService {
      * @param code 인증코드
      * @return 사용자 ID, 토큰
      */
-    public UserInfoSearchDto verifyCode(String email, String code) {
+    public UserInfoSearchDto verifyCode(String email, String code, String type) {
 
         String key = VERIFICATION_PREFIX + email;
         String storedCode = redisTemplate.opsForValue().get(key);
+        String userId = "";
 
         if (storedCode != null && storedCode.equals(code)) {
             // 인증 성공 시, 즉시 코드를 삭제하여 재사용을 방지.
@@ -429,9 +447,28 @@ public class AuthService {
                     .updatedAt(LocalDateTime.now())
                     .build();
 
-            // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
-            String userId = authMapper.findUserIdByMail(input);
-            input.setUserId(userId);
+            // 타입 체크
+            if(StringUtils.isEmpty(type)) {
+                throw new BsCoreException(
+                        HttpStatusCode.INTERNAL_SERVER_ERROR
+                        , ErrorCode.INVALID_INPUT
+                        , "인증타입이 설정되지 않았습니다.");
+            }
+
+            // 아이디찾기, 비밀번호찾기, 비정상 접근
+            if (type.matches("FIND_ID|FIND_PW|CHANGE_PW|ABNORMAL")) {
+                // 이메일과 일치하는 정보 조회 후
+                userId = authMapper.findUserIdByMail(input);
+                input.setUserId(userId);
+            }
+
+            // DORMANT - 계정해제인 경우
+            if (type.equals("DORMANT")) {
+                // 이메일과 일치하는 정보를 휴먼 계정 테이블에서 조회
+                UserInfoSearchDto result = authMapper.findDormantUserByNameAndEmail(input);
+                userId = result.getUserId();
+                input.setUserId(userId);
+            }
 
             // 계정잠김 해제
             authMapper.updateUnLocked(input);

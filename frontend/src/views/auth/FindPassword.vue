@@ -199,7 +199,7 @@ const verifyAndProceed = async () => {
     ElMessage.error('인증번호를 입력해주세요.');
     return;
   }
-  const result = await Api.post(ApiUrls.CHECK_CODE, { email: formData.email, code: formData.authCode });
+  const result = await Api.post(ApiUrls.CHECK_CODE, { email: formData.email, code: formData.authCode, type: 'FIND_PW' });
   token.value = result.data.token;
 
   // 인증번호 검증 완료

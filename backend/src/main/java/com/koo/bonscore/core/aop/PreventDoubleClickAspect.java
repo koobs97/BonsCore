@@ -1,5 +1,6 @@
 package com.koo.bonscore.core.aop;
 
+import com.koo.bonscore.common.util.web.WebUtils;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
@@ -105,22 +106,10 @@ public class PreventDoubleClickAspect {
         } else {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
-                return getClientIp(attributes.getRequest());
+                return WebUtils.getClientIP(attributes.getRequest());
             }
         }
         return null;
     }
 
-    /**
-     * 요청이 들어온 IP 반환
-     * @param request HttpServletRequest 객체
-     * @return IP
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            return ip.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

@@ -1,5 +1,6 @@
 package com.koo.bonscore.biz.users.controller;
 
+import com.koo.bonscore.biz.users.dto.DormantUserInfoDto;
 import com.koo.bonscore.biz.users.dto.req.UserReqIdDto;
 import com.koo.bonscore.biz.users.dto.res.UserInfoDto;
 import com.koo.bonscore.biz.users.service.UserService;
@@ -9,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * <pre>
  * UserController.java
- * 설명 : 사용자 정보 관리 - "인증된 사용자의 정보 조회 및 수정"
+ * 설명 : 사용자 정보 관리
  * </pre>
  *
  * @author  : koobonsang
@@ -26,6 +27,16 @@ public class UserController {
     @PostMapping("/me")
     public UserInfoDto loginSuccess(@RequestBody UserReqIdDto request) {
         return userInfo.getUserInfo(request);
+    }
+
+    /**
+     * 휴면 계정을 활성화한다
+     * 본인인증 완료 후 프론트엔드에서 호출
+     * @param request 활성화할 사용자 ID를 담은 DTO
+     */
+    @PostMapping("/activate-dormant")
+    public void activateDormantUser(@RequestBody DormantUserInfoDto request) {
+        userInfo.activateDormantUser(request);
     }
 
 }

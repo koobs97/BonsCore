@@ -108,7 +108,7 @@ const sendAuthCode = async () => {
  */
 const findId = async () => {
 
-  const result = await Api.post(ApiUrls.CHECK_CODE, { email: userEmail.value, code: authCode.value });
+  const result = await Api.post(ApiUrls.CHECK_CODE, { email: userEmail.value, code: authCode.value, type: 'FIND_ID' });
   maskedFoundUserId.value = result.data.userId;
 
   // 아이디 보여주기 영역 open
