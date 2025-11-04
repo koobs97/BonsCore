@@ -7,15 +7,15 @@ import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
-import com.koo.bonscore.biz.auth.service.AuthService;
-import com.koo.bonscore.biz.auth.service.GeoIpLocationService;
-import com.koo.bonscore.biz.auth.service.PwnedPasswordService;
+import com.koo.bonscore.biz.auth.service.*;
 import com.koo.bonscore.common.util.web.WebUtils;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
+import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
+import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
 import com.koo.bonscore.log.annotaion.UserActivityLog;
 import com.maxmind.geoip2.exception.AddressNotFoundException;
@@ -36,6 +36,8 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.koo.bonscore.core.exception.enumType.ErrorCode.INVALID_CREDENTIALS;
+
 /**
  * <pre>
  * AuthController.java
@@ -52,20 +54,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final RSAController rsaController;
+    private final AuthMapper authMapper;
 
+    private final RSAController rsaController;
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
     private final GeoIpLocationService geoIpLocationService;
     private final PwnedPasswordService pwnedPasswordService;
 
-    private final AuthMapper authMapper;
+    private final LoginAttemptService loginAttemptService;
+    private final RecaptchaService recaptchaService;
+
 
     /**
      * 로그인
      * - 사용자 로그인을 처리하고, 성공 시 Access Token과 Refresh Token을 발급
-     * - 중복 로그인을 감지하고 강제 로그인 여부를 처리
      *
      * @param request 로그인에 필요한 사용자 ID와 비밀번호를 담은 DTO
      * @param httpRequest 사용자 활동 로그(Activity Log)에 실패 결과를 기록하기 위해 사용되는 HttpServletRequest 객체
@@ -77,6 +81,42 @@ public class AuthController {
     @PreventDoubleClick
     @PostMapping("/login")
     public LoginResponseDto login(@Valid @RequestBody LoginDto request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws Exception {
+
+        String userId = request.getUserId();
+
+        // 계정이 5회 초과 잠김인지 확인
+        if (loginAttemptService.isAccountLocked(request.getUserId())) {
+            throw new BsCoreException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR,
+                    ErrorCode.ACCOUNT_LOCKED,
+                    "최대 로그인 횟수(5회)를 초과하여 계정이 잠겼습니다. 5분 후에 다시 시도해주세요.");
+        }
+
+        // CAPTCHA 검증이 필요한지 확인
+        if (loginAttemptService.isCaptchaRequired(userId)) {
+            String recaptchaToken = request.getRecaptchaToken();
+
+            if (recaptchaToken == null || recaptchaToken.isBlank()) {
+                return LoginResponseDto.builder()
+                        .success(false)
+                        .message("계정 보안을 위해 reCAPTCHA 인증이 필요합니다.")
+                        .captchaRequired(true)
+                        .build();
+            }
+
+            boolean isRecaptchaValid = Boolean
+                    .TRUE
+                    .equals(recaptchaService.verifyRecaptcha(recaptchaToken).block());
+            if (!isRecaptchaValid) {
+                return LoginResponseDto.builder()
+                        .success(false)
+                        .message("자동 입력 방지 문자 확인에 실패했습니다.")
+                        .captchaRequired(true)
+                        .build();
+            }
+        }
+
+        /* 로그인 인증 시작 */
         try {
 
             // 클라이언트 정보 추출
@@ -89,7 +129,6 @@ public class AuthController {
             if (responseDto.getSuccess()) {
 
                 // 사용자 ID로 중복 로그인 확인
-                // 강제 로그인이 아니고, 이미 로그인된 세션이 있다면
                 if (!request.isForce() && loginSessionManager.isDuplicateLogin(request.getUserId())) {
                     responseDto.setSuccess(false);
                     responseDto.setReason("DUPLICATE_LOGIN");
@@ -97,7 +136,6 @@ public class AuthController {
                     return responseDto;
                 }
 
-                String userId = request.getUserId();
                 String accessToken = responseDto.getAccessToken();
 
                 // 새로운 세션 등록 (이 과정에서 기존 세션은 블랙리스트 처리됨
@@ -119,6 +157,28 @@ public class AuthController {
             }
 
             return responseDto;
+
+        } catch (BsCoreException e) {
+
+            // 활동 로그를 위한 속성 설정
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+
+            // 실패 기록
+            loginAttemptService.loginFailed(userId);
+
+            // reCAPTCHA가 필요하다면, 예외 메시지 대신 reCAPTCHA 안내 메시지를 사용
+            boolean captchaRequired = loginAttemptService.isCaptchaRequired(userId);
+            String responseMessage = captchaRequired
+                    ? "계정 보안을 위해 reCAPTCHA 인증이 필요합니다."
+                    : e.getMessage();
+
+            // 실패 후 응답 DTO 생성
+            return LoginResponseDto.builder()
+                    .success(false)
+                    .message(responseMessage)
+                    .captchaRequired(captchaRequired)
+                    .build();
 
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
@@ -265,8 +325,14 @@ public class AuthController {
      */
     @PreventDoubleClick
     @PostMapping("/isDuplicateId")
-    public boolean isDuplicateId(@RequestBody SignUpDto request) {
-        return authService.isDuplicateId(request);
+    public boolean isDuplicateId(@RequestBody SignUpDto request, HttpServletRequest httpRequest) {
+        try {
+            return authService.isDuplicateId(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -277,8 +343,14 @@ public class AuthController {
      */
     @PreventDoubleClick
     @PostMapping("/isDuplicateEmail")
-    public boolean isDuplicateEmail(@RequestBody SignUpDto request) {
-        return authService.isDuplicateEmail(request);
+    public boolean isDuplicateEmail(@RequestBody SignUpDto request, HttpServletRequest httpRequest) {
+        try {
+            return authService.isDuplicateEmail(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -287,9 +359,15 @@ public class AuthController {
      * @return 유출된 경우 true, 아닌 경우 false
      */
     @PostMapping("/check-pwned-password")
-    public Mono<Boolean> checkPwnedPassword(@RequestBody SignUpDto request) throws Exception {
-        String decryptedPassword = rsaController.decrypt(request.getPassword());
-        return pwnedPasswordService.isPasswordPwned(decryptedPassword);
+    public Mono<Boolean> checkPwnedPassword(@RequestBody SignUpDto request, HttpServletRequest httpRequest) throws Exception {
+        try {
+            String decryptedPassword = rsaController.decrypt(request.getPassword());
+            return pwnedPasswordService.isPasswordPwned(decryptedPassword);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -301,8 +379,14 @@ public class AuthController {
     @UserActivityLog(activityType = "SIGNUP", userIdField = "#request.userId")
     @PreventDoubleClick
     @PostMapping("/signup")
-    public void signup(@RequestBody SignUpDto request) throws Exception {
-        authService.signup(request);
+    public void signup(@RequestBody SignUpDto request, HttpServletRequest httpRequest) throws Exception {
+        try {
+            authService.signup(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -313,8 +397,14 @@ public class AuthController {
     @UserActivityLog(activityType = "SEND_MAIL", userIdField = "#request.email")
     @PreventDoubleClick
     @PostMapping("/sendmail")
-    public void sendMail(@RequestBody UserInfoSearchDto request) {
-        authService.searchIdBySendMail(request);
+    public void sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+        try {
+            authService.searchIdBySendMail(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -326,8 +416,14 @@ public class AuthController {
     @UserActivityLog(activityType = "CHECK_CODE", userIdField = "#request.email")
     @PreventDoubleClick
     @PostMapping("/verify-email")
-    public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request) {
-        return authService.verifyCode(request.getEmail(), request.getCode(), request.getType());
+    public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+        try {
+            return authService.verifyCode(request.getEmail(), request.getCode(), request.getType());
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -341,7 +437,13 @@ public class AuthController {
     @UserActivityLog(activityType = "COPY_ID", userIdField = "#request.email")
     @PostMapping("/copy-id")
     public String searchIdByMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
-        return authService.searchIdByMail(request);
+        try {
+            return authService.searchIdByMail(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -352,8 +454,14 @@ public class AuthController {
      */
     @UserActivityLog(activityType = "GET_HINT", userIdField = "#request.userId")
     @PostMapping("/search-hint")
-    public String searchPasswordHintById(@RequestBody UserInfoSearchDto request) {
-        return authService.searchPasswordHintById(request);
+    public String searchPasswordHintById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+        try {
+            return authService.searchPasswordHintById(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -364,8 +472,14 @@ public class AuthController {
      */
     @UserActivityLog(activityType = "VALIDATE_ANSWER", userIdField = "#request.userId")
     @PostMapping("/validate-answer")
-    public UserInfoSearchDto searchHintAnswerById(@RequestBody UserInfoSearchDto request) {
-        return authService.searchHintAnswerById(request);
+    public UserInfoSearchDto searchHintAnswerById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+        try {
+            return authService.searchHintAnswerById(request);
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
     /**
@@ -376,8 +490,14 @@ public class AuthController {
      */
     @UserActivityLog(activityType = "UPDATE_PWD", userIdField = "#request.userId")
     @PostMapping("/update-password")
-    public void updatePassowrd(@RequestBody UserInfoSearchDto request) throws Exception {
-        authService.resetPasswordWithToken(request.getToken(), request.getPassword());
+    public void updatePassowrd(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
+        try {
+            authService.resetPasswordWithToken(request.getToken(), request.getPassword());
+        } catch (Exception e) {
+            httpRequest.setAttribute("activityResult", "FAILURE");
+            httpRequest.setAttribute("errorMessage", e.getMessage());
+            throw (e);
+        }
     }
 
 }

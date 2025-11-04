@@ -23,4 +23,7 @@ public class LoginResponseDto {
     private String accessToken;
     private String refreshToken;
     private String reason;
+
+    // CAPTCHA 필요 여부를 전달하는 필드
+    private boolean captchaRequired = false;
 }

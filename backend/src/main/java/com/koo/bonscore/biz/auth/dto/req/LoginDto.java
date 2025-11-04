@@ -23,5 +23,7 @@ public class LoginDto {
     private String userId;
     @NotBlank(message = "비밀번호를 입력해주세요.")
     private String password;
+
     private boolean force = false; // 중복로그인 시 강제로그인 여부
+    private String recaptchaToken; // reCAPTCHA 응답 토큰을 받기 위한 필드
 }

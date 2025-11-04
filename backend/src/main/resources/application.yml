@@ -49,6 +49,9 @@ api:
     category-url: "https://dapi.kakao.com/v2/local/search/category.json"
   google:
     key: ${GOOGLE_KEY}
+  recaptcha:
+    secret: ${RECAPTCHA_KEY}
+    verify-url: "https://www.google.com/recaptcha/api/siteverify"
 
 logging:
   level:

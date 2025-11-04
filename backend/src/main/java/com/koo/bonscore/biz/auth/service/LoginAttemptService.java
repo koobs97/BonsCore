@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class LoginAttemptService {
 
+    private static final int CAPTCHA_THRESHOLD = 3;
     private static final int MAX_ATTEMPT = 5;       // 최대 실패 횟수
     private static final long LOCK_TIME_MIN = 5;   // 잠금 시간 (분)
     
@@ -48,14 +49,34 @@ public class LoginAttemptService {
         redisTemplate.expire(key, LOCK_TIME_MIN, TimeUnit.MINUTES);
     }
 
+    private String getKey(String userId) {
+        return "login:attempt:" + userId;
+    }
+
     /**
      * 계정이 잠겼는지 확인
      * @param userId 사용자 ID
      * @return 계정잠김여부
      */
-    public boolean isBlocked(String userId) {
-        String key = "login:attempt:" + userId;
-        String attempts = redisTemplate.opsForValue().get(key);
-        return attempts != null && Integer.parseInt(attempts) >= MAX_ATTEMPT;
+    public boolean isCaptchaRequired(String userId) {
+        String attemptsStr = redisTemplate.opsForValue().get(getKey(userId));
+        if (attemptsStr == null) return false;
+
+        int attempts = Integer.parseInt(attemptsStr);
+        return attempts >= CAPTCHA_THRESHOLD;
     }
+
+    /**
+     * 계정이 잠겼는지 확인 (5번 이상 실패 시)
+     * @param userId 사용자 ID
+     * @return 계정 잠김 여부
+     */
+    public boolean isAccountLocked(String userId) {
+        String attemptsStr = redisTemplate.opsForValue().get(getKey(userId));
+        if (attemptsStr == null) return false;
+
+        int attempts = Integer.parseInt(attemptsStr);
+        return attempts >= MAX_ATTEMPT;
+    }
+
 }

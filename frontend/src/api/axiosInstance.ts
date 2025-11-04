@@ -205,6 +205,7 @@ export class Api {
      * @param url           // backend url
      * @param params        // 보낼 파라미터
      * @param loadingOption // loading 옵션 사용 여부
+     * @param options       // header 옵션
      * @returns
      */
     public static post = async (url: ApiUrls, params: Object, loadingOption?: Boolean, options: PostOptions = {}): Promise<any> => {

@@ -744,7 +744,6 @@ const formatBirthDate = (value: string) => {
                 <el-descriptions-item label="권장">대문자(영문) 소문자(영문)이 한개 이상 포함</el-descriptions-item>
               </el-descriptions>
               <el-divider class="password-info-divider" />
-              <el-tag class="password-info-footer">생성규칙에 맞춰 비밀번호를 생성해주세요</el-tag>
             </div>
           </template>
         </el-tooltip>

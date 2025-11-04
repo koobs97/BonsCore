@@ -8,14 +8,15 @@
  * 작성일자 : 2025-10-22
  * ========================================
  */
-import { ElMessageBox, ElIcon } from "element-plus";
-import { h } from "vue";
+import { ElMessageBox, ElIcon, ElMessage } from "element-plus";
+import { h, nextTick } from "vue";
 import { Monitor, ZoomIn } from '@element-plus/icons-vue';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
 import CustomWarning from "@/components/MessageBox/CustomWarning.vue";
 import DuplicationLoginConfirm from "@/components/MessageBox/DuplicationLoginConfirm.vue";
 import DormantAccountNotice from "@/components/MessageBox/DormantAccountNotice.vue";
 import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
+import shieldIcon from '@/assets/images/shield_icon.png';
 
 export class Dialogs {
 
@@ -205,6 +206,77 @@ export class Dialogs {
 
             title: '',
             showClose: false,
+        });
+    }
+
+    /**
+     * reCAPTCHA 보안 인증 다이얼로그를 표시.
+     * @param initialMessage - 다이얼로그가 열릴 때 표시할 초기 메시지 (예: 로그인 실패 메시지)
+     * @returns Promise<string> - 사용자가 인증에 성공하면 reCAPTCHA 토큰을 resolve하고,
+     *                          취소하거나 실패하면 reject하는 Promise를 반환.
+     */
+    public static showRecaptchaDialog = (initialMessage: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const recaptchaContainerId = 'recaptcha-dialog-widget';
+
+            // h 함수를 사용하여 VNode 생성
+            const vnodeContent = h('div', { class: 'modern-recaptcha-content' }, [
+                h('img', { src: shieldIcon, class: 'dialog-icon', alt: '보안 방패 아이콘' }),
+                h('h3', { class: 'dialog-title' }, '보안 인증'),
+                h('p', { class: 'dialog-description' }, '계정 보안을 위해 reCAPTCHA 인증이 필요합니다.'),
+                h('p', { class: 'dialog-description' }, '안전한 로그인을 위해, 로봇이 아님을 증명해주세요.'),
+                h('div', { id: recaptchaContainerId, class: 'recaptcha-widget-container' })
+            ]);
+
+            ElMessageBox.alert(vnodeContent, '', {
+                showConfirmButton: false,
+                showClose: false, // 사용자가 닫지 못하도록 설정
+                center: true,
+                customClass: 'modern-recaptcha-dialog',
+                callback: (action: any) => {
+                    if (action === 'cancel' || action === 'close') {
+                        ElMessage.info('보안 인증이 취소되었습니다.');
+                        reject('cancelled');
+                    }
+                }
+            });
+
+            nextTick(() => {
+                if (window.grecaptcha && window.grecaptcha.render) {
+                    const isDarkMode = document.documentElement.classList.contains('dark');
+
+                    window.grecaptcha.render(recaptchaContainerId, {
+                        'sitekey': '6LdRdgEsAAAAAEE7-VXh1Amykn3TI5AtNq8xZAWr',
+                        'theme': isDarkMode ? 'dark' : 'light',
+                        'callback': (token: string) => {
+                            ElMessageBox.close();
+                            ElMessage.success('보안 인증이 완료되었습니다.');
+                            resolve(token); // 성공 시 토큰과 함께 Promise를 resolve
+                        },
+                        'expired-callback': () => {
+                            ElMessage.warning('보안 인증이 만료되었습니다. 다시 시도해주세요.');
+                            // 다이얼로그를 닫고 다시 열도록 유도하거나, 현재 창에서 reCAPTCHA를 리셋할 수 있음
+                            ElMessageBox.close();
+                            reject('expired');
+                        },
+                        'error-callback': () => {
+                            ElMessage.error('보안 인증 중 오류가 발생했습니다.');
+                            ElMessageBox.close();
+                            reject('error');
+                        }
+                    } as any);
+
+                    // 로그인 실패 후 에러메시지 표시
+                    if (initialMessage) {
+                        ElMessage.warning(initialMessage);
+                    }
+
+                } else {
+                    ElMessage.error('보안 인증 모듈을 로드할 수 없습니다.');
+                    ElMessageBox.close();
+                    reject('load-failed');
+                }
+            });
         });
     }
 }

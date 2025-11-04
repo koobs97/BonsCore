@@ -10,12 +10,12 @@
  * ========================================
  */
 import { Hide, QuestionFilled, View } from "@element-plus/icons-vue";
-import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
 import { Common } from '@/common/common';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { userState, userStore } from '@/store/userStore';
 import { Dialogs } from "@/common/dialogs";
 
@@ -39,7 +39,9 @@ const passwordInput = ref();
 // reactive 정의
 const state = reactive({
   isVisible: false,
-  isProcessing: false, // 화면 제어
+  isProcessing: false,                    // 화면 제어
+  showCaptcha: false,                     // CAPTCHA 표시 여부 상태
+  recaptchaToken: null as string | null,  // reCAPTCHA 토큰 저장
 })
 
 // caps lock 상태변수
@@ -127,7 +129,7 @@ const hideCapsLockWarning = () => {
  */
 const validateInput = async () => {
   if(Common.isEmpty(userId.value)) {
-    ElMessage({ message: '사용자ID를 입력하세요.', grouping: true, type: 'error' })
+    ElMessage({ message: '사용자 ID를 입력하세요.', grouping: true, type: 'error' })
     userIdInput.value.focus();
     return;
   }
@@ -145,81 +147,121 @@ const validateInput = async () => {
 const onClickLogin = async (isForced: boolean) => {
 
   // 입력값 검증
-  if(await validateInput()) {
+  if(!await validateInput()) {
+    return;
+  }
 
-    if (state.isProcessing) {
-      ElMessage.warning("이미 요청 처리 중입니다. 잠시 후 다시 시도해주세요.");
-      return; // 즉시 함수 종료
-    }
+  // CAPTCHA가 표시되었는데 체크하지 않은 경우
+  if (state.showCaptcha && !state.recaptchaToken) {
+    ElMessage.error("'로봇이 아닙니다.'를 체크해주세요.");
+    return;
+  }
 
-    // 서버에서 공개키 get
-    const encryptedPassword = await Common.encryptPassword(password.value);
-    state.isProcessing = true;
+  // 중복 요청 방지
+  if (state.isProcessing) {
+    ElMessage.warning("이미 요청 처리 중입니다. 잠시 후 다시 시도해주세요.");
+    return;
+  }
 
-    try {
-      const res = await Api.post(ApiUrls.LOGIN, { userId : userId.value, password : encryptedPassword, force: isForced });
-      if(res.data.success) {
+  // 서버에서 공개키 get
+  const encryptedPassword = await Common.encryptPassword(password.value);
+  state.isProcessing = true;
 
-        // 실제로 유저 정보 불러와서 확인 (서버 호출)
-        sessionStorage.setItem('accessToken', res.data.accessToken);
+  try {
+    const payload = {
+      userId : userId.value,
+      password : encryptedPassword,
+      force: isForced,
+      recaptchaToken: state.recaptchaToken
+    };
+    const res = await Api.post(ApiUrls.LOGIN, payload);
+    console.log(res);
 
-        // 유저정보 세팅
-        const user = await Api.post(ApiUrls.GET_USER, { userId : userId.value }, true);
-        const userInfo = user.data as userState
+    /* 로그인에 성공 후 로직 */
+    if(res.data.success) {
 
-        sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
-        userStore().setUserInfo(userInfo);
+      // 로그인 성공 후에는 reCAPTCHA 상태를 초기화
+      state.recaptchaToken = null;
+      state.showCaptcha = false;
 
-        // 아이디 기억하기
-        if(rememberId.value) {
-          sessionStorage.setItem('userId', userId.value);
-        } else {
-          sessionStorage.removeItem('userId');
-        }
+      // 실제로 유저 정보 불러와서 확인 (서버 호출)
+      sessionStorage.setItem('accessToken', res.data.accessToken);
 
-        // 사용자가 등록했던 임시파일 초기화
-        await Api.post(ApiUrls.CLEAR_TEMP_FILE, {});
+      // 유저정보 세팅
+      const user = await Api.post(ApiUrls.GET_USER, { userId : userId.value }, true);
+      const userInfo = user.data as userState
+      sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
+      userStore().setUserInfo(userInfo);
 
-        // main 화면 진입
-        await router.push("/");
-
+      // 아이디 기억하기
+      if(rememberId.value) {
+        sessionStorage.setItem('userId', userId.value);
       } else {
+        sessionStorage.removeItem('userId');
+      }
 
-        // 중복 로그인 시
-        if(res.data.reason === 'DUPLICATE_LOGIN') {
-          Dialogs.showDuplicateLoginConfirm(res.data.message)
-          .then(() => {
-            // '로그인' 버튼 클릭 시
-            state.isProcessing = false;
-            onClickLogin(true);
-          }).catch((action) => {}).finally(() => {
-            state.isProcessing = false;
-          });
-        }
+      // 사용자가 등록했던 임시파일 초기화
+      await Api.post(ApiUrls.CLEAR_TEMP_FILE, {});
 
-        // 휴먼 계정일 시
-        if (res.data.reason === 'DORMANT_ACCOUNT') {
-          Dialogs.showDormantAccountNotice('휴면 계정 안내', res.data.message)
-          .then(() => {
-            // '본인인증' 버튼 클릭 시
-            router.push({ path: '/VerifyIdentity', state: { type: 'DORMANT' } });
-          }).catch((action) => {});
-        }
+      // main 화면 진입
+      await router.push("/");
+    }
+    /* 로그인 실패 후 처리 로직 */
+    else {
 
-        // 비정상 로그인 탐지 시
-        if(res.data.reason === 'ACCOUNT_VERIFICATION_REQUIRED') {
-          Dialogs.showDormantAccountNotice('비정상 로그인 감지', res.data.message)
-              .then(() => {
-                // '본인인증' 버튼 클릭 시
-                router.push({ path: '/VerifyIdentity', state: { type: 'ABNORMAL' } });
-              }).catch((action) => {});
-        }
+      // CAPTCHA가 필요한 경우
+      if (res.data.captchaRequired) {
+
+        state.isProcessing = false;
+        state.recaptchaToken = await Dialogs.showRecaptchaDialog(res.data.message);
 
       }
-    } finally {
+      // CAPTCHA가 필요 없는 다른 실패 사유(휴면 계정 등) 처리
+      else {
+
+        const reason = res.data.reason;
+        const message = res.data.message;
+
+        switch (reason) {
+          // 중복 로그인 시
+          case 'DUPLICATE_LOGIN':
+            await Dialogs.showDuplicateLoginConfirm(message)
+                .then(() => { // '로그인' 버튼 클릭 시
+                  state.isProcessing = false;
+                  onClickLogin(true);
+                }).catch((action) => {}).finally(() => {
+                  state.isProcessing = false;
+                });
+            return;
+
+          // 휴먼 계정일 시
+          case 'DORMANT_ACCOUNT':
+            await Dialogs.showDormantAccountNotice('휴면 계정 안내', message)
+                .then(() => { // '본인인증' 버튼 클릭 시
+                  router.push({ path: '/VerifyIdentity', state: { type: 'DORMANT' } });
+                }).catch((action) => {});
+            return;
+
+          // 비정상 로그인 탐지 시
+          case 'ACCOUNT_VERIFICATION_REQUIRED':
+            await Dialogs.showDormantAccountNotice('비정상 로그인 감지', message)
+                .then(() => { // '본인인증' 버튼 클릭 시
+                  router.push({ path: '/VerifyIdentity', state: { type: 'ABNORMAL' } });
+                }).catch((action) => {});
+            return;
+
+          // 기타 로그인 에러 메시지
+          default:
+            ElMessage({ message: message, grouping: true, type: 'error' });
+        }
+      }
+    }
+  } finally {
+    if (!state.showCaptcha) {
       state.isProcessing = false;
     }
   }
+
 }
 
 /**
@@ -438,6 +480,7 @@ const showResolutionInfo = () => {
   }
 }
 </style>
+
 <style>
 html.dark .el-checkbox__input.is-checked .el-checkbox__inner {
   background-color: var(--el-color-primary) !important;
@@ -455,8 +498,6 @@ html.dark .el-checkbox__input .el-checkbox__inner {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-
-/* 1. 최상위 박스 (애니메이션의 기준틀 역할) */
 .resolution-info-box {
   --el-messagebox-width: 420px;
   border-radius: 12px !important;
@@ -466,33 +507,23 @@ html.dark .el-checkbox__input .el-checkbox__inner {
   border: none !important;
   background: transparent !important;
 }
-
-/* 2. 회전하는 그라데이션 배경 (레이어 1) */
 .resolution-info-box::before {
   content: '';
   position: absolute;
   z-index: 1;
   top: -50%; left: -50%;
   width: 200%; height: 200%;
-
-  /* 라이트 모드: 은은한 파스텔 톤 */
   background: conic-gradient(from 0deg, #e0c3fc, #8ec5fc, #e0c3fc);
   animation: rotating-gradient 4s linear infinite;
 }
-
-/* 3. 내부 배경색을 덮어 테두리 효과를 만드는 마스크 (레이어 2) */
 .resolution-info-box::after {
   content: '';
   position: absolute;
-  z-index: 2; /* 그라데이션 위에 위치 */
-  top: 2px; left: 2px; right: 2px; bottom: 2px; /* 2px 두께의 테두리 생성 */
-
-  background: var(--el-bg-color-overlay); /* 내부 배경색 */
-  border-radius: 8px; /* 외부보다 살짝 작은 둥근 모서리 */
+  z-index: 2;
+  top: 2px; left: 2px; right: 2px; bottom: 2px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 8px;
 }
-
-/* 4. 실제 컨텐츠 (레이어 3) */
-/* 컨텐츠가 마스크 위에 보이도록 z-index를 설정 */
 .resolution-info-box .el-message-box__header,
 .resolution-info-box .el-message-box__content,
 .resolution-info-box .el-message-box__btns {
@@ -500,11 +531,10 @@ html.dark .el-checkbox__input .el-checkbox__inner {
   z-index: 3;
   padding-bottom: 12px;
 }
-
 .resolution-info-box .el-message-box__header {
-  margin-bottom: 6px; /* 제목과 내용 사이 간격 확보 */
+  margin-bottom: 6px;
   padding: 16px 25px 12px;
-  border-bottom: 1px solid var(--el-border-color-light); /* 제목 아래 구분선 추가 */
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 .resolution-info-box .el-message-box__content {
   padding: 24px 25px 0;
@@ -513,7 +543,6 @@ html.dark .el-checkbox__input .el-checkbox__inner {
   font-size: 18px;
   font-weight: 600;
 }
-
 .resolution-info-content {
   display: flex;
   flex-direction: column;
@@ -521,78 +550,142 @@ html.dark .el-checkbox__input .el-checkbox__inner {
   gap: 20px;
   color: var(--el-text-color-regular);
 }
-
 .resolution-info-content p {
   margin-bottom: 12px;
 }
-
 .resolution-info-content ul {
   list-style-type: disc;
   padding-left: 20px;
   margin: 0;
 }
-
 .resolution-info-content li {
   margin-bottom: 5px;
 }
 .resolution-info-box {
-  --el-messagebox-width: 420px; /* 다이얼로그 너비 조정 */
-  border-radius: 8px !important; /* 모서리를 더 둥글게 */
+  --el-messagebox-width: 420px;
+  border-radius: 8px !important;
 }
-
 .resolution-info-box .el-message-box__title {
   font-size: 18px;
   font-weight: 600;
 }
-
 .resolution-info-content {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* 각 정보 항목 사이의 수직 간격 */
+  gap: 20px;
   color: var(--el-text-color-regular);
 }
-
 .info-item {
   display: flex;
-  align-items: center; /* 아이콘과 텍스트를 수직 중앙 정렬 */
-  gap: 16px; /* 아이콘과 텍스트 사이의 간격 */
+  align-items: center;
+  gap: 16px;
 }
-
 .info-item .info-icon {
-  color: var(--el-color-primary); /* 아이콘 색상 */
-  background-color: var(--el-bg-color-page); /* 아이콘 배경색 */
+  color: var(--el-color-primary);
+  background-color: var(--el-bg-color-page);
   padding: 8px;
-  border-radius: 50%; /* 원형 배경 */
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 .info-text {
   display: flex;
   flex-direction: column;
   text-align: left;
 }
-
 .info-label {
   font-size: 14px;
-  color: var(--el-text-color-secondary); /* 레이블 색상을 약간 연하게 */
+  color: var(--el-text-color-secondary);
   margin-bottom: 2px;
 }
-
 .info-value {
   font-size: 16px;
   font-weight: 600;
-  color: var(--el-text-color-primary); /* 값을 더 강조 */
+  color: var(--el-text-color-primary);
 }
-
 .resolution-info-box .el-message-box__btns {
-  margin-top: 24px; /* 내용과 버튼 사이 간격 */
+  margin-top: 24px;
 }
 @media (max-width: 768px) {
   .resolution-info-box {
-    /* 모바일에서는 너비를 화면 너비의 90%로 설정 */
     --el-messagebox-width: 90vw;
   }
+}
+.modern-recaptcha-dialog {
+  --el-messagebox-width: auto;
+  border-radius: 12px !important;
+  position: relative;
+  overflow: hidden;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 450px;
+}
+.modern-recaptcha-dialog::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: conic-gradient(from 0deg, var(--el-color-primary-light-3), var(--el-color-success-light-3), var(--el-color-primary-light-3));
+  animation: rotating-gradient 4s linear infinite;
+}
+.modern-recaptcha-dialog::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  top: 2px; left: 2px; right: 2px; bottom: 2px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 10px;
+}
+.modern-recaptcha-dialog .el-message-box__header {
+  display: none; /* 기본 헤더는 숨깁니다. */
+}
+.modern-recaptcha-dialog .el-message-box__content {
+  position: relative;
+  z-index: 3;
+  padding: 0 !important;
+}
+.modern-recaptcha-dialog .el-message-box__btns {
+  position: relative;
+  z-index: 3;
+  padding: 0 16px 16px 16px;
+}
+.modern-recaptcha-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px 24px 24px;
+  text-align: center;
+}
+.modern-recaptcha-content .dialog-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--el-color-primary);
+}
+.modern-recaptcha-content .dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 12px 0 12px 0;
+  color: var(--el-text-color-primary);
+}
+.modern-recaptcha-content .dialog-description {
+  font-size: 14px;
+  margin: 0 0 4px 0;
+  color: var(--el-text-color-secondary);
+}
+.recaptcha-widget-container {
+  /* reCAPTCHA 위젯의 고정 크기 */
+  width: 301px;
+  height: 76px;
+  overflow: hidden;
+  border-radius: 2px;
+  border: 1px solid var(--el-color-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12px;
 }
 </style>

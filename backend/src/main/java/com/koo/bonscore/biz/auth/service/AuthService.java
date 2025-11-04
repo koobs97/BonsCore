@@ -72,52 +72,36 @@ public class AuthService {
     @Transactional
     public LoginResponseDto login(LoginDto request, LoginHistoryDto clientInfo) throws Exception {
 
-        // 1. 계정 잠금 여부 확인
-        checkAccountLock(request.getUserId());
-
-        // 2. 사용자 정보 및 비밀번호 유효성 검증
+        // 1. 사용자 정보 및 비밀번호 유효성 검증
         String decryptedPassword = rsaController.decrypt(request.getPassword());
         LoginCheckDto loginCheckDto = validateCredentials(request, decryptedPassword);
 
-        // 3. 휴면 계정 여부 확인
+        // 2. 휴면 계정 여부 확인
         if (isDormantAccount(loginCheckDto)) {
             return createDormantAccountResponse();
         }
 
-        // 4. 비정상 로그인 탐지
+        // 3. 비정상 로그인 탐지
         boolean isAbnormal = checkAbnormalLogin(request, clientInfo, loginCheckDto);
         if (isAbnormal) {
             // 비정상 로그인 시, 추가 인증 요구 응답 반환
             return createAbnormalLoginResponse(request.getUserId());
         }
 
-        // 5. 로그인 성공 처리
+        // 4. 로그인 성공 처리
         processLoginSuccess(request, clientInfo);
 
-        // 6. 토큰 발급 및 최종 응답 생성
+        // 5. 토큰 발급 및 최종 응답 생성
         return createSuccessResponse(request);
     }
 
     /**
-     * 1. 계정잠김 여부 확인
-     */
-    private void checkAccountLock(String userId) {
-        if (loginAttemptService.isBlocked(userId)) {
-            throw new BsCoreException(
-                    HttpStatusCode.FORBIDDEN,
-                    ErrorCode.ACCOUNT_LOCKED,
-                    "로그인 시도 횟수 초과로 계정이 잠겼습니다. 5분 후에 다시 시도해주세요.");
-        }
-    }
-
-    /**
-     * 2. 사용자 자격 증명을 확인
+     * 1. 사용자 자격 증명을 확인
      */
     private LoginCheckDto validateCredentials(LoginDto request, String decryptedPassword) {
         LoginCheckDto loginCheckDto = authMapper.login(request);
         if(loginCheckDto == null) {
-            // 실패기록-redis
-            loginAttemptService.loginFailed(request.getUserId());
+
             throw new BsCoreException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR
                     , ErrorCode.INVALID_CREDENTIALS
@@ -140,14 +124,14 @@ public class AuthService {
     }
 
     /**
-     * 3. 휴먼계정인지 확인
+     * 2. 휴먼계정인지 확인
      */
     private boolean isDormantAccount(LoginCheckDto loginCheckDto) {
         return loginCheckDto.getAccountLocked().equals("Y");
     }
 
     /**
-     * 3-1. 휴먼계정 응답객체 생성
+     * 2-1. 휴먼계정 응답객체 생성
      */
     private LoginResponseDto createDormantAccountResponse() {
         return LoginResponseDto.builder()
@@ -158,7 +142,7 @@ public class AuthService {
     }
 
     /**
-     * 4. 비정상 로그인 탐지
+     * 3. 비정상 로그인 탐지
      */
     private boolean checkAbnormalLogin(LoginDto loginDto, LoginHistoryDto clientInfo, LoginCheckDto loginCheckDto) {
         try {
@@ -198,7 +182,7 @@ public class AuthService {
     }
 
     /**
-     * 4-2. 비정상 로그인 시 응답 객체 생성
+     * 3-1. 비정상 로그인 시 응답 객체 생성
      */
     private LoginResponseDto createAbnormalLoginResponse(String userId) {
         return LoginResponseDto.builder()
@@ -209,7 +193,7 @@ public class AuthService {
     }
 
     /**
-     * 5. 로그인 성공처리 수행
+     * 4. 로그인 성공처리 수행
      */
     private void processLoginSuccess(LoginDto request, LoginHistoryDto clientInfo) {
         authMapper.updateLoginAt(request);
@@ -219,7 +203,7 @@ public class AuthService {
     }
 
     /**
-     * 5-1. 로그인 로그 저장
+     * 4-1. 로그인 로그 저장
      */
     private void saveLoginHistory(String userId, LoginHistoryDto history) {
         try {
