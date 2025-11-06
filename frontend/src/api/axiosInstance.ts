@@ -65,7 +65,7 @@ axiosInstance.interceptors.response.use(
         // 403 - FORBIDDEN
         if (error.response && error.response.status === 403 && !originalRequest._retry) {
 
-            // 403-메소드 접근제어
+            // ACCESS_DENIED-메소드 접근제어
             if(error.response.data.code === 'ER_105') {
                 // 메시지 박스 호출
                 await Dialogs.customConfirm(
@@ -78,6 +78,7 @@ axiosInstance.interceptors.response.use(
                 );
             }
 
+            // ACCOUNT_LOCKED-메소드 접근제어
             if(error.response.data.data.code === 'ER_106') {
                 // 메시지 박스 호출
                 await Dialogs.customConfirm(
@@ -85,9 +86,11 @@ axiosInstance.interceptors.response.use(
                     error.response.data.message || '로그인 시도 횟수 초과로 계정이 잠겼습니다.',
                     '확인',
                     '취소',
-                    '463px',
+                    '493px',
                     'warning'
                 );
+
+                return false;
             }
 
             originalRequest._retry = true;

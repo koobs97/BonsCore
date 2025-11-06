@@ -134,7 +134,7 @@ export class Dialogs {
                     h(ElIcon, { class: 'info-icon', size: 20 }, () => h(ZoomIn)), // 돋보기(배율) 아이콘
                     h('div', { class: 'info-text' }, [
                         h('span', { class: 'info-label' }, '브라우저 배율'),
-                        h('span', { class: 'info-value' }, '125%'),
+                        h('span', { class: 'info-value' }, '100%'),
                     ]),
                 ]),
             ]),

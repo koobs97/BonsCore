@@ -10,7 +10,7 @@
  * ========================================
  */
 import { Hide, QuestionFilled, View } from "@element-plus/icons-vue";
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
@@ -81,7 +81,6 @@ onMounted(async () => {
       await Api.post(ApiUrls.LOGOUT, {}, true);
       setTimeout(()=>{
         userStore().delUserInfo();
-        sessionStorage.clear();
       }, 1000);
     } catch (error){}
     finally {
@@ -89,7 +88,18 @@ onMounted(async () => {
     }
   }
 
+  // CapsLock 탐지 이벤트리스너 등록
+  window.addEventListener('keydown', updateCapsLockState);
+  window.addEventListener('keyup', updateCapsLockState);
+
   resetState();
+});
+
+// 화면이탈 시
+onUnmounted(() => {
+  // CapsLock 탐지 이벤트리스너 해제
+  window.removeEventListener('keydown', updateCapsLockState);
+  window.removeEventListener('keyup', updateCapsLockState);
 });
 
 /**
@@ -99,30 +109,21 @@ const resetState = () => {
   state.isVisible = false;
   state.isProcessing = false;
 
-  if(rememberId.value && !Common.isEmpty(sessionStorage.getItem('userId'))) {
-    userId.value = sessionStorage.getItem('userId');
+  if(rememberId.value && !Common.isEmpty(localStorage.getItem('userId'))) {
+    userId.value = localStorage.getItem('userId');
     passwordInput.value?.focus();
   } else {
-    sessionStorage.removeItem('userId');
+    localStorage.removeItem('userId');
     userIdInput.value?.focus();
   }
 }
-
 /**
- * 비밀번호 입력 시 Caps Lock 상태를 확인하는 함수
- * @param {KeyboardEvent} event
+ * CapsLock 탐지
+ * @param event
  */
-const checkCapsLock = (event: KeyboardEvent) => {
+const updateCapsLockState = (event: KeyboardEvent) => {
   isCapsLockOn.value = event.getModifierState("CapsLock");
-};
-
-/**
- * Caps Lock 경고 메시지를 숨긴다.
- * 이 함수는 입력 필드나 윈도우가 포커스를 잃었을 때 호출된다.
- */
-const hideCapsLockWarning = () => {
-  isCapsLockOn.value = false;
-};
+}
 
 /**
  * 로그인 버튼 클릭 시 입력값 검증
@@ -195,9 +196,9 @@ const onClickLogin = async (isForced: boolean) => {
 
       // 아이디 기억하기
       if(rememberId.value) {
-        sessionStorage.setItem('userId', userId.value);
+        localStorage.setItem('userId', userId.value);
       } else {
-        sessionStorage.removeItem('userId');
+        localStorage.removeItem('userId');
       }
 
       // 사용자가 등록했던 임시파일 초기화
@@ -285,7 +286,6 @@ const showResolutionInfo = () => {
 </script>
 
 <template>
-  <!-- 전체 레이아웃을 감싸는 컨테이너 추가 -->
   <div class="login-container">
     <el-card class="login-card" shadow="never">
       <h2 class="login-title">로그인</h2>
@@ -300,6 +300,7 @@ const showResolutionInfo = () => {
             ref="userIdInput"
             class="login-input"
             placeholder="사용자 ID"
+            clearable
             v-byte-limit="50"
         />
         <el-input
@@ -308,9 +309,8 @@ const showResolutionInfo = () => {
             class="login-input"
             placeholder="비밀번호"
             :type="passwdType"
+            clearable
             v-byte-limit="50"
-            @keydown="checkCapsLock"
-            @blur="hideCapsLockWarning"
         >
           <template #append>
             <el-button @click="togglePassword">
@@ -327,7 +327,6 @@ const showResolutionInfo = () => {
         </div>
 
         <div class="caps-lock-placeholder">
-          <!-- isCapsLockOn 상태에 따라 'visible' 클래스를 동적으로 제어. -->
           <span :class="['caps-lock-warning', { 'visible': isCapsLockOn }]">
             Caps Lock이 켜져 있습니다.
           </span>
@@ -343,19 +342,59 @@ const showResolutionInfo = () => {
       </el-form>
 
       <div class="find-links">
-        <el-button type="info" link @click="onClickToGoPage('FindId')">아이디 찾기</el-button>
+        <el-button
+            type="info"
+            link
+            @click="onClickToGoPage('FindId')"
+        >
+          아이디 찾기
+        </el-button>
         <el-divider direction="vertical" />
-        <el-button type="info" link @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
+        <el-button
+            type="info"
+            link
+            @click="onClickToGoPage('FindPassword')"
+        >
+          비밀번호 찾기
+        </el-button>
         <el-divider direction="vertical" />
-        <el-button type="info" link @click="onClickToGoPage('VerifyIdentity', 'DORMANT')">휴면 계정 해제</el-button>
+        <el-button
+            type="info"
+            link
+            @click="onClickToGoPage('VerifyIdentity', 'DORMANT')"
+        >휴면 계정 해제
+        </el-button>
+      </div>
+
+      <div class="social-login-section">
+        <div class="social-login-divider">
+          <span>간편 로그인</span>
+        </div>
+        <div class="social-login-buttons">
+          <a href="http://localhost:8080/oauth2/authorization/kakao" class="social-button kakao">
+            <img src="@/assets/images/kakao_login.png" alt="카카오 로그인">
+          </a>
+          <a href="http://localhost:8080/oauth2/authorization/naver" class="social-button naver">
+            <img src="@/assets/images/naver_login.png" alt="네이버 로그인">
+          </a>
+          <a href="http://localhost:8080/oauth2/authorization/google" class="social-button google">
+            <img src="@/assets/images/google_login.png" alt="구글 로고">
+          </a>
+        </div>
       </div>
     </el-card>
 
     <el-card class="signup-prompt-card" shadow="never">
-      <el-button type="primary" link class="signup-link" @click="onClickToGoPage('SignUp')">
+      <el-button
+          type="primary"
+          link
+          class="signup-link"
+          @click="onClickToGoPage('SignUp')"
+      >
         회원가입
       </el-button>
     </el-card>
+
   </div>
 </template>
 
@@ -368,26 +407,25 @@ const showResolutionInfo = () => {
   align-items: center;
   height: 100%;
   width: 100%;
-  padding: 20px; /* 상하좌우 여백 추가 */
-  box-sizing: border-box; /* padding이 너비/높이에 포함되도록 설정 */
+  padding: 20px;
+  box-sizing: border-box;
 }
 /* 로그인 카드 */
 .login-card {
-  width: 100%; /* 너비를 100%로 설정하여 유연하게 만듦 */
-  max-width: 380px; /* 최대 너비를 380px로 제한 */
+  width: 100%;
+  max-width: 380px;
   box-sizing: border-box;
-  padding: 4px;
+  padding: 4px 4px 0 4px;
 }
 .login-title {
   font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  letter-spacing: 1px;
-  font-size: 1.75rem; /* 28px -> rem 단위로 변경 */
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  font-size: 1.85rem;
   color: var(--el-color-primary);
   text-align: center;
   margin-bottom: 30px;
 }
-/* 로그인 폼 */
 .login-form {
   margin-top: 20px;
 }
@@ -400,7 +438,6 @@ const showResolutionInfo = () => {
   font-size: 0.9375rem;
   margin-bottom: 8px;
 }
-/* Element Plus의 내부 스타일을 덮어쓰기 위해 더 구체적인 선택자 사용 */
 .login-input :deep(.el-input__inner) {
   height: 45px;
 }
@@ -409,27 +446,95 @@ const showResolutionInfo = () => {
   height: 48px;
   font-weight: bold;
   font-size: 1rem;
-  margin-top: 16px;
+  margin-top: 4px;
   color: var(--el-bg-color);
 }
+.social-login-section {
+  margin-top: 50px;
+}
+.social-login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 0.8125rem;
+  margin-bottom: 12px;
+}
+.social-login-divider::before,
+.social-login-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--el-border-color-light);
+}
+.social-login-divider span {
+  padding: 0 12px;
+}
+.social-login-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+.social-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.social-button:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+.social-button img {
+  display: block;
+}
+.social-button.kakao {
+  background-color: #FEE500;
+  padding: 0 12px;
+}
+.social-button.kakao img {
+  height: 18px;
+}
+.social-button.naver {
+  background-color: #03C75A;
+  border-color: #03C75A;
+  padding: 0 12px;
+}
+.social-button.naver img {
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+.social-button.google {
+  background-color: #FFFFFF;
+  border: 1px solid #DADCE0;
+  padding: 0 12px;
+}
+.social-button.google img {
+  height: 18px;
+}
 .find-links {
-  margin-top: 20px;
+  margin-top: 12px;
   text-align: center;
 }
 /* 회원가입 카드 */
 .signup-prompt-card {
-  width: 380px;
-  margin-top: 12px;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 8px;
   text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 8px 8px;
+  padding: 2px 16px;
   box-sizing: border-box;
 }
 .signup-link {
   font-weight: bold;
   color: var(--el-color-primary) !important;
+  font-size: 0.9375rem; /* 15px */
 }
 .caps-lock-placeholder {
   height: 8px; /* 경고 메시지를 담을 충분한 높이를 항상 차지 */
@@ -452,7 +557,7 @@ const showResolutionInfo = () => {
 }
 .extra-info-links {
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   text-align: right;
 }
 
@@ -641,7 +746,7 @@ html.dark .el-checkbox__input .el-checkbox__inner {
   border-radius: 10px;
 }
 .modern-recaptcha-dialog .el-message-box__header {
-  display: none; /* 기본 헤더는 숨깁니다. */
+  display: none;
 }
 .modern-recaptcha-dialog .el-message-box__content {
   position: relative;
@@ -677,7 +782,6 @@ html.dark .el-checkbox__input .el-checkbox__inner {
   color: var(--el-text-color-secondary);
 }
 .recaptcha-widget-container {
-  /* reCAPTCHA 위젯의 고정 크기 */
   width: 301px;
   height: 76px;
   overflow: hidden;
