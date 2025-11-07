@@ -19,6 +19,10 @@ spring:
       max-file-size: 10MB
       max-request-size: 100MB
 
+oauth2:
+  redirect:
+    url: http://localhost:3000/oauth/redirect
+
 file:
   # 실제 파일이 저장될 로컬 컴퓨터의 경로
   upload-dir: C:/Study/springboot/uploads

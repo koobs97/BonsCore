@@ -1,9 +1,11 @@
 package com.koo.bonscore.core.config.web.security.config;
 
+import com.koo.bonscore.biz.auth.service.CustomOAuth2UserService;
 import com.koo.bonscore.core.config.web.security.filter.JwtAuthenticationFilter;
 import com.koo.bonscore.core.config.web.security.filter.RedirectValidationFilter;
 import com.koo.bonscore.core.config.web.security.handler.CustomAccessDeniedHandler;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.koo.bonscore.core.config.web.security.handler.OAuth2LoginSuccessHandler;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,15 +14,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,33 +37,13 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity // 오토와이어링할 수 없습니다. 'HttpSecurity' 타입의 bean을 찾을 수 없습니다. 해결
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final LoginSessionManager loginSessionManager;
-    private final HandlerExceptionResolver handlerExceptionResolver;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
-
-    /**
-     * 생성자
-     * @param jwtTokenProvider
-     * @param loginSessionManager
-     * @param handlerExceptionResolver
-     * @param jwtAuthenticationFilter
-     */
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider,
-                          LoginSessionManager loginSessionManager,
-                          @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver, // <-- 여기에 직접 @Qualifier 추가
-                          JwtAuthenticationFilter jwtAuthenticationFilter,
-                          CustomAccessDeniedHandler customAccessDeniedHandler
-    ) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.loginSessionManager = loginSessionManager;
-        this.handlerExceptionResolver = handlerExceptionResolver;
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.customAccessDeniedHandler = customAccessDeniedHandler;
-    }
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     /**
      * 운영환경별 허용 url 분리
@@ -100,15 +79,21 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // JWT 인증 필터 추가
                 .addFilterBefore(new RedirectValidationFilter(), JwtAuthenticationFilter.class) // 검증되지 않은 리다이렉트 및 포워드 방어
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()  // 로그인 API는 인증 없이 허용
                         .requestMatchers("/api/public-key/**").permitAll()
                         .requestMatchers("/images/**").permitAll() // 이미지 다운 url
                         .anyRequest().authenticated()                   // 나머지는 인증 필요
                 )
+                // OAuth2 로그인 설정
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService)) // 커스텀 서비스 등록
+                        .successHandler(oAuth2LoginSuccessHandler) // 로그인 성공 핸들러 등록
+                )
                 .exceptionHandling(exception ->
                         exception.accessDeniedHandler(customAccessDeniedHandler)
-                )
-                .build();
+                ).build();
     }
 
     /**
@@ -131,3 +116,4 @@ public class SecurityConfig {
     }
 
 }
+

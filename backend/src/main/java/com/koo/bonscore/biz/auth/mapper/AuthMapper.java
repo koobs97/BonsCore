@@ -6,8 +6,8 @@ import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
-import org.apache.catalina.User;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -31,6 +31,28 @@ public interface AuthMapper {
      * @return 해싱된 패스워드, 휴먼계정여부
      */
     LoginCheckDto login(LoginDto loginDto);
+
+    /**
+     * 소셜 계정 가져오기
+     * @param provider 소셜 서비스 구분
+     * @param providerId 소셜 서비스 발급 ID
+     * @return 유저정보
+     */
+    SignUpDto findByProviderAndProviderId(@Param("provider") String provider,
+                                          @Param("providerId") String providerId);
+
+    /**
+     * 이메일 해시로 사용자 정보 조회
+     * @param emailHash 카카오 로그인에서 받아온 이메일
+     * @return 사용자 정보
+     */
+    SignUpDto findByEmailHash(String emailHash);
+
+    /**
+     * 기존 계정에 소셜 로그인 정보 업데이트 (연동)
+     * @param user 소셜미디어 정보
+     */
+    void updateSocialInfo(SignUpDto user);
 
     /**
      * 유저 ID로 사용자 정보 조회

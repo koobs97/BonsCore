@@ -1,10 +1,11 @@
 package com.koo.bonscore.biz.users.controller;
 
 import com.koo.bonscore.biz.users.dto.DormantUserInfoDto;
-import com.koo.bonscore.biz.users.dto.req.UserReqIdDto;
 import com.koo.bonscore.biz.users.dto.res.UserInfoDto;
 import com.koo.bonscore.biz.users.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -25,8 +26,12 @@ public class UserController {
     private final UserService userInfo;
 
     @PostMapping("/me")
-    public UserInfoDto loginSuccess(@RequestBody UserReqIdDto request) {
-        return userInfo.getUserInfo(request);
+    public UserInfoDto loginSuccess(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new IllegalStateException("인증된 사용자 정보를 찾을 수 없습니다.");
+        }
+        String userId = userDetails.getUsername();
+        return userInfo.getUserInfo(userId);
     }
 
     /**

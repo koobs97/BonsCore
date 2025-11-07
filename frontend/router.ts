@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
-
-import indexHome from '@/views/indexHome.vue';
 import { userStore } from '@/store/userStore';
+import indexHome from '@/views/indexHome.vue';
+import OAuthRedirect from '@/views/oauth/OAuthRedirect.vue';
 
 // 페이지 경로를 저장할 배열
 const routes = [];
@@ -33,6 +33,12 @@ for (const path in allPages) {
         component: allPages[path] // 동적 import는 비동기 컴포넌트로 사용 가능
     });
 }
+
+routes.push({
+    path: '/oauth/redirect',
+    name: 'OAuthRedirect',
+    component: OAuthRedirect,
+});
 
 routes.push({
     path: '/',

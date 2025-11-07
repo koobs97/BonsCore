@@ -35,4 +35,8 @@ public class SignUpDto {
     private String termsAgree4;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // 소셜로그인 변수
+    private String oauthProvider;
+    private String oauthProviderId;
 }

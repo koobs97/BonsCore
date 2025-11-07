@@ -3,7 +3,6 @@ package com.koo.bonscore.biz.users.service;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.biz.users.dto.DormantUserInfoDto;
-import com.koo.bonscore.biz.users.dto.req.UserReqIdDto;
 import com.koo.bonscore.biz.users.dto.res.UserInfoDto;
 import com.koo.bonscore.biz.users.mapper.UserInfoMapper;
 import com.koo.bonscore.core.config.enc.EncryptionService;
@@ -42,19 +41,19 @@ public class UserService {
 
     /**
      * 사용자 정보 가져오기
-     * @param request 사용자 ID
+     * @param userId 사용자 ID
      * @return 사용자 정보
      */
     @Transactional(readOnly = true)
-    public UserInfoDto getUserInfo(UserReqIdDto request) {
-        UserInfoDto infoDto = userInfoMapper.getUserInfo(request.getUserId());
-        UserInfoDto roleDto = userInfoMapper.getUserRole(request.getUserId());
+    public UserInfoDto getUserInfo(String userId) {
+        UserInfoDto infoDto = userInfoMapper.getUserInfo(userId);
+        UserInfoDto roleDto = userInfoMapper.getUserRole(userId);
         if(roleDto == null) {
             throw new BsCoreException(HttpStatusCode.FORBIDDEN, ErrorCode.UNAUTHORIZED);
         }
 
         return UserInfoDto.builder()
-                .userId(request.getUserId())
+                .userId(userId)
                 .userName(encryptionService.decrypt(infoDto.getUserName()))
                 .email(encryptionService.decrypt(infoDto.getEmail()))
                 .birthDate(encryptionService.decrypt(infoDto.getBirthDate()))

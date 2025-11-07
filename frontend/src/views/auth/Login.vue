@@ -283,6 +283,18 @@ const onClickToGoPage = (param: string, state?: string) => {
 const showResolutionInfo = () => {
   Dialogs.showResolutionInfo();
 }
+
+const handleSocialLoginClick = (event: MouseEvent) => {
+  if (state.isProcessing) {
+    event.preventDefault();
+    ElMessage.warning("이미 요청 처리 중입니다.");
+    return;
+  }
+  state.isProcessing = true;
+  setTimeout(() => {
+    state.isProcessing = false;
+  }, 2000);
+}
 </script>
 
 <template>
@@ -371,7 +383,9 @@ const showResolutionInfo = () => {
           <span>간편 로그인</span>
         </div>
         <div class="social-login-buttons">
-          <a href="http://localhost:8080/oauth2/authorization/kakao" class="social-button kakao">
+          <a href="http://localhost:8080/oauth2/authorization/kakao"
+             :class="['social-button', 'kakao', { 'disabled': state.isProcessing }]"
+             @click="handleSocialLoginClick">
             <img src="@/assets/images/kakao_login.png" alt="카카오 로그인">
           </a>
           <a href="http://localhost:8080/oauth2/authorization/naver" class="social-button naver">
@@ -448,6 +462,15 @@ const showResolutionInfo = () => {
   font-size: 1rem;
   margin-top: 4px;
   color: var(--el-bg-color);
+}
+.login-button:hover {
+  background-color: var(--el-color-primary-light-3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(65, 132, 246, 0.25);
+}
+.login-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 .social-login-section {
   margin-top: 50px;

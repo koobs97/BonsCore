@@ -1,4 +1,5 @@
 package com.koo.bonscore.core.config.web.security.filter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
@@ -10,7 +11,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,30 +27,42 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * <pre>
+ * JwtAuthenticationFilter.java
+ * 설명 : HTTP 요청의 헤더에서 JWT(JSON Web Token)를 파싱하여 인증을 처리하는 Spring Security 필터
+ * </pre>
+ *
+ * @author  : koobonsang
+ * @version : 1.0
+ * @since   : 2025-05-01
+ */
 @Slf4j
 @Component
 @Order(1)
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginSessionManager loginSessionManager;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
-    // 생성자 주입
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
-                                   LoginSessionManager loginSessionManager,
-                                   @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.loginSessionManager = loginSessionManager;
-        this.handlerExceptionResolver = handlerExceptionResolver;
-    }
-
+    /**
+     * 모든 HTTP 요청에 대해 JWT 인증을 시도하는 필터 메소드
+     *
+     * @param request       HTTP 서블릿 요청 객체
+     * @param response      HTTP 서블릿 응답 객체
+     * @param filterChain   다음 필터를 호출하기 위한 필터 체인 객체
+     * @throws ServletException 서블릿 관련 예외 발생 시
+     * @throws IOException      입출력 관련 예외 발생 시
+     */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         try {
+            // 요청 헤더에서 JWT 토큰을 추출
             String token = jwtTokenProvider.resolveToken(request);
 
             // 토큰 유효성 검사 전 블랙리스트 확인
@@ -71,7 +83,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
             }
-
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             handlerExceptionResolver.resolveException(request, response, null, e);
@@ -79,6 +90,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     }
 
+    /**
+     * 유효한 JWT에서 사용자 정보와 권한을 추출하여 Spring Security가 이해할 수 있는
+     * {@link Authentication} 객체를 생성
+     *
+     * @param token 유효성이 검증된 JWT 문자열
+     * @return 사용자 ID(Principal), 자격 증명(Credentials), 권한(Authorities)을 포함하는
+     *          {@link UsernamePasswordAuthenticationToken} 객체
+     */
     private Authentication getAuthenticationWithRoles(String token) {
         Claims claims = jwtTokenProvider.getClaims(token);
         List<String> roles = claims.get("roles", List.class);

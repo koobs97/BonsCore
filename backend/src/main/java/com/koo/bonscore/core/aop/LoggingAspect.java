@@ -2,14 +2,20 @@ package com.koo.bonscore.core.aop;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * <pre>
@@ -24,7 +30,10 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 @Aspect
 @Component
+@RequiredArgsConstructor
 public class LoggingAspect {
+
+    private final ObjectMapper objectMapper;
 
     /**
      * @Pointcut: @Service 애노테이션이 붙은 클래스 내부의 모든 메서드에 대해 포인트컷 설정
@@ -42,8 +51,23 @@ public class LoggingAspect {
     public void logBefore(JoinPoint joinPoint) throws JsonProcessingException {
         MethodSignature sig = (MethodSignature) joinPoint.getSignature();
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        String params = objectMapper.writeValueAsString(joinPoint.getArgs());
+        // ObjectMapper objectMapper = new ObjectMapper();
+        String params = Arrays.stream(joinPoint.getArgs())
+                .map(arg -> {
+                    // 웹 관련 객체나 OAuth2UserRequest는 로깅에서 제외
+                    if (arg instanceof HttpServletRequest ||
+                            arg instanceof HttpServletResponse ||
+                            arg instanceof OAuth2UserRequest) {
+                        return arg.getClass().getSimpleName();
+                    }
+                    try {
+                        // 주입받은 objectMapper 사용
+                        return objectMapper.writeValueAsString(arg);
+                    } catch (JsonProcessingException e) {
+                        return "Unserializable Object: " + arg.getClass().getSimpleName();
+                    }
+                })
+                .collect(Collectors.joining(", "));
 
         String sb = "\n" +
                 "+------------------------------------------------------------------+\n" +

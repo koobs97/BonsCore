@@ -16,6 +16,40 @@
       ORDER BY USER_ID DESC
     </select>
 
+    <!-- 소셜 서비스 정보로 사용자 조회 -->
+    <select id="findByProviderAndProviderId" resultType="com.koo.bonscore.biz.auth.dto.req.SignUpDto">
+        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.findByProviderAndProviderId */
+               USER_ID
+             , USER_NAME
+             , EMAIL
+          FROM USER_INFO
+         WHERE OAUTH_PROVIDER    = #{provider}
+           AND OAUTH_PROVIDER_ID = #{providerId}
+    </select>
+
+    <!-- 이메일 해시로 사용자 정보 조회 -->
+    <select id="findByEmailHash" resultType="com.koo.bonscore.biz.auth.dto.req.SignUpDto" parameterType="string">
+        SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.findByEmailHash */
+               USER_ID
+             , USER_NAME
+             , EMAIL
+             , OAUTH_PROVIDER
+             , OAUTH_PROVIDER_ID
+          FROM USER_INFO
+         WHERE EMAIL_HASH = #{emailHash}
+           AND WITHDRAWN  = 'N'
+    </select>
+
+    <!-- 기존 계정에 소셜 로그인 정보 업데이트 (연동) -->
+    <update id="updateSocialInfo" parameterType="com.koo.bonscore.biz.auth.dto.req.SignUpDto">
+        UPDATE /* com.koo.bonscore.biz.auth.mapper.AuthMapper.updateSocialInfo */
+               USER_INFO
+           SET OAUTH_PROVIDER    = #{oauthProvider},
+               OAUTH_PROVIDER_ID = #{oauthProviderId},
+               UPDATED_AT        = SYSTIMESTAMP
+         WHERE USER_ID           = #{userId}
+    </update>
+
     <!-- 유저 정보 조회 -->
     <select id="findByUserId" resultType="com.koo.bonscore.biz.auth.dto.UserDto" parameterType="com.koo.bonscore.biz.auth.dto.req.LoginDto">
         SELECT /* com.koo.bonscore.biz.auth.mapper.AuthMapper.findByUserId */
@@ -126,6 +160,8 @@
             , PHONE_NUMBER                          /* 사용자 전화번호 */
             , BIRTH_DATE                            /* 사용자 생년월일 */
             , GENDER_CODE                           /* 성별 코드 */
+            , OAUTH_PROVIDER                        /* 소셜 서비스 구분 */
+            , OAUTH_PROVIDER_ID                     /* 소셜 서비스 발급 ID */
             , PASSWORD_HASH                         /* 비밀번호 해쉬 */
             , PASSWORD_HINT                         /* 비밀번호 힌트 */
             , PASSWORD_HINT_ANSWER                  /* 비밀번호 힌트 정답 */
@@ -149,6 +185,8 @@
             , #{phoneNumber}
             , #{birthDate}
             , #{genderCode}
+            , #{oauthProvider}
+            , #{oauthProviderId}
             , #{password}
             , NULL
             , NULL
