@@ -28,6 +28,7 @@ body {
   flex-direction: column;
   min-height: 100vh;
   padding: 0;
+  font-family: 'Poppins', 'Noto Sans KR', sans-serif;
 }
 
 .main-content {
@@ -36,6 +37,5 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  max-height: 925px;
 }
 </style>

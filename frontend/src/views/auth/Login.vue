@@ -18,6 +18,7 @@ import { Common } from '@/common/common';
 import { useRoute, useRouter } from 'vue-router';
 import { userState, userStore } from '@/store/userStore';
 import { Dialogs } from "@/common/dialogs";
+import SocialLoginButtons from '@/components/login/SocialLoginButtons.vue';
 
 // router
 const router = useRouter();
@@ -203,8 +204,15 @@ const onClickLogin = async (isForced: boolean) => {
       // 사용자가 등록했던 임시파일 초기화
       await Api.post(ApiUrls.CLEAR_TEMP_FILE, {});
 
-      // main 화면 진입
-      await router.push("/");
+      // 구글 로그인 후 추가정보 입력이 필요한지 확인
+      const additionalInfoRequired = res.data.additionalInfoRequired;
+      if (additionalInfoRequired) {
+        ElMessage.info('서비스를 이용하시려면 추가 정보 입력이 필요합니다.');
+        await router.push("/oauth/additional-info");
+      } else {
+        // 추가 정보가 필요 없으면 메인 페이지로 이동
+        await router.push("/");
+      }
     }
     /* 로그인 실패 후 처리 로직 */
     else {
@@ -377,26 +385,8 @@ const handleSocialLoginClick = (event: MouseEvent) => {
         </el-button>
       </div>
 
-      <div class="social-login-section">
-        <div class="social-login-divider">
-          <span>간편 로그인</span>
-        </div>
-        <div class="social-login-buttons">
-          <a href="http://localhost:8080/oauth2/authorization/kakao"
-             :class="['social-button', 'kakao', { 'disabled': state.isProcessing }]"
-             @click="handleSocialLoginClick">
-            <img src="@/assets/images/kakao_login.png" alt="카카오 로그인">
-          </a>
-          <a href="http://localhost:8080/oauth2/authorization/naver"
-             :class="['social-button', 'naver', { 'disabled': state.isProcessing }]"
-             @click="handleSocialLoginClick">
-            <img src="@/assets/images/naver_login.png" alt="네이버 로그인">
-          </a>
-          <a href="http://localhost:8080/oauth2/authorization/google" class="social-button google">
-            <img src="@/assets/images/google_login.png" alt="구글 로고">
-          </a>
-        </div>
-      </div>
+      <!-- 소셜로그인 영역 -->
+      <SocialLoginButtons />
     </el-card>
 
     <el-card class="signup-prompt-card" shadow="never">
@@ -431,6 +421,9 @@ const handleSocialLoginClick = (event: MouseEvent) => {
   max-width: 380px;
   box-sizing: border-box;
   padding: 4px 4px 0 4px;
+  border-radius: 16px 16px 0 0;
+  position: relative;
+  z-index: 1;
 }
 .login-title {
   font-family: 'Poppins', sans-serif;
@@ -465,75 +458,6 @@ const handleSocialLoginClick = (event: MouseEvent) => {
   color: var(--el-bg-color);
   background-color: var(--el-color-primary);
 }
-.social-login-section {
-  margin-top: 50px;
-}
-.social-login-divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  color: var(--el-text-color-secondary);
-  font-size: 0.8125rem;
-  margin-bottom: 12px;
-}
-.social-login-divider::before,
-.social-login-divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid var(--el-border-color-light);
-}
-.social-login-divider span {
-  padding: 0 12px;
-}
-.social-login-buttons {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-}
-.social-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-.social-button:hover {
-  filter: brightness(0.95);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-}
-
-.social-button img {
-  display: block;
-}
-.social-button.kakao {
-  background-color: #FEE500;
-  padding: 0 12px;
-}
-.social-button.kakao img {
-  height: 18px;
-}
-.social-button.naver {
-  background-color: #03C75A;
-  border-color: #03C75A;
-  padding: 0 12px;
-}
-.social-button.naver img {
-  height: 18px;
-  filter: brightness(0) invert(1);
-}
-.social-button.google {
-  background-color: #FFFFFF;
-  border: 1px solid #DADCE0;
-  padding: 0 12px;
-}
-.social-button.google img {
-  height: 18px;
-}
 .find-links {
   margin-top: 12px;
   text-align: center;
@@ -546,6 +470,7 @@ const handleSocialLoginClick = (event: MouseEvent) => {
   text-align: center;
   padding: 2px 16px;
   box-sizing: border-box;
+  border-radius: 0 0 16px 16px;
 }
 .signup-link {
   font-weight: bold;

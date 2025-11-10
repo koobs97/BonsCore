@@ -651,6 +651,7 @@ const checklist = ref([
   width: 450px;
   padding: 8px;
   box-sizing: border-box;
+  border-radius: 12px;
 }
 .title {
   font-family: 'Poppins', sans-serif;

@@ -223,7 +223,15 @@ public class AuthService {
      * 6. 최종 성공 응답과 토큰을 생성
      */
     private LoginResponseDto createSuccessResponse(LoginDto request) {
+
+        // 사용자 ID로 전체 정보 조회
         UserDto user = authMapper.findByUserId(request);
+
+        // 추가 정보 필요 여부 확인
+        boolean additionalInfoRequired = StringUtils.isBlank(user.getBirthDate())
+                || StringUtils.isBlank(user.getGenderCode())
+                || StringUtils.isBlank(user.getPhoneNumber());
+
         // 복호화 로직은 그대로 유지
         UserDto decryptedUser = UserDto.builder()
                 .userId(user.getUserId())
@@ -245,6 +253,7 @@ public class AuthService {
                 .message("로그인 성공")
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .additionalInfoRequired(additionalInfoRequired)
                 .build();
     }
 

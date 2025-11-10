@@ -75,6 +75,9 @@ public class OAuthAttributes {
         if ("naver".equals(registrationId)) {
             return ofNaver(userNameAttributeName, attributes);
         }
+        if ("google".equals(registrationId)) {
+            return ofGoogle(userNameAttributeName, attributes);
+        }
         return null;
     }
 
@@ -134,6 +137,29 @@ public class OAuthAttributes {
                 .phoneNumber(formattedPhoneNumber)
                 .nameAttributeKey("id") // Principal 객체에서 이름을 참조할 때 사용할 키
                 .attributes(response) // attributes 필드에는 response 맵 자체를 저장
+                .build();
+    }
+    /**
+     * 구글의 사용자 정보 응답(attributes)을 파싱하여 {@code OAuthAttributes} 객체를 생성한다.
+     *
+     * @param userNameAttributeName 구글의 경우 "sub"가 된다.
+     * @param attributes            구글로부터 받은 원본 사용자 속성 맵
+     * @return 구글 정보로 채워진 {@code OAuthAttributes} 객체
+     */
+    private static OAuthAttributes ofGoogle(String userNameAttributeName, Map<String, Object> attributes) {
+        return OAuthAttributes.builder()
+                .email((String) attributes.get("email"))
+                .provider("google")
+                .providerId((String) attributes.get("sub")) // 구글의 고유 식별자는 "sub" 필드입니다.
+                .name((String) attributes.get("name"))
+                // 구글은 성별, 생년월일, 전화번호 정보를 기본 범위(profile, email)에서 제공하지 않습니다.
+                // 추가 정보가 필요하다면 Google Cloud에서 추가 API(People API 등) 사용 설정을 하고 scope를 추가해야 합니다.
+                .gender(null)
+                .birthyear(null)
+                .birthday(null)
+                .phoneNumber(null)
+                .nameAttributeKey(userNameAttributeName)
+                .attributes(attributes)
                 .build();
     }
 

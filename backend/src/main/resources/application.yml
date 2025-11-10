@@ -50,6 +50,12 @@ spring:
               - birthyear
               - mobile
             client-name: Naver
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}         # 방금 발급받은 클라이언트 ID
+            client-secret: ${GOOGLE_CLIENT_SECRET} # 방금 발급받은 클라이언트 보안 비밀
+            scope:
+              - profile
+              - email
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize

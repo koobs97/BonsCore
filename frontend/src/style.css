@@ -128,10 +128,12 @@
   --refresh-modern-color: #f9fafb;
   --refresh-modern-text-color: #374151;
   --refresh-modern-border-color: f3f4f6;
+
+  --signup-color-email: #001233;
 }
 
 html.dark {
-  --el-color-primary: #EAECEF !important;
+  --el-color-primary: #F2F2F2 !important;
   --el-overlay-color-light: #c0c4cc;
 
   --black-white-color: black;
@@ -150,6 +152,8 @@ html.dark {
   --refresh-modern-color: var(--el-fill-color-dark);
   --refresh-modern-text-color: #ffffff;
   --refresh-modern-border-color: var(--el-button-hover-bg-color);
+
+  --signup-color-email: #5dade2;
 }
 
 a {

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { userStore } from '@/store/userStore';
 import indexHome from '@/views/indexHome.vue';
 import OAuthRedirect from '@/views/oauth/OAuthRedirect.vue';
+import AdditionalInfo from '@/views/oauth/AdditionalInfo.vue';
 
 // 페이지 경로를 저장할 배열
 const routes = [];
@@ -34,11 +35,19 @@ for (const path in allPages) {
     });
 }
 
-routes.push({
-    path: '/oauth/redirect',
-    name: 'OAuthRedirect',
-    component: OAuthRedirect,
-});
+routes.push(
+    {
+        path: '/oauth/redirect',
+        name: 'OAuthRedirect',
+        component: OAuthRedirect
+    },
+    {
+        path: '/oauth/additional-info',
+        name: 'AdditionalInfo',
+        component: AdditionalInfo,
+        meta: { requiresAuth: true }
+    },
+);
 
 routes.push({
     path: '/',

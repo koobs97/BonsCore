@@ -26,4 +26,7 @@ public class LoginResponseDto {
 
     // CAPTCHA 필요 여부를 전달하는 필드
     private boolean captchaRequired = false;
+
+    // 추가정보 입력필요 여부
+    private boolean additionalInfoRequired;
 }

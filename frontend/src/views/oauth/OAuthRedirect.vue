@@ -19,8 +19,10 @@ const route = useRoute();
 const router = useRouter();
 
 onMounted(async () => {
+
   const accessToken = route.query.token as string;
   const oauthProvider = route.query.oauthProvider as string;
+  const isNewUser = route.query.isNewUser === 'true';
 
   if (accessToken) {
     sessionStorage.setItem('accessToken', accessToken);
@@ -38,7 +40,13 @@ onMounted(async () => {
       userStore().setUserInfo(userInfo);
 
       // 성공 시 메인 페이지로 이동
-      await router.push("/");
+      if (isNewUser) {
+        // 신규 유저이면 추가 정보 입력 페이지로 이동
+        await router.push("/oauth/additional-info");
+      } else {
+        // 기존 유저이면 메인 페이지로 이동
+        await router.push("/");
+      }
 
     } catch (error) {
       console.error("사용자 정보 가져오기 실패:", error);

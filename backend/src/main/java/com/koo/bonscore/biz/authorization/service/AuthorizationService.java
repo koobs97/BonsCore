@@ -69,7 +69,7 @@ public class AuthorizationService {
         return authorizationMapper.getUserInfos(input)
                 .stream()
                 .peek(item -> {
-                    item.setUserName(encryptionService.decrypt(item.getUserName()));
+                    item.setUserName(item.getUserName().equals("DORMANT_USER") ? "DORMANT_USER" : encryptionService.decrypt(item.getUserName()));
                     item.setEmail(encryptionService.decrypt(item.getEmail()));
                     item.setPhoneNumber(encryptionService.decrypt(item.getPhoneNumber()));
                 })

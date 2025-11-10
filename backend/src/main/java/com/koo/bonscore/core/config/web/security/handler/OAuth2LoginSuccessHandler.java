@@ -80,10 +80,11 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         //    (네이버는 'response' 객체 안에 id가 있고, 카카오는 최상위에 id가 있습니다.)
         String providerId;
         if ("naver".equals(provider)) {
-            // 네이버의 경우 attributes 맵 자체가 CustomOAuth2UserService에서 response 맵으로 교체되었을 수 있으므로,
-            // 안전하게 nameAttributeKey를 사용하거나 직접 id를 찾습니다.
             providerId = String.valueOf(attributes.get("id"));
-        } else { // kakao, google 등
+        } else if ("google".equals(provider)) {
+            providerId = (String) attributes.get("sub");
+        }
+        else {
             providerId = String.valueOf(attributes.get("id"));
         }
 
@@ -100,6 +101,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         String userId = user.getUserId();
         log.info("OAuth2 인증 성공. 최종 사용자 ID: {}", userId);
+
+        // 신규 구글 유저인지 판별
+        boolean isNewUser = "google".equals(provider) && (user.getBirthDate() == null || user.getGenderCode() == null);
+        log.info("신규 유저 여부: {}", isNewUser);
 
         // 6. 실제 userId로 권한을 조회합니다.
         List<String> roles = authMapper.findRoleByUserId(userId);
@@ -128,6 +133,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
                 .queryParam("token", accessToken) // 프론트엔드와 약속된 파라미터명
                 .queryParam("oauthProvider", provider)
+                .queryParam("isNewUser", isNewUser)
                 .build().toUriString();
 
         // 부모 클래스의 리다이렉션 전략 사용
