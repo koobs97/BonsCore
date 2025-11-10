@@ -1,27 +1,29 @@
 import { defineStore } from 'pinia';
 
 export interface userState {
-    userId      : string,
-    userName    : string,
-    email       : string,
-    phoneNumber : string,
-    birthDate   : string,
-    genderCode  : string,
-    loginTime   : string,
-    roleId      : string,
+    userId          : string,
+    userName        : string,
+    email           : string,
+    phoneNumber     : string,
+    birthDate       : string,
+    genderCode      : string,
+    loginTime       : string,
+    roleId          : string,
+    oauthProvider   : string | null,
 }
 
 export const userStore = defineStore('user', {
     state: () => ({
         userInfo: {
-            userId      : '' as string,
-            userName    : '' as string,
-            email       : '' as string,
-            phoneNumber : '' as string,
-            birthDate   : '' as string,
-            genderCode  : '' as string,
-            loginTime   : '' as string,
-            roleId      : '' as string,
+            userId          : '' as string,
+            userName        : '' as string,
+            email           : '' as string,
+            phoneNumber     : '' as string,
+            birthDate       : '' as string,
+            genderCode      : '' as string,
+            loginTime       : '' as string,
+            roleId          : '' as string,
+            oauthProvider   : '' as string,
         } as userState
     }),
     getters: {

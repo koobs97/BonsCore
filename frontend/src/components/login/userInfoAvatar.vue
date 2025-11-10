@@ -26,14 +26,17 @@ const state = reactive({
     birthDate   : '' as string,
     genderCode  : '' as string,
     loginTime   : '' as string,
+    oauthProvider : '' as string | null,
   } as userState,
 })
 
+// 소셜 로그인 관련 정보
 const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID;
 const LOGOUT_REDIRECT_URI = import.meta.env.VITE_KAKAO_LOGOUT_REDIRECT_URI;
 
 onMounted(async () => {
   state.User = userStoreObj.getUserInfo;
+  console.log(state.User)
 
   const match = state.User.loginTime.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/);
   if (match) {
@@ -104,25 +107,28 @@ const onClickLogOut = async () => {
     }
 
     // 2. 클라이언트 측 상태 및 스토리지 정리
+    const provider = state.User.oauthProvider;
     userStore().delUserInfo();
     sessionStorage.clear();
 
     loading.close();
 
-    // 3. 모든 정리가 끝난 후, 카카오 로그아웃 URL로 페이지 이동
-    //    이동 후 카카오가 처리하고 LOGOUT_REDIRECT_URI로 돌려보내줍니다.
-    const kakaoLogoutUrl = `https://kauth.kakao.com/oauth/logout?client_id=${KAKAO_CLIENT_ID}&logout_redirect_uri=${LOGOUT_REDIRECT_URI}`;
-    window.location.href = kakaoLogoutUrl;
+    console.log(provider)
 
-    // setTimeout(async () => {
-    //   userStore().delUserInfo();
-    //   sessionStorage.clear();
-    //   loading.close();
-    //
-    //   await nextTick();
-    //   await router.push({ path: '/login', query: { status: 'logged-out' } });
-    // }, 1500);
-  //
+    // 3. 모든 정리가 끝난 후, 카카오 로그아웃 URL로 페이지 이동
+    switch (provider) {
+      case 'kakao': {
+        console.log(LOGOUT_REDIRECT_URI)
+        const kakaoLogoutUrl = `https://kauth.kakao.com/oauth/logout?client_id=${KAKAO_CLIENT_ID}&logout_redirect_uri=${LOGOUT_REDIRECT_URI}`;
+        window.location.href = kakaoLogoutUrl;
+        break;
+      }
+      default:
+        // 소셜 로그인이 아닌 일반 로그인 사용자의 경우
+        await nextTick();
+        await router.push({ path: '/login', query: { status: 'logged-out' } });
+        break;
+    }
   } catch (error) {}
 }
 

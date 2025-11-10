@@ -3,6 +3,7 @@ package com.koo.bonscore.core.config.web.security.handler;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
+import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,8 +13,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -34,10 +37,11 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthMapper authMapper;
+    private final LoginSessionManager loginSessionManager;
 
     /**
      * 프론트엔드의 OAuth2 리디렉션 처리 페이지 URL
@@ -64,61 +68,69 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         log.info("OAuth2 Login 성공!");
 
-        // authentication.getName()은 CustomOAuth2UserService에서 반환한
-        // DefaultOAuth2User의 nameAttributeKey에 해당하는 값을 반환합니다.
-        // 하지만 우리는 DB 연동을 마친 '실제 사용자 ID'가 필요합니다.
-        // CustomOAuth2UserService에서 반환된 user 객체에 접근해야 합니다.
-        // 이를 위해 Principal을 OAuth2User로 캐스팅하고, attributes에서 userId를 다시 조합하는 대신,
-        // 더 간단하고 확실한 방법은 authentication.getName()을 사용하는 것입니다.
-        // Principal 객체 자체에서 사용자 이름을 가져올 수 있습니다.
+        // 1. Authentication 객체를 OAuth2AuthenticationToken으로 캐스팅하여 Provider(registrationId)를 가져옵니다.
+        OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
+        String provider = authToken.getAuthorizedClientRegistrationId(); // "kakao", "naver" 등
 
+        // 2. Principal(OAuth2User)에서 속성(attributes)을 가져옵니다.
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-
-        // attributes에서 직접 정보를 파싱하는 대신, CustomOAuth2UserService에서 연동/생성한
-        // 실제 DB의 userId를 가져와야 합니다.
-        // 가장 확실한 방법은, CustomOAuth2UserService에서 DB 조회를 마친 최종 userId를
-        // Authentication 객체를 통해 전달받는 것입니다.
-        // 현재 구조에서는 OAuth2User의 attributes에 있는 id로 다시 조합하고 있으므로,
-        // CustomOAuth2UserService에서 처리한 실제 userId를 가져오는 로직이 필요합니다.
-
-        // CustomOAuth2UserService의 saveOrUpdate에서 반환한 SignUpDto의 userId를 사용해야 합니다.
-        // 현재는 그 정보가 여기까지 직접 전달되지 않으므로, DB를 다시 조회해야 합니다.
-
         Map<String, Object> attributes = oAuth2User.getAttributes();
-        String providerId = String.valueOf(attributes.get("id"));
-        String provider = "kakao"; // 또는 다른 provider 로직
 
-        // DB에서 provider 정보로 실제 userId를 다시 조회합니다. 이것이 가장 확실한 방법입니다.
-        SignUpDto user = authMapper.findByProviderAndProviderId(provider, providerId);
-        String userId = user.getUserId(); // "koobs97" 또는 "kakao_..."
-
-        log.info("OAuth2 인증 성공. 최종 사용자 ID: {}", userId);
-
-        // 이제 '실제' userId로 권한을 조회합니다.
-        List<String> roles = authMapper.findRoleByUserId(userId);
-        if (roles.isEmpty()) {
-            // 이 경우는 로직상 발생하기 어렵지만, 방어코드로 추가
-            roles.add("ROLE_USER");
+        // 3. Provider에 따라 고유 ID(providerId)를 추출합니다.
+        //    (네이버는 'response' 객체 안에 id가 있고, 카카오는 최상위에 id가 있습니다.)
+        String providerId;
+        if ("naver".equals(provider)) {
+            // 네이버의 경우 attributes 맵 자체가 CustomOAuth2UserService에서 response 맵으로 교체되었을 수 있으므로,
+            // 안전하게 nameAttributeKey를 사용하거나 직접 id를 찾습니다.
+            providerId = String.valueOf(attributes.get("id"));
+        } else { // kakao, google 등
+            providerId = String.valueOf(attributes.get("id"));
         }
 
-        // JWT 토큰 생성
+        // 4. Provider와 ProviderId를 사용해 DB에서 최종 사용자 정보를 조회합니다.
+        SignUpDto user = authMapper.findByProviderAndProviderId(provider, providerId);
+
+        // 5. 사용자 정보가 없는 경우에 대한 예외 처리 (이론상 발생하면 안 됨)
+        if (user == null) {
+            log.error("OAuth2 인증 후 사용자 정보를 DB에서 찾을 수 없습니다. Provider: {}, ProviderId: {}", provider, providerId);
+            // 에러 페이지나 로그인 페이지로 리다이렉트
+            getRedirectStrategy().sendRedirect(request, response, "/login?error=OAuth2UserNotFound");
+            return;
+        }
+
+        String userId = user.getUserId();
+        log.info("OAuth2 인증 성공. 최종 사용자 ID: {}", userId);
+
+        // 6. 실제 userId로 권한을 조회합니다.
+        List<String> roles = authMapper.findRoleByUserId(userId);
+        if (roles == null || roles.isEmpty()) {
+            roles = List.of("ROLE_USER"); // 기본 권한 부여
+        }
+
+        // 7. JWT 토큰 생성
         String accessToken = jwtTokenProvider.createToken(userId, roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
         String refreshToken = jwtTokenProvider.createToken(userId, List.of("ROLE_REFRESH"), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
 
-        // ... (이하 Refresh Token 쿠키 설정 및 리디렉션 로직은 동일) ...
+        // 8. 세션 매니저에 새로운 세션 등록
+        loginSessionManager.registerSession(userId, accessToken);
+
+        // 9. Refresh Token을 쿠키에 담아 응답
         ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
                 .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
+                .secure(true)  // HTTPS 환경에서만 전송
+                .sameSite("Strict") // CSRF 공격 방어
                 .path("/")
                 .maxAge(JwtTokenProvider.REFRESH_TOKEN_VALIDITY / 1000)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
+        // 10. Access Token을 쿼리 파라미터에 담아 프론트엔드로 리디렉션
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
-                .queryParam("token", accessToken)
+                .queryParam("token", accessToken) // 프론트엔드와 약속된 파라미터명
+                .queryParam("oauthProvider", provider)
                 .build().toUriString();
 
-        response.sendRedirect(targetUrl);
+        // 부모 클래스의 리다이렉션 전략 사용
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

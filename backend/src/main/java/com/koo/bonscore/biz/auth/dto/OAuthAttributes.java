@@ -72,8 +72,9 @@ public class OAuthAttributes {
         if ("kakao".equals(registrationId)) {
             return ofKakao(userNameAttributeName, attributes);
         }
-        // 추후 Naver, Google 등 다른 플랫폼 추가 시 여기에 분기 로직을 추가
-        // 예: if ("naver".equals(registrationId)) { return ofNaver(...); }
+        if ("naver".equals(registrationId)) {
+            return ofNaver(userNameAttributeName, attributes);
+        }
         return null;
     }
 
@@ -108,6 +109,35 @@ public class OAuthAttributes {
     }
 
     /**
+     * 네이버의 사용자 정보 응답(attributes)을 파싱하여 {@code OAuthAttributes} 객체를 생성한다.
+     * 네이버 응답은 'response'라는 중첩된 맵 안에 대부분의 개인정보가 포함되어 있다.
+     *
+     * @param userNameAttributeName 네이버의 경우 "response"가 된다.
+     * @param attributes            네이버로부터 받은 원본 사용자 속성 맵
+     * @return 네이버 정보로 채워진 {@code OAuthAttributes} 객체
+     */
+    private static OAuthAttributes ofNaver(String userNameAttributeName, Map<String, Object> attributes) {
+        // 네이버 응답은 'response' 안에 모든 정보가 들어있습니다.
+        Map<String, Object> response = (Map<String, Object>) attributes.get(userNameAttributeName);
+
+        String rawPhoneNumber = (String) response.get("mobile");
+        String formattedPhoneNumber = normalizePhoneNumber(rawPhoneNumber);
+
+        return OAuthAttributes.builder()
+                .email((String) response.get("email"))
+                .provider("naver")
+                .providerId(String.valueOf(response.get("id"))) // 네이버 고유 ID
+                .name((String) response.get("name"))
+                .gender((String) response.get("gender"))
+                .birthyear((String) response.get("birthyear"))
+                .birthday(((String) response.get("birthday")).replace("-", ""))
+                .phoneNumber(formattedPhoneNumber)
+                .nameAttributeKey("id") // Principal 객체에서 이름을 참조할 때 사용할 키
+                .attributes(response) // attributes 필드에는 response 맵 자체를 저장
+                .build();
+    }
+
+    /**
      * 현재 객체의 정보를 바탕으로 데이터베이스에 저장하기 위한 {@link SignUpDto} 객체를 생성한다.
      * 사용자 ID는 "provider_providerId" 형식으로 조합되며, 소셜 로그인 사용자를 위한
      * 기본값(더미 패스워드, 약관 동의 등)을 설정한다.
@@ -136,16 +166,20 @@ public class OAuthAttributes {
     }
 
     /**
-     * 카카오 응답(male/female)을 DB 코드(M/F 등)로 변환하는 헬퍼 메소드
+     * 응답(male/female)을 DB 코드(M/F 등)로 변환하는 헬퍼 메소드
      *
      * @param gender 소셜 플랫폼에서 제공한 성별 문자열
      * @return 데이터베이스에 저장될 성별 코드 ("M", "F"), 또는 해당 없을 시 null
      */
     private String convertGenderToCode(String gender) {
-        if ("male".equalsIgnoreCase(gender)) {
-            return "M"; // DB에 저장될 남성 코드
-        } else if ("female".equalsIgnoreCase(gender)) {
-            return "F"; // DB에 저장될 여성 코드
+        if ("M".equalsIgnoreCase(gender)) {
+            return "M";
+        } else if ("F".equalsIgnoreCase(gender)) {
+            return "F";
+        } else if ("male".equalsIgnoreCase(gender)) { // 카카오 호환
+            return "M";
+        } else if ("female".equalsIgnoreCase(gender)) { // 카카오 호환
+            return "F";
         }
         return null; // 정보가 없거나 다른 값일 경우
     }

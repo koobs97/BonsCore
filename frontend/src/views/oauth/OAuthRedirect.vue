@@ -20,6 +20,7 @@ const router = useRouter();
 
 onMounted(async () => {
   const accessToken = route.query.token as string;
+  const oauthProvider = route.query.oauthProvider as string;
 
   if (accessToken) {
     sessionStorage.setItem('accessToken', accessToken);
@@ -28,7 +29,11 @@ onMounted(async () => {
       // 이제 이 API 호출이 성공할 것입니다.
       // ApiUrls.GET_USER가 /api/users/me를 가리키고 있어야 합니다.
       const user = await Api.post(ApiUrls.GET_USER, {}, true);
-      const userInfo = user.data as userState;
+      let userInfo = user.data as userState;
+      if(oauthProvider) {
+        userInfo.oauthProvider = oauthProvider;
+      }
+
       sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
       userStore().setUserInfo(userInfo);
 

@@ -180,7 +180,6 @@ const onClickLogin = async (isForced: boolean) => {
 
     /* 로그인에 성공 후 로직 */
     if(res.data.success) {
-
       // 로그인 성공 후에는 reCAPTCHA 상태를 초기화
       state.recaptchaToken = null;
       state.showCaptcha = false;
@@ -388,7 +387,9 @@ const handleSocialLoginClick = (event: MouseEvent) => {
              @click="handleSocialLoginClick">
             <img src="@/assets/images/kakao_login.png" alt="카카오 로그인">
           </a>
-          <a href="http://localhost:8080/oauth2/authorization/naver" class="social-button naver">
+          <a href="http://localhost:8080/oauth2/authorization/naver"
+             :class="['social-button', 'naver', { 'disabled': state.isProcessing }]"
+             @click="handleSocialLoginClick">
             <img src="@/assets/images/naver_login.png" alt="네이버 로그인">
           </a>
           <a href="http://localhost:8080/oauth2/authorization/google" class="social-button google">
@@ -462,15 +463,7 @@ const handleSocialLoginClick = (event: MouseEvent) => {
   font-size: 1rem;
   margin-top: 4px;
   color: var(--el-bg-color);
-}
-.login-button:hover {
-  background-color: var(--el-color-primary-light-3);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(65, 132, 246, 0.25);
-}
-.login-button:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background-color: var(--el-color-primary);
 }
 .social-login-section {
   margin-top: 50px;
