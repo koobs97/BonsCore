@@ -199,7 +199,6 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
   background-color: var(--el-bg-color);
@@ -219,7 +218,6 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   /* 배경과 테두리를 앱의 기본 색상과 연동, 투명도 조절 */
   background-color: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: var(--el-box-shadow-light);
 }
 
 /* 상단 아바타 섹션 */
@@ -301,14 +299,16 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 }
 .submit-button {
   width: 100%;
-  height: 50px;
+  height: 48px;
   font-weight: bold;
-  font-size: 1.1rem;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  font-size: 1rem;
+  margin-top: 4px;
+  color: var(--el-bg-color);
+  background-color: var(--el-color-primary);
 }
 .submit-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(var(--el-color-primary-rgb), 0.3);
+  background-color: var(--el-color-primary);
+  color: var(--el-bg-color);
 }
+
 </style>

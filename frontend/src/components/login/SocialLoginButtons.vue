@@ -7,17 +7,22 @@
       <a href="http://localhost:8080/oauth2/authorization/kakao"
          :class="['social-button', 'kakao', { 'disabled': isProcessing }]"
          @click="handleSocialLoginClick">
-        <img src="../../assets/images/kakao_login.png" alt="카카오 로그인">
+        <img src="@/assets/images/kakao_login.png" alt="카카오 로그인">
       </a>
       <a href="http://localhost:8080/oauth2/authorization/naver"
          :class="['social-button', 'naver', { 'disabled': isProcessing }]"
          @click="handleSocialLoginClick">
-        <img src="../../assets/images/naver_login.png" alt="네이버 로그인">
+        <img src="@/assets/images/naver_login.png" alt="네이버 로그인">
       </a>
       <a href="http://localhost:8080/oauth2/authorization/google"
          :class="['social-button', 'google', { 'disabled': isProcessing }]"
          @click="handleSocialLoginClick">
-        <img src="../../assets/images/google_login.png" alt="구글 로그인">
+        <img src="@/assets/images/google_login.png" alt="구글 로그인">
+      </a>
+      <a href=""
+         :class="['social-button', 'apple', { 'disabled': isProcessing }]"
+         @click="handleSocialLoginClick">
+        <img src="@/assets/images/apple_login.png" alt="애플 로그인">
       </a>
     </div>
   </div>
@@ -88,12 +93,12 @@ const handleSocialLoginClick = (event: MouseEvent) => {
   border-radius: 50%; /* 원형으로 변경 */
   text-decoration: none;
   transition: all 0.2s ease-in-out;
-  box-shadow: var(--el-box-shadow-lighter);
+  box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.08);
   background-color: var(--el-bg-color);
 }
 .social-button:hover {
   transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
 }
 .social-button img {
   height: 24px; /* 아이콘 크기 살짝 키움 */
@@ -104,6 +109,15 @@ const handleSocialLoginClick = (event: MouseEvent) => {
 .social-button.naver { background-color: #03C75A; }
 .social-button.naver img { filter: brightness(0) invert(1); }
 .social-button.google { background-color: #FFFFFF; }
+.social-button.apple {
+  background-color: #000000;
+  border: 1px solid var(--apple-button-border-color);
+  box-sizing: border-box;
+}
+
+.social-button.apple img {
+  filter: var(--apple-button-logo-filter);
+}
 
 .social-button.disabled {
   pointer-events: none;

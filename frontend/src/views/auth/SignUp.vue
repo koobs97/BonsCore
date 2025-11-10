@@ -52,6 +52,14 @@ const onClickToGoPage = (path: string) => {
             <span>구글로 시작하기</span>
           </div>
         </a>
+        <a href="" class="method-button apple">
+          <div class="icon-area">
+            <img src="@/assets/images/apple_login.png" alt="Apple아이콘" />
+          </div>
+          <div class="text-area">
+            <span>Apple로 시작하기</span>
+          </div>
+        </a>
 
         <el-divider class="divider" />
 
@@ -156,7 +164,7 @@ const onClickToGoPage = (path: string) => {
 .method-buttons {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 .method-button {
@@ -198,6 +206,15 @@ const onClickToGoPage = (path: string) => {
 .method-button.naver { background-color: #03C75A; color: white; }
 .method-button.naver img { filter: brightness(0) invert(1); }
 .method-button.google { background-color: #FFFFFF; color: #1F1F1F; border-color: #DADCE0; }
+.method-button.apple {
+  color: #FFFFFF;
+  background-color: #000000;
+  border: 1px solid var(--apple-button-border-color);
+  box-sizing: border-box;
+}
+.method-button.apple img {
+  filter: var(--apple-button-logo-filter);
+}
 .method-button.email {
   color: var(--el-bg-color);
   background-color: var(--signup-color-email);
