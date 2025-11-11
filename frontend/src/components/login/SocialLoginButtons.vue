@@ -19,11 +19,6 @@
          @click="handleSocialLoginClick">
         <img src="@/assets/images/google_login.png" alt="구글 로그인">
       </a>
-      <a href=""
-         :class="['social-button', 'apple', { 'disabled': isProcessing }]"
-         @click="handleSocialLoginClick">
-        <img src="@/assets/images/apple_login.png" alt="애플 로그인">
-      </a>
     </div>
   </div>
 </template>
@@ -109,15 +104,6 @@ const handleSocialLoginClick = (event: MouseEvent) => {
 .social-button.naver { background-color: #03C75A; }
 .social-button.naver img { filter: brightness(0) invert(1); }
 .social-button.google { background-color: #FFFFFF; }
-.social-button.apple {
-  background-color: #000000;
-  border: 1px solid var(--apple-button-border-color);
-  box-sizing: border-box;
-}
-
-.social-button.apple img {
-  filter: var(--apple-button-logo-filter);
-}
 
 .social-button.disabled {
   pointer-events: none;

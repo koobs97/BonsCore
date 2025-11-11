@@ -52,14 +52,6 @@ const onClickToGoPage = (path: string) => {
             <span>구글로 시작하기</span>
           </div>
         </a>
-        <a href="" class="method-button apple">
-          <div class="icon-area">
-            <img src="@/assets/images/apple_login.png" alt="Apple아이콘" />
-          </div>
-          <div class="text-area">
-            <span>Apple로 시작하기</span>
-          </div>
-        </a>
 
         <el-divider class="divider" />
 
@@ -164,7 +156,7 @@ const onClickToGoPage = (path: string) => {
 .method-buttons {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 .method-button {
@@ -206,19 +198,27 @@ const onClickToGoPage = (path: string) => {
 .method-button.naver { background-color: #03C75A; color: white; }
 .method-button.naver img { filter: brightness(0) invert(1); }
 .method-button.google { background-color: #FFFFFF; color: #1F1F1F; border-color: #DADCE0; }
-.method-button.apple {
-  color: #FFFFFF;
-  background-color: #000000;
-  border: 1px solid var(--apple-button-border-color);
-  box-sizing: border-box;
-}
-.method-button.apple img {
-  filter: var(--apple-button-logo-filter);
-}
 .method-button.email {
-  color: var(--el-bg-color);
-  background-color: var(--signup-color-email);
+  color: #EAEAEA;
   cursor: pointer;
+  background: linear-gradient(180deg, #222 0%, #111 100%);
+  border: 1px solid #333;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1),
+  inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+}
+.method-button.email .icon-area img {
+  filter: invert(1) hue-rotate(180deg) saturate(0.5);
+  transition: filter 0.3s ease-in-out;
+}
+.method-button.email:hover {
+  transform: translateY(-2px);
+  color: white;
+  background: linear-gradient(180deg, #333 0%, #222 100%);
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.2),
+  inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+}
+.method-button.email:hover .icon-area img {
+  filter: none;
 }
 
 .divider {

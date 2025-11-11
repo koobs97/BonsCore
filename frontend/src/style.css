@@ -131,9 +131,6 @@
 
   --signup-color-email: #001233;
 
-  --apple-button-bg: #000000;
-  --apple-button-logo-filter: invert(1);
-  --apple-button-border-color: transparent;
 }
 
 html.dark {
@@ -157,11 +154,8 @@ html.dark {
   --refresh-modern-text-color: #ffffff;
   --refresh-modern-border-color: var(--el-button-hover-bg-color);
 
-  --signup-color-email: #5dade2;
+  --signup-color-email: #0A0A0A;
 
-  --apple-button-bg: #2c2c2e;
-  --apple-button-logo-filter: invert(1);
-  --apple-button-border-color: transparent;
 }
 
 a {
