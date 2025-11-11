@@ -4,6 +4,7 @@
     "module": "esnext",               // 모듈 시스템을 'esnext'로 설정 (import.meta.glob 사용을 위한 필수)
     "moduleResolution": "node",       // 모듈 해석 방식을 'node'로 설정
     "lib": ["esnext", "dom"],         // 최신 ECMAScript 기능과 DOM을 사용할 수 있게 설정
+    "resolveJsonModule": true,
     "esModuleInterop": true,          // CommonJS와의 호환성 문제 해결
     "forceConsistentCasingInFileNames": true, // 대소문자 일관성 강제
     "strict": true,                   // 엄격한 타입 체크 활성화

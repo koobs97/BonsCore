@@ -1,37 +1,29 @@
-<template>
-  <div class="social-login-section">
-    <div class="social-login-divider">
-      <span>{{ title }}</span>
-    </div>
-    <div class="social-login-buttons">
-      <a href="http://localhost:8080/oauth2/authorization/kakao"
-         :class="['social-button', 'kakao', { 'disabled': isProcessing }]"
-         @click="handleSocialLoginClick">
-        <img src="@/assets/images/kakao_login.png" alt="카카오 로그인">
-      </a>
-      <a href="http://localhost:8080/oauth2/authorization/naver"
-         :class="['social-button', 'naver', { 'disabled': isProcessing }]"
-         @click="handleSocialLoginClick">
-        <img src="@/assets/images/naver_login.png" alt="네이버 로그인">
-      </a>
-      <a href="http://localhost:8080/oauth2/authorization/google"
-         :class="['social-button', 'google', { 'disabled': isProcessing }]"
-         @click="handleSocialLoginClick">
-        <img src="@/assets/images/google_login.png" alt="구글 로그인">
-      </a>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+/**
+ * ========================================
+ * 파일명   : SocialLoginButtons.vue
+ * ----------------------------------------
+ * 설명     : OAuth 인증 버튼들 컴포넌트
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-11-07
+ * ========================================
+ */
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 
-// props를 정의하여 부모 컴포넌트로부터 텍스트를 전달받을 수 있도록 합니다.
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+const kakaoLoginUrl = `${apiBaseUrl}/oauth2/authorization/kakao`;
+const naverLoginUrl = `${apiBaseUrl}/oauth2/authorization/naver`;
+const googleLoginUrl = `${apiBaseUrl}/oauth2/authorization/google`;
+
 defineProps({
   title: {
     type: String,
-    default: '간편 로그인'
+    default: ''
   }
 });
 
@@ -50,6 +42,30 @@ const handleSocialLoginClick = (event: MouseEvent) => {
   }, 2000);
 }
 </script>
+<template>
+  <div class="social-login-section">
+    <div class="social-login-divider">
+      <span>{{ title || t('login.socialLogin') }}</span>
+    </div>
+    <div class="social-login-buttons">
+      <a :href="kakaoLoginUrl"
+         :class="['social-button', 'kakao', { 'disabled': isProcessing }]"
+         @click="handleSocialLoginClick">
+        <img src="@/assets/images/kakao_login.png" alt="카카오 로그인">
+      </a>
+      <a :href="naverLoginUrl"
+         :class="['social-button', 'naver', { 'disabled': isProcessing }]"
+         @click="handleSocialLoginClick">
+        <img src="@/assets/images/naver_login.png" alt="네이버 로그인">
+      </a>
+      <a :href="googleLoginUrl"
+         :class="['social-button', 'google', { 'disabled': isProcessing }]"
+         @click="handleSocialLoginClick">
+        <img src="@/assets/images/google_login.png" alt="구글 로그인">
+      </a>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 /* Login.vue에 있던 social-login 관련 CSS를 그대로 가져옵니다. */

@@ -1,0 +1,48 @@
+{
+  "login": {
+    "title": "Login",
+    "rememberId": "Remember ID",
+    "userIdPlaceholder": "User ID",
+    "passwordPlaceholder": "Password",
+    "recommendedEnvironment": "Recommended env",
+    "loginButton": "Login",
+    "findId": "Find ID",
+    "findPassword": "Find Password",
+    "releaseDormant": "Activate Dormant",
+    "capsLock": "Caps Lock is on.",
+    "socialLogin": "Social Login",
+    "signUp": "Sign Up",
+    "theme": "Theme",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System",
+    "language": "Language"
+  },
+  "buttons": {
+    "ok": "OK"
+  },
+  "dialog": {
+    "resolution": {
+      "title": "System Requirements",
+      "optimal": "Optimal Resolution",
+      "zoom": "Browser Zoom"
+    }
+  },
+  "signup": {
+    "title": "Get Started",
+    "description": "Please select a sign-up method.",
+    "withKakao": "Continue with Kakao",
+    "withNaver": "Continue with Naver",
+    "withGoogle": "Continue with Google",
+    "withEmail": "Sign up with Email",
+    "prompt": "Already have an account?",
+    "login": "Log in"
+  },
+  "messages": {
+    "enterUserId": "Please enter your User ID.",
+    "enterPassword": "Please enter your password.",
+    "languageChangedTo": "Language changed to {lang}.",
+    "checkRecaptcha": "Please check “I’m not a robot.”"
+
+  }
+}

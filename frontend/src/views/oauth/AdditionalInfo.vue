@@ -1,101 +1,14 @@
-<template>
-  <div class="additional-info-container">
-    <div class="background-gradient"></div>
-    <el-card class="info-card glass-effect" shadow="never">
-
-      <!-- 프로필 아바타 섹션 -->
-      <div class="avatar-section" v-if="userInfo">
-        <el-avatar
-            :size="80"
-            :src="userInfo.profileImageUrl || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
-            class="profile-avatar"
-        />
-        <h3 class="welcome-message">환영합니다, {{ userInfo.userName }}님!</h3>
-        <p class="description">서비스를 시작하기 전에 몇 가지만 더 알려주세요.</p>
-      </div>
-      <div v-else class="loading-placeholder">
-        <el-skeleton animated>
-          <template #template>
-            <el-skeleton-item variant="circle" style="width: 80px; height: 80px;" />
-            <div style="padding-top: 14px;">
-              <el-skeleton-item variant="h3" style="width: 50%;" />
-              <el-skeleton-item variant="text" style="width: 80%;" />
-            </div>
-          </template>
-        </el-skeleton>
-      </div>
-
-      <!-- 진행률 표시 -->
-      <el-progress :percentage="progress" :stroke-width="6" :show-text="false" color="#6a82fb" class="progress-bar" />
-
-      <!-- 정보 입력 폼 -->
-      <el-form
-          ref="formRef"
-          :model="editForm"
-          :rules="rules"
-          label-position="top"
-          class="info-form"
-          @validate="handleValidation"
-      >
-        <el-form-item prop="userName">
-          <template #label>
-            <div class="form-label-with-icon">
-              <el-icon><User /></el-icon>
-              <span>이름</span>
-            </div>
-          </template>
-          <el-input v-model.trim="editForm.userName" placeholder="실명을 입력해주세요." size="large" />
-        </el-form-item>
-
-        <el-form-item prop="phoneNumber">
-          <template #label>
-            <div class="form-label-with-icon">
-              <el-icon><Phone /></el-icon>
-              <span>휴대폰 번호</span>
-            </div>
-          </template>
-          <el-input v-model.trim="editForm.phoneNumber" placeholder="'-' 없이 숫자만 11자리 입력" size="large" />
-        </el-form-item>
-
-        <el-form-item prop="birthDate">
-          <template #label>
-            <div class="form-label-with-icon">
-              <el-icon><Calendar /></el-icon>
-              <span>생년월일</span>
-            </div>
-          </template>
-          <el-input v-model.trim="editForm.birthDate" placeholder="8자리 숫자로 입력 (예: 19970729)" size="large" />
-        </el-form-item>
-
-        <el-form-item prop="genderCode">
-          <template #label>
-            <div class="form-label-with-icon">
-              <el-icon><Male /></el-icon>
-              <span>성별</span>
-            </div>
-          </template>
-          <el-radio-group v-model="editForm.genderCode" class="full-width-radio" size="large">
-            <el-radio-button label="M">남자</el-radio-button>
-            <el-radio-button label="F">여자</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-
-        <el-form-item class="submit-item">
-          <el-button
-              type="primary"
-              class="submit-button"
-              @click="submitForm(formRef)"
-              :loading="isSubmitting"
-          >
-            가입 완료하고 시작하기
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-  </div>
-</template>
-
 <script setup lang="ts">
+/**
+ * ========================================
+ * 파일명   : Login.vue
+ * ----------------------------------------
+ * 설명     : 추가정보 입력 form
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-11-07
+ * ========================================
+ */
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -103,7 +16,7 @@ import type { FormInstance, FormRules } from 'element-plus';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { userStore, userState } from '@/store/userStore';
-import { User, Phone, Calendar, Male, Female } from '@element-plus/icons-vue';
+import { User, Phone, Calendar, Male } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const store = userStore();
@@ -192,6 +105,102 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   });
 };
 </script>
+<template>
+  <div class="additional-info-container">
+    <div class="background-gradient"></div>
+    <el-card class="info-card glass-effect" shadow="never">
+
+      <!-- 프로필 아바타 섹션 -->
+      <div class="avatar-section" v-if="userInfo">
+        <el-avatar
+            :size="80"
+            src='https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+            class="profile-avatar"
+        />
+        <h3 class="welcome-message">환영합니다, {{ userInfo.userName }}님!</h3>
+        <p class="description">서비스를 시작하기 전에 몇 가지만 더 알려주세요.</p>
+      </div>
+      <div v-else class="loading-placeholder">
+        <el-skeleton animated>
+          <template #template>
+            <el-skeleton-item variant="circle" style="width: 80px; height: 80px;" />
+            <div style="padding-top: 14px;">
+              <el-skeleton-item variant="h3" style="width: 50%;" />
+              <el-skeleton-item variant="text" style="width: 80%;" />
+            </div>
+          </template>
+        </el-skeleton>
+      </div>
+
+      <!-- 진행률 표시 -->
+      <el-progress :percentage="progress" :stroke-width="6" :show-text="false" color="#6a82fb" class="progress-bar" />
+
+      <!-- 정보 입력 폼 -->
+      <el-form
+          ref="formRef"
+          :model="editForm"
+          :rules="rules"
+          label-position="top"
+          class="info-form"
+          @validate="handleValidation"
+      >
+        <el-form-item prop="userName">
+          <template #label>
+            <div class="form-label-with-icon">
+              <el-icon><User /></el-icon>
+              <span>이름</span>
+            </div>
+          </template>
+          <el-input v-model.trim="editForm.userName" placeholder="실명을 입력해주세요." size="large" />
+        </el-form-item>
+
+        <el-form-item prop="phoneNumber">
+          <template #label>
+            <div class="form-label-with-icon">
+              <el-icon><Phone /></el-icon>
+              <span>휴대폰 번호</span>
+            </div>
+          </template>
+          <el-input v-model.trim="editForm.phoneNumber" placeholder="'-' 없이 숫자만 11자리 입력" size="large" />
+        </el-form-item>
+
+        <el-form-item prop="birthDate">
+          <template #label>
+            <div class="form-label-with-icon">
+              <el-icon><Calendar /></el-icon>
+              <span>생년월일</span>
+            </div>
+          </template>
+          <el-input v-model.trim="editForm.birthDate" placeholder="8자리 숫자로 입력 (예: 19970729)" size="large" />
+        </el-form-item>
+
+        <el-form-item prop="genderCode">
+          <template #label>
+            <div class="form-label-with-icon">
+              <el-icon><Male /></el-icon>
+              <span>성별</span>
+            </div>
+          </template>
+          <el-radio-group v-model="editForm.genderCode" class="full-width-radio" size="large">
+            <el-radio-button label="M">남자</el-radio-button>
+            <el-radio-button label="F">여자</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item class="submit-item">
+          <el-button
+              type="primary"
+              class="submit-button"
+              @click="submitForm(formRef)"
+              :loading="isSubmitting"
+          >
+            가입 완료하고 시작하기
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+  </div>
+</template>
 
 <style scoped>
 /* 전체 페이지 레이아웃: 앱의 기본 배경색 사용 */

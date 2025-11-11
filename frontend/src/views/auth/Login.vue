@@ -9,7 +9,7 @@
  * 작성일자 : 2025-01-30
  * ========================================
  */
-import { Hide, QuestionFilled, View } from "@element-plus/icons-vue";
+import { Hide, QuestionFilled, View, Sunny, Moon, Monitor } from "@element-plus/icons-vue";
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
@@ -19,10 +19,22 @@ import { useRoute, useRouter } from 'vue-router';
 import { userState, userStore } from '@/store/userStore';
 import { Dialogs } from "@/common/dialogs";
 import SocialLoginButtons from '@/components/login/SocialLoginButtons.vue';
+import Setting from '@/assets/images/setting_icon.png';
+import { useTheme } from '@/composables/useTheme';
+import { useI18n } from 'vue-i18n';
+const { t, locale } = useI18n();
+
+// 커스텀 아이콘 이미지 임포트
+import SunnyIcon from '@/assets/images/Sunny_icon.png';
+import MoonIcon from '@/assets/images/Moon_icon.png';
+import SystemIcon from '@/assets/images/System_icon.png';
 
 // router
 const router = useRouter();
 const route = useRoute();
+
+// 테마 관리 로직
+const { theme, setTheme } = useTheme();
 
 /*
  * 패스워드는 ref(반응형 변수)로 새로고침하면 사라짐
@@ -55,6 +67,24 @@ const passwdType = computed(() => (state.isVisible ? "text" : "password"));
 // 비밀번호 입력 모드 전환
 const togglePassword = () => {
   state.isVisible = !state.isVisible;
+}
+
+// 팝오버 참조 및 닫기 함수
+const popoverRef = ref();
+
+/**
+ * 테마 변경 시 호출되는 함수
+ * @param newTheme 선택된 새 테마
+ */
+const onThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  setTheme(newTheme);
+  // 선택 후 팝오버를 닫아주는 것이 사용자 경험에 좋습니다.
+  popoverRef.value?.hide();
+}
+
+// pop over 제어 함수
+const custromTrigger = () => {
+  popoverRef.value = !popoverRef.value
 }
 
 // 화면진입 시
@@ -131,12 +161,12 @@ const updateCapsLockState = (event: KeyboardEvent) => {
  */
 const validateInput = async () => {
   if(Common.isEmpty(userId.value)) {
-    ElMessage({ message: '사용자 ID를 입력하세요.', grouping: true, type: 'error' })
+    ElMessage({ message: t('messages.enterUserId'), grouping: true, type: 'error' })
     userIdInput.value.focus();
     return;
   }
   if(Common.isEmpty(password.value)) {
-    ElMessage({ message: '비밀번호를 입력하세요.', grouping: true, type: 'error' });
+    ElMessage({ message: t('messages.enterPassword'), grouping: true, type: 'error' });
     passwordInput.value.focus();
     return;
   }
@@ -231,7 +261,7 @@ const onClickLogin = async (isForced: boolean) => {
         const message = res.data.message;
 
         switch (reason) {
-          // 중복 로그인 시
+            // 중복 로그인 시
           case 'DUPLICATE_LOGIN':
             await Dialogs.showDuplicateLoginConfirm(message)
                 .then(() => { // '로그인' 버튼 클릭 시
@@ -242,7 +272,7 @@ const onClickLogin = async (isForced: boolean) => {
                 });
             return;
 
-          // 휴먼 계정일 시
+            // 휴먼 계정일 시
           case 'DORMANT_ACCOUNT':
             await Dialogs.showDormantAccountNotice('휴면 계정 안내', message)
                 .then(() => { // '본인인증' 버튼 클릭 시
@@ -250,7 +280,7 @@ const onClickLogin = async (isForced: boolean) => {
                 }).catch((action) => {});
             return;
 
-          // 비정상 로그인 탐지 시
+            // 비정상 로그인 탐지 시
           case 'ACCOUNT_VERIFICATION_REQUIRED':
             await Dialogs.showDormantAccountNotice('비정상 로그인 감지', message)
                 .then(() => { // '본인인증' 버튼 클릭 시
@@ -258,7 +288,7 @@ const onClickLogin = async (isForced: boolean) => {
                 }).catch((action) => {});
             return;
 
-          // 기타 로그인 에러 메시지
+            // 기타 로그인 에러 메시지
           default:
             ElMessage({ message: message, grouping: true, type: 'error' });
         }
@@ -291,34 +321,103 @@ const showResolutionInfo = () => {
   Dialogs.showResolutionInfo();
 }
 
-const handleSocialLoginClick = (event: MouseEvent) => {
-  if (state.isProcessing) {
-    event.preventDefault();
-    ElMessage.warning("이미 요청 처리 중입니다.");
-    return;
-  }
-  state.isProcessing = true;
-  setTimeout(() => {
-    state.isProcessing = false;
-  }, 2000);
-}
+
+/**
+ * 언어 변경 핸들러 함수
+ * @param newLang
+ */
+const onLanguageChange = (newLang: 'ko' | 'en') => {
+  locale.value = newLang; // i18n의 locale 상태를 직접 변경
+  localStorage.setItem('language', newLang); // 사용자의 선택을 브라우저에 저장
+};
 </script>
 
 <template>
   <div class="login-container">
     <el-card class="login-card" shadow="never">
-      <h2 class="login-title">로그인</h2>
+      <h2 class="login-title">{{ $t('login.title') }}</h2>
 
       <el-form class="login-form" @keydown.enter.prevent="onClickLogin(false)">
         <div class="form-options">
-          <el-checkbox v-model="rememberId" label="아이디 기억하기" />
+          <el-checkbox v-model="rememberId" :label="t('login.rememberId')" />
+
+          <el-popover
+              :visible="popoverRef"
+              placement="right-start"
+              :width="262"
+              trigger="manual"
+              popper-class="settings-popover"
+          >
+            <!-- 팝오버 내용 -->
+            <div class="popover-content">
+              <!-- 1. 테마 설정 섹션 -->
+              <div class="setting-section">
+                <span class="section-title">{{ $t('login.theme') }}</span>
+                <el-radio-group
+                    :model-value="theme"
+                    @update:model-value="onThemeChange"
+                    size="small"
+                    class="theme-radio-group"
+                >
+                  <el-radio-button label="light">
+                    <div class="theme-button-content">
+                      <img :src="SunnyIcon" class="theme-icon" alt="라이트"/>
+                      <span>{{ $t('login.theme_light') }}</span>
+                    </div>
+                  </el-radio-button>
+                  <el-radio-button label="dark">
+                    <div class="theme-button-content">
+                      <img :src="MoonIcon" class="theme-icon" alt="다크"/>
+                      <span>{{ $t('login.theme_dark') }}</span>
+                    </div>
+                  </el-radio-button>
+                  <el-radio-button label="system">
+                    <div class="theme-button-content">
+                      <img :src="SystemIcon" class="theme-icon" alt="시스템"/>
+                      <span>{{ $t('login.theme_system') }}</span>
+                    </div>
+                  </el-radio-button>
+                </el-radio-group>
+              </div>
+
+              <el-divider />
+
+              <!-- 2. 언어 설정 섹션 -->
+              <div class="setting-section">
+                <span class="section-title">{{ $t('login.language') }}</span>
+                <div class="language-button-group">
+                  <el-button
+                      size="small"
+                      :type="locale === 'ko' ? 'primary' : 'default'"
+                      @click="onLanguageChange('ko')"
+                  >
+                    한국어
+                  </el-button>
+                  <el-button
+                      size="small"
+                      :type="locale === 'en' ? 'primary' : 'default'"
+                      @click="onLanguageChange('en')"
+                  >
+                    English
+                  </el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 팝오버를 여는 버튼 -->
+            <template #reference>
+              <el-button link class="settings-btn" @click="custromTrigger">
+                <el-icon :size="18"><img :src="Setting" alt="설정"/></el-icon>
+              </el-button>
+            </template>
+          </el-popover>
         </div>
 
         <el-input
             v-model="userId"
             ref="userIdInput"
             class="login-input"
-            placeholder="사용자 ID"
+            :placeholder="t('login.userIdPlaceholder')"
             clearable
             v-byte-limit="50"
         />
@@ -326,7 +425,7 @@ const handleSocialLoginClick = (event: MouseEvent) => {
             v-model="password"
             ref="passwordInput"
             class="login-input"
-            placeholder="비밀번호"
+            :placeholder="t('login.passwordPlaceholder')"
             :type="passwdType"
             clearable
             v-byte-limit="50"
@@ -341,13 +440,13 @@ const handleSocialLoginClick = (event: MouseEvent) => {
         <div class="extra-info-links">
           <el-button type="info" link @click="showResolutionInfo">
             <el-icon style="margin-right: 4px;"><QuestionFilled /></el-icon>
-            권장 사용 환경
+            {{ $t('login.recommendedEnvironment') }}
           </el-button>
         </div>
 
         <div class="caps-lock-placeholder">
           <span :class="['caps-lock-warning', { 'visible': isCapsLockOn }]">
-            Caps Lock이 켜져 있습니다.
+            {{ $t('login.capsLock') }}
           </span>
         </div>
 
@@ -356,7 +455,7 @@ const handleSocialLoginClick = (event: MouseEvent) => {
             class="login-button"
             @click="onClickLogin(false)"
         >
-          로그인
+          {{ $t('login.loginButton') }}
         </el-button>
       </el-form>
 
@@ -366,7 +465,7 @@ const handleSocialLoginClick = (event: MouseEvent) => {
             link
             @click="onClickToGoPage('FindId')"
         >
-          아이디 찾기
+          {{ $t('login.findId') }}
         </el-button>
         <el-divider direction="vertical" />
         <el-button
@@ -374,14 +473,15 @@ const handleSocialLoginClick = (event: MouseEvent) => {
             link
             @click="onClickToGoPage('FindPassword')"
         >
-          비밀번호 찾기
+          {{ $t('login.findPassword') }}
         </el-button>
         <el-divider direction="vertical" />
         <el-button
             type="info"
             link
             @click="onClickToGoPage('VerifyIdentity', 'DORMANT')"
-        >휴면 계정 해제
+        >
+          {{ $t('login.releaseDormant') }}
         </el-button>
       </div>
 
@@ -396,7 +496,7 @@ const handleSocialLoginClick = (event: MouseEvent) => {
           class="signup-link"
           @click="onClickToGoPage('SignUp')"
       >
-        회원가입
+        {{ $t('login.signUp') }}
       </el-button>
     </el-card>
 
@@ -438,8 +538,29 @@ const handleSocialLoginClick = (event: MouseEvent) => {
   margin-top: 20px;
 }
 .form-options {
-  text-align: left;
-  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between; /* 자식 요소들을 양쪽 끝으로 밀어냅니다. */
+  align-items: center; /* 수직 중앙 정렬을 보장합니다. */
+  margin-bottom: 6px;
+}
+.settings-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%; /* 원형 버튼으로 만듭니다. */
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+.settings-btn:hover {
+  background-color: var(--el-fill-color-light);
+}
+
+.settings-btn img {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s ease; /* 부드러운 회전 효과 */
+}
+
+.settings-btn:hover img {
+  transform: rotate(30deg);
 }
 .login-input {
   height: 45px;
@@ -510,24 +631,200 @@ const handleSocialLoginClick = (event: MouseEvent) => {
 
 @media (max-width: 768px) {
   .login-container {
-    /* 모바일에서는 위쪽으로 살짝 붙도록 정렬 변경 */
     justify-content: flex-start;
-    padding-top: 10vh; /* 화면 높이의 10%만큼 위에서 띄움 */
+    padding-top: 10vh;
   }
 
   .login-title {
-    font-size: 1.5rem; /* 24px, 모바일에서 제목 크기 살짝 줄임 */
+    font-size: 1.5rem;
     margin-bottom: 24px;
   }
 
   .login-card {
-    /* 모바일에서는 그림자 효과를 주어 입체감 부여 */
     box-shadow: var(--el-box-shadow-light);
   }
 }
 </style>
 
 <style>
+.settings-popover {
+  background: linear-gradient(var(--el-bg-color-overlay), var(--el-bg-color-overlay)) padding-box,
+  linear-gradient(135deg, #3a3d40, #c8c8c8, #3a3d40) border-box !important;
+  border: 2px solid transparent !important;
+  border-radius: 18px !important;
+  padding: 0 !important;
+  box-shadow: 0 0 25px rgba(170, 170, 180, 0.3);
+}
+
+/* 기본 화살표 숨기기 */
+.settings-popover .el-popper__arrow::before {
+  display: none;
+}
+
+/* 내부 콘텐츠 영역 */
+.settings-popover .popover-content {
+  padding: 16px;
+  background: transparent !important;
+  z-index: 2;
+}
+
+.settings-popover .setting-section {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+/* 섹션 제목 */
+.settings-popover .section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  flex-shrink: 0;
+}
+
+/* 구분선 */
+.settings-popover .el-divider {
+  margin: 12px 0;
+  border-image: linear-gradient(to right, transparent, var(--el-border-color-darker), transparent) 1;
+  border-top: 1px solid;
+}
+
+.settings-popover .theme-radio-group,
+.settings-popover .language-button-group {
+  flex-grow: 1; /* 핵심: 남은 공간을 모두 차지 */
+  display: flex;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.settings-popover .theme-radio-group :deep(.el-radio-button__inner) {
+  /* 기존 padding: 8px 5px; 에서 좌우 여백을 더 줄입니다. */
+  padding: 8px 4px;
+}
+
+.settings-popover .theme-radio-group .el-radio-button {
+  flex: 1;
+}
+
+.settings-popover .theme-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px; /* 기존 4px에서 더 줄임 */
+  font-size: 12px;
+  white-space: nowrap; /* 텍스트 줄바꿈 방지는 유지 */
+}
+
+.settings-popover .theme-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.settings-popover .language-button-group {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+.settings-popover .language-button-group .el-button {
+  flex: 1;
+  margin-left: 0 !important;
+}
+
+/* 설정 버튼 포커스 효과 제거 */
+.settings-btn:focus,
+.settings-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 다크 모드 스타일 */
+html.dark .settings-btn img {
+  filter: invert(0.85); /* 설정 아이콘 색상 반전 */
+}
+
+/* 다크모드에서 활성화된 테마 버튼 내부 아이콘/텍스트 색상 조정 */
+html.dark .settings-popover .el-radio-button.is-active .theme-button-content {
+  color: var(--el-bg-color-overlay);
+}
+
+
+
+@keyframes rotating-gradient {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.stylish-settings-popover {
+  padding: 0 !important;
+  border-radius: 14px !important; /* 내부 컨텐츠보다 살짝 큰 값 */
+  border: none !important;
+  background: transparent !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.stylish-settings-popover::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, #84fab0, #8fd3f4, #a18cd1, #fbc2eb, #84fab0);
+  animation: rotating-gradient 4s linear infinite;
+}
+
+.stylish-settings-popover .el-popper__arrow::before {
+  display: none; /* 기본 화살표 숨김 */
+}
+
+/* 팝오버 내부 콘텐츠 영역 */
+.popover-content {
+  position: relative;
+  z-index: 2;
+  margin: 2px; /* 테두리 두께 */
+  padding: 8px;
+  border-radius: 12px;
+  background-color: var(--el-bg-color-overlay);
+  backdrop-filter: blur(10px); /* 배경 블러 효과 */
+}
+
+.popover-content .setting-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 섹션 내 아이템 간격 증가 */
+}
+
+.popover-content .section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.minimal-card-popover .button-group .el-button {
+  /* 기본 버튼에 대한 공통 스타일 (선택 사항) */
+  background-color: transparent;
+}
+
+/* 'primary' 타입이고 'plain' 속성을 가진 버튼의 스타일을 강제로 덮어쓰기 */
+.minimal-card-popover .button-group .el-button--primary.is-plain {
+  color: var(--el-color-white); /* 텍스트는 흰색으로 */
+  background-color: var(--el-color-primary) !important; /* 배경색 채우기 */
+  border-color: var(--el-color-primary) !important; /* 테두리 색상 통일 */
+}
+
+.popover-content .el-divider--horizontal {
+  margin: 18px 0;
+  border-top-color: var(--el-border-color-lighter);
+}
+.settings-btn:focus,
+.settings-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
 html.dark .el-checkbox__input.is-checked .el-checkbox__inner {
   background-color: var(--el-color-primary) !important;
   border-color: var(--el-color-primary) !important;
@@ -537,12 +834,6 @@ html.dark .el-checkbox__input.is-checked .el-checkbox__inner::after {
 }
 html.dark .el-checkbox__input .el-checkbox__inner {
   border-color: var(--el-border-color-light) !important;
-}
-
-/* 애니메이션 정의: 그라데이션 회전 */
-@keyframes rotating-gradient {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 .resolution-info-box {
   --el-messagebox-width: 420px;
@@ -592,9 +883,11 @@ html.dark .el-checkbox__input .el-checkbox__inner {
 .resolution-info-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 20px;
   color: var(--el-text-color-regular);
+  width: 100%;
+  margin-left: 30px;
 }
 .resolution-info-content p {
   margin-bottom: 12px;

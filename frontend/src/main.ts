@@ -6,6 +6,8 @@ import * as ElIcons from '@element-plus/icons-vue';
 import { userStore } from '@/store/userStore';
 import { createPinia } from "pinia";
 
+import i18n from './i18n'
+
 import TheFooter from "@/components/layout/TheFooter.vue";
 
 // custom-directives
@@ -54,10 +56,6 @@ if (savedUserInfo) {
 //    이렇게 하면 네비게이션 가드가 실행될 때 정확한 로그인 상태를 참조할 수 있습니다.
 app.use(router);
 
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★          여기까지 수정           ★
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★
-
 // 화면 모드 설정 유지 (이 로직은 순서에 크게 상관없지만, 렌더링 직전에 두는 것이 좋습니다.)
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme === 'dark') {
@@ -75,8 +73,6 @@ Object.entries(ElIcons).forEach(([key, component]) => {
 
 // 나머지 플러그인들을 등록하고 마운트합니다.
 app
-    // .use(router) // 위로 이동했으므로 여기선 삭제
-    // .use(createPinia()) // 위에서 app.use(pinia)로 대체되었으므로 삭제
     .use(ElementPlus, {
         locale: ko
     })
@@ -84,3 +80,5 @@ app
     .directive('byte-limit', byteLimit)
     .component('AgGridVue', AgGridVue)
     .mount('#app')
+
+app.use(i18n)

@@ -1,0 +1,48 @@
+{
+  "login": {
+    "title": "로그인",
+    "rememberId": "아이디 기억하기",
+    "userIdPlaceholder": "사용자 ID",
+    "passwordPlaceholder": "비밀번호",
+    "recommendedEnvironment": "권장 사용 환경",
+    "loginButton": "로그인",
+    "findId": "아이디 찾기",
+    "findPassword": "비밀번호 찾기",
+    "releaseDormant": "휴면 계정 해제",
+    "capsLock": "Caps Lock이 켜져 있습니다.",
+    "socialLogin": "간편 로그인",
+    "signUp": "회원가입",
+    "theme": "테마",
+    "theme_light": "라이트",
+    "theme_dark": "다크",
+    "theme_system": "시스템",
+    "language": "언어"
+  },
+  "buttons": {
+    "ok": "확인"
+  },
+  "dialog": {
+    "resolution": {
+      "title": "권장 사용 환경",
+      "optimal": "최적 해상도",
+      "zoom": "브라우저 배율"
+    }
+  },
+  "signup": {
+    "title": "시작하기",
+    "description": "가입 방법을 선택해주세요.",
+    "withKakao": "카카오로 시작하기",
+    "withNaver": "네이버로 시작하기",
+    "withGoogle": "구글로 시작하기",
+    "withEmail": "이메일로 가입하기",
+    "prompt": "이미 계정이 있으신가요?",
+    "login": "로그인"
+  },
+  "messages": {
+    "enterUserId": "사용자 ID를 입력하세요.",
+    "enterPassword": "비밀번호를 입력하세요.",
+    "languageChangedTo": "언어가 {lang}로 변경되었습니다.",
+    "checkRecaptcha": "'로봇이 아닙니다.'를 체크해주세요."
+
+  }
+}

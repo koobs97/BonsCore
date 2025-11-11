@@ -1,9 +1,30 @@
 <script setup lang="ts">
+/**
+ * ========================================
+ * 파일명   : SignUp.vue
+ * ----------------------------------------
+ * 설명     : 회원가입 방법 선택
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-07-11
+ * ========================================
+ */
 import { useRouter } from "vue-router";
-import { Message } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 
 const router = useRouter();
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
+// url
+const kakaoLoginUrl = `${apiBaseUrl}/oauth2/authorization/kakao`;
+const naverLoginUrl = `${apiBaseUrl}/oauth2/authorization/naver`;
+const googleLoginUrl = `${apiBaseUrl}/oauth2/authorization/google`;
+
+/**
+ * 페이지 이동
+ * @param path
+ */
 const onClickToGoPage = (path: string) => {
   router.push("/" + path);
 }
@@ -23,33 +44,33 @@ const onClickToGoPage = (path: string) => {
         </div>
       </a>
 
-      <h2 class="main-title">시작하기</h2>
-      <p class="description">가입 방법을 선택해주세요.</p>
+      <h2 class="main-title">{{ t('signup.title') }}</h2>
+      <p class="description">{{ t('signup.description') }}</p>
 
       <div class="method-buttons">
         <!-- 소셜 가입 버튼들 -->
-        <a href="http://localhost:8080/oauth2/authorization/kakao" class="method-button kakao">
+        <a :href="kakaoLoginUrl" class="method-button kakao">
           <div class="icon-area">
             <img src="@/assets/images/kakao_login.png" alt="카카오 아이콘" />
           </div>
           <div class="text-area">
-            <span>카카오로 시작하기</span>
+            <span>{{ t('signup.withKakao') }}</span>
           </div>
         </a>
-        <a href="http://localhost:8080/oauth2/authorization/naver" class="method-button naver">
+        <a :href="naverLoginUrl" class="method-button naver">
           <div class="icon-area">
             <img src="@/assets/images/naver_login.png" alt="네이버 아이콘" />
           </div>
           <div class="text-area">
-            <span>네이버로 시작하기</span>
+            <span>{{ t('signup.withNaver') }}</span>
           </div>
         </a>
-        <a href="http://localhost:8080/oauth2/authorization/google" class="method-button google">
+        <a :href="googleLoginUrl" class="method-button google">
           <div class="icon-area">
             <img src="@/assets/images/google_login.png" alt="구글 아이콘" />
           </div>
           <div class="text-area">
-            <span>구글로 시작하기</span>
+            <span>{{ t('signup.withGoogle') }}</span>
           </div>
         </a>
 
@@ -60,14 +81,16 @@ const onClickToGoPage = (path: string) => {
             <img src="@/assets/images/email_login.png" alt="이메일가입 아이콘" />
           </div>
           <div class="text-area">
-            <span>이메일로 가입하기</span>
+            <span>{{ t('signup.withEmail') }}</span>
           </div>
         </a>
       </div>
 
       <div class="signup-prompt-card">
-        <el-text>이미 계정이 있으신가요?</el-text>
-        <el-button type="primary" link class="signup-link" @click="onClickToGoPage('Login')">로그인</el-button>
+        <el-text>{{ t('signup.prompt') }}</el-text>
+        <el-button type="primary" link class="signup-link" @click="onClickToGoPage('login')">
+          {{ t('signup.login') }}
+        </el-button>
       </div>
 
     </el-card>

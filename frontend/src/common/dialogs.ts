@@ -17,6 +17,7 @@ import DuplicationLoginConfirm from "@/components/MessageBox/DuplicationLoginCon
 import DormantAccountNotice from "@/components/MessageBox/DormantAccountNotice.vue";
 import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
 import shieldIcon from '@/assets/images/shield_icon.png';
+import i18n from '@/i18n';
 
 export class Dialogs {
 
@@ -120,27 +121,34 @@ export class Dialogs {
      * @returns Promise<string> - ElMessageBox.alert의 Promise 객체
      */
     public static showResolutionInfo = () => {
+        // 2. i18n 인스턴스에서 번역 함수(t)를 가져옵니다.
+        const { t } = i18n.global;
+
         return ElMessageBox.alert(
             // h() 함수를 사용하여 아이콘과 텍스트가 포함된 복잡한 구조를 생성
             h('div', { class: 'resolution-info-content' }, [
                 h('div', { class: 'info-item' }, [
                     h(ElIcon, { class: 'info-icon', size: 20 }, () => h(Monitor)), // 모니터 아이콘
                     h('div', { class: 'info-text' }, [
-                        h('span', { class: 'info-label' }, '최적 해상도'),
+                        // 3. 하드코딩된 텍스트를 t() 함수로 변경
+                        h('span', { class: 'info-label' }, t('dialog.resolution.optimal')),
                         h('span', { class: 'info-value' }, '1920 x 1080'),
                     ]),
                 ]),
                 h('div', { class: 'info-item' }, [
                     h(ElIcon, { class: 'info-icon', size: 20 }, () => h(ZoomIn)), // 돋보기(배율) 아이콘
                     h('div', { class: 'info-text' }, [
-                        h('span', { class: 'info-label' }, '브라우저 배율'),
+                        // 3. 하드코딩된 텍스트를 t() 함수로 변경
+                        h('span', { class: 'info-label' }, t('dialog.resolution.zoom')),
                         h('span', { class: 'info-value' }, '100%'),
                     ]),
                 ]),
             ]),
-            '권장 사용 환경', // Title
+            // 3. 하드코딩된 텍스트를 t() 함수로 변경 (Title)
+            t('dialog.resolution.title'),
             {
-                confirmButtonText: '확인',
+                // 3. 하드코딩된 텍스트를 t() 함수로 변경 (Button)
+                confirmButtonText: t('buttons.ok'),
                 center: true,
                 customClass: 'resolution-info-box', // 커스텀 스타일 클래스
                 showClose: false,
