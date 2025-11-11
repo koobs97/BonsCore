@@ -161,12 +161,12 @@ const updateCapsLockState = (event: KeyboardEvent) => {
  */
 const validateInput = async () => {
   if(Common.isEmpty(userId.value)) {
-    ElMessage({ message: t('messages.enterUserId'), grouping: true, type: 'error' })
+    ElMessage({ message: t('login.messages.enterUserId'), grouping: true, type: 'error' })
     userIdInput.value.focus();
     return;
   }
   if(Common.isEmpty(password.value)) {
-    ElMessage({ message: t('messages.enterPassword'), grouping: true, type: 'error' });
+    ElMessage({ message: t('login.messages.enterPassword'), grouping: true, type: 'error' });
     passwordInput.value.focus();
     return;
   }

@@ -148,7 +148,7 @@ export class Dialogs {
             t('dialog.resolution.title'),
             {
                 // 3. 하드코딩된 텍스트를 t() 함수로 변경 (Button)
-                confirmButtonText: t('buttons.ok'),
+                confirmButtonText: t('dialog.buttons.ok'),
                 center: true,
                 customClass: 'resolution-info-box', // 커스텀 스타일 클래스
                 showClose: false,

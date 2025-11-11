@@ -16,16 +16,22 @@
     "theme_light": "라이트",
     "theme_dark": "다크",
     "theme_system": "시스템",
-    "language": "언어"
-  },
-  "buttons": {
-    "ok": "확인"
+    "language": "언어",
+    "messages": {
+      "enterUserId": "사용자 ID를 입력하세요.",
+      "enterPassword": "비밀번호를 입력하세요.",
+      "languageChangedTo": "언어가 {lang}로 변경되었습니다.",
+      "checkRecaptcha": "'로봇이 아닙니다.'를 체크해주세요."
+    }
   },
   "dialog": {
     "resolution": {
       "title": "권장 사용 환경",
       "optimal": "최적 해상도",
       "zoom": "브라우저 배율"
+    },
+    "buttons": {
+      "ok": "확인"
     }
   },
   "signup": {
@@ -38,11 +44,122 @@
     "prompt": "이미 계정이 있으신가요?",
     "login": "로그인"
   },
-  "messages": {
-    "enterUserId": "사용자 ID를 입력하세요.",
-    "enterPassword": "비밀번호를 입력하세요.",
-    "languageChangedTo": "언어가 {lang}로 변경되었습니다.",
-    "checkRecaptcha": "'로봇이 아닙니다.'를 체크해주세요."
+  "emailSignup": {
+    "header": "이메일로 가입",
+    "title": "이메일로 가입하기",
+    "prompt": "이미 계정이 있으신가요?",
+    "login": "로그인",
 
+    "labels": {
+      "userId": "아이디",
+      "password": "비밀번호",
+      "userName": "이름",
+      "email": "이메일",
+      "phoneNumber": "전화번호",
+      "birthDate": "생년월일",
+      "genderCode": "성별",
+      "genderMale": "남자",
+      "genderFemale": "여자"
+    },
+
+    "placeholders": {
+      "userId": "6~12자의 영문/숫자 조합",
+      "password": "8자 이상 입력해 주세요",
+      "userName": "실명을 입력해 주세요",
+      "email": "example@email.com",
+      "phoneNumber": "010-1234-5678",
+      "birthDate": "YYYY-MM-DD"
+    },
+
+    "buttons": {
+      "checkDuplicate": "중복 체크",
+      "signUp": "가입하기",
+      "viewDetails": "보기",
+      "ok": "확인",
+      "cancel": "취소"
+    },
+
+    "messages": {
+      "validationError": "입력 정보를 확인하고 필수 약관에 동의해주세요.",
+      "signUpSuccess": "회원가입이 완료되었습니다.",
+      "signUpCancelled": "회원가입을 취소했습니다.",
+      "idInUse": "이미 사용 중인 아이디입니다.",
+      "idAvailable": "사용 가능한 아이디입니다.",
+      "emailInUse": "사용할 수 없는 이메일입니다.",
+      "emailAvailable": "사용 가능한 이메일입니다.",
+      "unsafePassword": "안전하지 않은 비밀번호입니다. 다른 비밀번호를 사용해주세요.",
+      "agreeToRequiredTerms": "필수 이용약관에 모두 동의해주세요."
+    },
+
+    "rules": {
+      "enter": "{field} 입력해주세요.",
+      "select": "{field} 선택해주세요.",
+      "pwnedPassword": "이 비밀번호는 유출된 이력이 있습니다.<br>다른 비밀번호를 사용해주세요.",
+      "checkPasswordPolicy": "비밀번호 생성규칙을 확인해주세요."
+    },
+
+    "passwordComplexity": {
+      "title": "비밀번호 복잡도",
+      "policyTitle": "비밀번호 생성규칙",
+      "policyAlert": "비밀번호 생성 관련 안내",
+      "required": "필수",
+      "recommended": "권장",
+      "rule1": "8자리 이상",
+      "rule2": "영문/특수기호/숫자 전부 포함",
+      "rule3": "ID와 동일하게 사용불가",
+      "rule4": "생년월일/전화번호 포함 불가",
+      "rule5": "3자리의 순차적인 숫자 사용 금지",
+      "rule6": "대문자(영문) 소문자(영문)이 한개 이상 포함"
+    },
+
+    "agreements": {
+      "title": "서비스 이용에 대한 동의",
+      "agreeAll": "전체동의",
+      "privacyPolicy": "(필수) 개인정보수집이용동의",
+      "thirdParty": "(필수) 제3자정보제공동의",
+      "etc": "(필수) 기타사항"
+    },
+
+    "dialogs": {
+      "confirmSignUpTitle": "회원가입 확인",
+      "confirmSignUpMessage": "입력하신 정보로 회원가입을 완료하시겠습니까?",
+
+      "privacyTitle": "개인정보 수집 및 이용 동의",
+      "privacySectionTitle": "개인정보 수집·이용 내역",
+      "colCategory": "구분",
+      "colPurpose": "수집 목적",
+      "colItems": "수집 항목",
+      "colRetention": "보유 및 이용기간",
+      "rowRequired": "필수",
+      "rowOptional": "선택",
+      "purposeRequired": "회원 식별 및 서비스 제공",
+      "itemsRequired": "아이디, 비밀번호, 이메일 주소",
+      "purposeOptional": "마케팅 및 광고 활용",
+      "itemsOptional": "연락처, 주소",
+      "retentionInfo": "회원 탈퇴 시 즉시 파기. 단, 관련 법령에 따라 보관이 필요한 경우 해당 기간 동안 보존됩니다.",
+      "refusalTitle": "동의 거부 권리 및 불이익 안내",
+      "refusalContentPrivacy": "귀하는 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. 다만, 필수 항목에 대한 동의를 거부하실 경우 회원가입 및 관련 서비스 이용이 제한될 수 있습니다.",
+      "agreeRequired": "(필수) 개인정보 수집 및 이용에 동의합니다.",
+      "agreeMarketing": "(선택) 마케팅 정보 수신(이메일, SMS)에 동의합니다.",
+
+      "thirdPartyTitle": "개인정보 국외 이전 및 처리 위탁 동의",
+      "thirdPartySectionTitle": "개인정보 국외 이전 및 처리 위탁 내역",
+      "colRecipient": "이전받는 자",
+      "recipientName": "Oracle Corporation (미국)",
+      "transferPurpose": "클라우드 데이터베이스 서버 운영 및 데이터의 안전한 저장/관리",
+      "transferItems": "회원가입 시 수집된 개인정보 일체 (아이디, 비밀번호, 이메일 등)",
+      "transferRetention": "회원 탈퇴 또는 위탁 계약 종료 시까지",
+      "refusalContentThirdParty": "귀하는 개인정보의 국외 이전 및 처리 위탁에 대한 동의를 거부할 권리가 있습니다. 다만, 동의를 거부하실 경우 서비스의 핵심 기능이 동작하지 않으므로 회원가입 및 모든 서비스 이용이 불가능합니다.",
+      "agreeThirdParty": "(필수) 위 내용을 모두 확인하였으며, 개인정보의 국외 이전 및 처리 위탁에 동의합니다.",
+
+      "etcTitle": "기타 사항 안내 및 동의",
+      "etcSection1Title": "첫 번째 주요 정책",
+      "etcSection1Content": "이곳에 첫 번째 주요 정책 또는 기타 안내 사항에 대한 내용을 상세하게 기술합니다. 필요에 따라 여러 문단으로 구성할 수 있습니다. 사용자가 꼭 알아야 할 중요한 정보를 명확하고 간결하게 전달하는 것이 좋습니다.",
+      "etcSection2Title": "두 번째 고려 사항",
+      "etcSection2Content": "이곳에는 두 번째 안내 사항을 작성합니다. 예를 들어, 서비스 이용 규칙, 콘텐츠 저작권 정책, 혹은 분쟁 해결 절차 등에 대한 내용을 포함할 수 있습니다.",
+      "etcListItem1": "항목 1: 관련된 세부 규칙이나 가이드라인을 명시합니다.",
+      "etcListItem2": "항목 2: 사용자가 준수해야 할 또 다른 중요한 사항입니다.",
+      "agreeEtc": "(필수) 위 기타 사항을 모두 확인하였으며, 내용에 동의합니다."
+    }
   }
 }

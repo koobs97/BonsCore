@@ -16,16 +16,22 @@
     "theme_light": "Light",
     "theme_dark": "Dark",
     "theme_system": "System",
-    "language": "Language"
-  },
-  "buttons": {
-    "ok": "OK"
+    "language": "Language",
+    "messages": {
+      "enterUserId": "Please enter your User ID.",
+      "enterPassword": "Please enter your password.",
+      "languageChangedTo": "Language changed to {lang}.",
+      "checkRecaptcha": "Please check “I’m not a robot.”"
+    }
   },
   "dialog": {
     "resolution": {
       "title": "System Requirements",
       "optimal": "Optimal Resolution",
       "zoom": "Browser Zoom"
+    },
+    "buttons": {
+      "ok": "OK"
     }
   },
   "signup": {
@@ -38,11 +44,122 @@
     "prompt": "Already have an account?",
     "login": "Log in"
   },
-  "messages": {
-    "enterUserId": "Please enter your User ID.",
-    "enterPassword": "Please enter your password.",
-    "languageChangedTo": "Language changed to {lang}.",
-    "checkRecaptcha": "Please check “I’m not a robot.”"
+  "emailSignup": {
+    "header": "Sign Up with Email",
+    "title": "Sign Up with Email",
+    "prompt": "Already have an account?",
+    "login": "Log in",
 
+    "labels": {
+      "userId": "User ID",
+      "password": "Password",
+      "userName": "Name",
+      "email": "Email",
+      "phoneNumber": "Phone",
+      "birthDate": "Date of Birth",
+      "genderCode": "Gender",
+      "genderMale": "Male",
+      "genderFemale": "Female"
+    },
+
+    "placeholders": {
+      "userId": "6-12 characters, letters/numbers",
+      "password": "Enter 8 or more characters",
+      "userName": "Please enter your real name",
+      "email": "example@email.com",
+      "phoneNumber": "010-1234-5678",
+      "birthDate": "YYYY-MM-DD"
+    },
+
+    "buttons": {
+      "checkDuplicate": "Check",
+      "signUp": "Sign Up",
+      "viewDetails": "View",
+      "ok": "OK",
+      "cancel": "Cancel"
+    },
+
+    "messages": {
+      "validationError": "Please check your information and agree to the required terms.",
+      "signUpSuccess": "Sign-up complete.",
+      "signUpCancelled": "Sign-up has been cancelled.",
+      "idInUse": "This ID is already in use.",
+      "idAvailable": "This ID is available.",
+      "emailInUse": "This email cannot be used.",
+      "emailAvailable": "This email is available.",
+      "unsafePassword": "This password is not secure. Please use a different one.",
+      "agreeToRequiredTerms": "Please agree to all required terms of service."
+    },
+
+    "rules": {
+      "enter": "Please enter your {field}.",
+      "select": "Please select your {field}.",
+      "pwnedPassword": "This password has been exposed in a data breach.<br>Please use a different password.",
+      "checkPasswordPolicy": "Please check the password policy."
+    },
+
+    "passwordComplexity": {
+      "title": "Password Complexity",
+      "policyTitle": "Password Policy",
+      "policyAlert": "Password Creation Guidelines",
+      "required": "Required",
+      "recommended": "Recommended",
+      "rule1": "8 or more characters",
+      "rule2": "Include letters, numbers, and special characters",
+      "rule3": "Cannot be the same as your ID",
+      "rule4": "Cannot include your birth date or phone number",
+      "rule5": "No 3 consecutive sequential characters",
+      "rule6": "Include both uppercase and lowercase letters"
+    },
+
+    "agreements": {
+      "title": "Agreement for Service Use",
+      "agreeAll": "Agree to all",
+      "privacyPolicy": "(Required) Privacy Consent",
+      "thirdParty": "(Required) Third-Party Consent",
+      "etc": "(Required) Other Consent"
+    },
+
+    "dialogs": {
+      "confirmSignUpTitle": "Confirm Sign-Up",
+      "confirmSignUpMessage": "Would you like to complete your sign-up with the information you provided?",
+
+      "privacyTitle": "Consent to Collection and Use of Personal Information",
+      "privacySectionTitle": "Details of Personal Information Collection and Use",
+      "colCategory": "Category",
+      "colPurpose": "Purpose",
+      "colItems": "Items",
+      "colRetention": "Retention/Use Period",
+      "rowRequired": "Required",
+      "rowOptional": "Optional",
+      "purposeRequired": "User identification and service provision",
+      "itemsRequired": "User ID, Password, Email Address",
+      "purposeOptional": "Marketing and advertising",
+      "itemsOptional": "Contact number, Address",
+      "retentionInfo": "Information will be destroyed immediately upon account withdrawal. However, if storage is required by relevant laws, it will be preserved for the specified period.",
+      "refusalTitle": "Right to Refuse Consent and Disadvantages",
+      "refusalContentPrivacy": "You have the right to refuse consent to the collection and use of personal information. However, if you refuse consent for required items, your sign-up and use of related services may be restricted.",
+      "agreeRequired": "(Required) I agree to the collection and use of personal information.",
+      "agreeMarketing": "(Optional) I agree to receive marketing information (Email, SMS).",
+
+      "thirdPartyTitle": "Consent to Overseas Transfer and Processing of Personal Information",
+      "thirdPartySectionTitle": "Details of Overseas Transfer and Processing",
+      "colRecipient": "Recipient",
+      "recipientName": "Oracle Corporation (USA)",
+      "transferPurpose": "Operation of cloud database servers and secure storage/management of data",
+      "transferItems": "All personal information collected at sign-up (ID, password, email, etc.)",
+      "transferRetention": "Until account withdrawal or termination of the consignment contract",
+      "refusalContentThirdParty": "You have the right to refuse consent to the overseas transfer and processing of your personal information. However, refusal will prevent core service functions from operating, making sign-up and all service use impossible.",
+      "agreeThirdParty": "(Required) I have confirmed all the above and consent to the overseas transfer and processing of my personal information.",
+
+      "etcTitle": "Other Terms and Consent",
+      "etcSection1Title": "First Major Policy",
+      "etcSection1Content": "Describe the first major policy or other notices in detail here. It can be composed of multiple paragraphs. It is advisable to convey important information that the user must know clearly and concisely.",
+      "etcSection2Title": "Second Consideration",
+      "etcSection2Content": "Write the second notice here. For example, it could include service usage rules, content copyright policies, or dispute resolution procedures.",
+      "etcListItem1": "Item 1: Specify related detailed rules or guidelines.",
+      "etcListItem2": "Item 2: Another important matter that the user must comply with.",
+      "agreeEtc": "(Required) I have confirmed all other terms above and agree to them."
+    }
   }
 }
