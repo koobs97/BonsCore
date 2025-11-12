@@ -161,5 +161,390 @@
       "etcListItem2": "항목 2: 사용자가 준수해야 할 또 다른 중요한 사항입니다.",
       "agreeEtc": "(필수) 위 기타 사항을 모두 확인하였으며, 내용에 동의합니다."
     }
+  },
+  "findId": {
+    "title": "아이디 찾기",
+    "description": "가입 시 등록한 정보로 아이디를 찾을 수 있습니다.",
+    "tabEmail": "이메일로 찾기",
+    "tabPhone": "전화번호로 찾기",
+    "labelName": "이름",
+    "placeholderName": "가입 시 등록한 이름을 입력하세요.",
+    "labelEmail": "이메일",
+    "placeholderEmail": "가입 시 등록한 이메일을 입력하세요.",
+    "buttonSendCode": "인증번호 전송",
+    "buttonResendCode": "재전송",
+    "labelAuthCode": "인증번호",
+    "placeholderAuthCode": "수신된 인증번호를 입력하세요.",
+    "timerHelpText": "인증번호가 오지 않나요?",
+    "buttonConfirm": "확인",
+    "resultDescription": "고객님의 아이디 찾기 결과입니다.",
+    "buttonFindPassword": "비밀번호 찾기",
+    "buttonLogin": "로그인 하기",
+    "phoneServiceNoticeTitle": "서비스 준비 중입니다",
+    "phoneServiceNoticeDesc": "현재 전화번호 찾기 기능은 이용할 수 없습니다.",
+    "messages": {
+      "enterName": "이름을 입력하세요.",
+      "enterEmail": "이메일을 입력하세요.",
+      "emailSent": "이메일이 전송되었습니다.",
+      "idCopied": "아이디가 복사되었습니다.",
+      "copyFailed": "복사에 실패했습니다. 다시 시도해주세요.",
+      "authTimeExpired": "인증시간이 초과되었습니다."
+    },
+    "emailHelp": {
+      "title": "이메일이 도착하지 않았나요?",
+      "description": "메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.",
+      "checkJunk": "<b>스팸(Junk) 메일함</b>을 가장 먼저 확인해주세요.",
+      "checkGmailTabs": "<b>[Gmail]</b>의 경우, <b>'프로모션'</b> 또는 <b>'소셜'</b> 탭으로 분류될 수 있습니다.",
+      "checkEmailAddress": "입력하신 이메일 주소: <b>{email}</b><br>이메일 주소가 정확한지 확인해주세요.",
+      "checkSenderAddress": "발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다."
+    }
+  },
+  "findPassword": {
+    "title": "비밀번호 찾기",
+    "description": "비밀번호를 찾을 방법을 선택해주세요.",
+    "methodEmail": "이메일로 찾기",
+    "methodSecurity": "보안 질문으로 찾기",
+
+    "step1": {
+      "emailTitle": "비밀번호 찾기",
+      "emailDescription": "가입 시 등록한 정보로 본인인증을 진행합니다.",
+      "securityTitle": "보안 질문으로 찾기",
+      "securityDescription": "가입 시 설정한 보안 질문에 답변해주세요.",
+      "labelUserId": "아이디",
+      "placeholderUserId": "아이디를 입력하세요.",
+      "labelName": "이름",
+      "placeholderName": "가입 시 등록한 이름을 입력하세요.",
+      "labelEmail": "이메일",
+      "placeholderEmail": "가입 시 등록한 이메일을 입력하세요.",
+      "buttonSendCode": "인증번호 전송",
+      "buttonResendCode": "재전송",
+      "labelAuthCode": "인증번호",
+      "placeholderAuthCode": "이메일로 수신된 인증번호를 입력하세요.",
+      "timerHelpText": "인증번호가 오지 않나요?",
+      "buttonConfirm": "확인",
+      "labelSecurityQuestion": "보안 질문",
+      "placeholderSecurityQuestion": "아이디 입력 후 '질문 확인'을 눌러주세요.",
+      "buttonCheckQuestion": "질문 확인",
+      "labelAnswer": "답변",
+      "placeholderAnswer": "보안 질문에 대한 답변을 입력하세요.",
+      "buttonConfirmAnswer": "답변 확인",
+      "alertNoQuestionTitle": "설정된 보안 질문이 없습니다",
+      "alertNoQuestionDesc": "이 아이디에는 보안 질문이 없습니다.",
+      "switchToEmail": "이메일로 찾기"
+    },
+
+    "step2": {
+      "title": "비밀번호 재설정",
+      "description": "새로 사용할 비밀번호를 입력해주세요.",
+      "labelNewPassword": "새 비밀번호",
+      "placeholderNewPassword": "8자 이상, 영문/숫자/특수기호 조합",
+      "labelConfirmPassword": "새 비밀번호 확인",
+      "placeholderConfirmPassword": "비밀번호를 다시 한번 입력해주세요.",
+      "buttonReset": "비밀번호 변경"
+    },
+
+    "step3": {
+      "title": "비밀번호 변경 완료",
+      "description": "성공적으로 비밀번호가 변경되었습니다. <br>다시 로그인해주세요.",
+      "buttonLogin": "로그인 하기"
+    },
+
+    "nav": {
+      "login": "로그인",
+      "findId": "아이디 찾기",
+      "backToStart": "처음으로"
+    },
+
+    "messages": {
+      "enterAllFields": "아이디, 이름, 이메일을 모두 입력해주세요.",
+      "enterUserIdFirst": "아이디를 먼저 입력해주세요.",
+      "enterAnswer": "답변을 입력해주세요.",
+      "verificationComplete": "본인 확인이 완료되었습니다.",
+      "answerMismatch": "답변이 일치하지 않습니다.",
+      "answerCheckError": "답변 확인 중 오류가 발생했습니다.",
+      "emailSent": "이메일이 전송되었습니다.",
+      "enterAuthCode": "인증번호를 입력해주세요.",
+      "authTimeExpired": "인증시간이 초과되었습니다.",
+      "enterPasswords": "새 비밀번호와 확인 비밀번호를 모두 입력해주세요.",
+      "passwordMismatch": "비밀번호가 일치하지 않습니다.",
+      "passwordChanged": "비밀번호가 변경되었습니다."
+    },
+
+    "dialogs": {
+      "confirmChangeTitle": "비밀번호 변경",
+      "confirmChangeMessage": "비밀번호를 변경하시겠습니까?",
+      "buttonOk": "확인",
+      "buttonCancel": "취소"
+    },
+
+    "emailHelp": {
+      "title": "이메일이 도착하지 않았나요?",
+      "description": "메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.",
+      "checkJunk": "<b>스팸(Junk) 메일함</b>을 가장 먼저 확인해주세요.",
+      "checkGmailTabs": "<b>[Gmail]</b>의 경우, <b>'프로모션'</b> 또는 <b>'소셜'</b> 탭으로 분류될 수 있습니다.",
+      "checkEmailAddress": "입력하신 이메일 주소: <b>{email}</b><br>이메일 주소가 정확한지 확인해주세요.",
+      "checkSenderAddress": "발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다."
+    }
+  },
+  "verifyIdentity": {
+    "loadingText": "잠시 후 로그인 페이지로 이동합니다...",
+    "title": {
+      "ABNORMAL": "비정상 로그인 인증",
+      "DORMANT": "휴면 계정 활성화"
+    },
+    "description": {
+      "ABNORMAL": "회원님의 계정 보호를 위해 본인인증이 필요합니다.",
+      "DORMANT": "본인인증을 통해 안전하게 계정을 다시 활성화하세요."
+    },
+    "placeholders": {
+      "name": "이름",
+      "email": "이메일",
+      "authCode": "인증번호 6자리"
+    },
+    "buttons": {
+      "sendCode": "인증번호 발송",
+      "submit": {
+        "ABNORMAL": "인증 확인",
+        "DORMANT": "확인 및 계정 활성화"
+      },
+      "backToLogin": "로그인 페이지로 돌아가기"
+    },
+    "timerHelpText": "인증번호가 오지 않나요?",
+    "messages": {
+      "invalidAccess": "잘못된 접근입니다. 로그인 페이지로 이동합니다.",
+      "authTimeExpired": "인증시간이 초과되었습니다.",
+      "enterNameAndEmail": "이름과 이메일을 모두 입력해주세요.",
+      "emailSent": "이메일이 전송되었습니다.",
+      "enterAuthCode": "인증번호를 입력해주세요.",
+      "verificationSuccessDormant": "본인인증 완료. 계정을 활성화합니다...",
+      "verificationSuccessAbnormal": "본인인증이 완료되었습니다. 계정이 활성화되었습니다.",
+      "verificationFailed": "인증에 실패했습니다. 다시 시도해주세요."
+    },
+    "emailHelp": {
+      "title": "이메일이 도착하지 않았나요?",
+      "description": "메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.",
+      "checkJunk": "<b>스팸(Junk) 메일함</b>을 가장 먼저 확인해주세요.",
+      "checkGmailTabs": "<b>[Gmail]</b>의 경우, <b>'프로모션'</b> 또는 <b>'소셜'</b> 탭으로 분류될 수 있습니다.",
+      "checkEmailAddress": "입력하신 이메일 주소: <b>{email}</b><br>이메일 주소가 정확한지 확인해주세요.",
+      "checkSenderAddress": "발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다."
+    }
+  },
+  "main": {
+    "header": {
+      "projectName": "BONS Project",
+      "changeTheme": "테마 변경"
+    },
+    "sharePopover": {
+      "github": "GitHub",
+      "notion": "Notion",
+      "copyUrl": "주소복사",
+      "visitSite": "바로가기"
+    },
+    "banner": {
+      "title": "개인 프로젝트 공간",
+      "poweredBy": "Powered by Spring Boot, Vue 3"
+    },
+    "tabs": {
+      "service": "서비스",
+      "admin": "관리자"
+    },
+    "placeholders": {
+      "componentNotFound": "'{componentName}' 컴포넌트를 찾을 수 없습니다.",
+      "checkComponentPath": "/src/views/biz/{componentName}.vue 파일이 있는지 확인해주세요.",
+      "noServiceMenu": "사용 가능한 서비스 메뉴가 없습니다.",
+      "selectAdminMenu": "관리자 메뉴를 선택해주세요."
+    },
+    "messages": {
+      "urlCopied": "URL이 클립보드에 복사되었습니다.",
+      "copyFailed": "복사에 실패했습니다.",
+      "menuFetchFailed": "메뉴 정보를 가져오는 데 실패했습니다:"
+    },
+    "menus": {
+      "serviceRoot": "서비스",
+      "adminRoot": "시스템 관리",
+      "서비스": "서비스",
+      "시스템 관리": "시스템 관리",
+      "사용자 관리": "사용자 관리",
+      "메뉴 관리": "메뉴 관리",
+      "활동 로그": "활동 로그",
+      "시간대별 예측": "시간대별 예측",
+      "저장소": "저장소"
+    },
+    "popHeader": {
+      "changeLanguage": "언어 변경",
+      "changeTheme": "테마 변경"
+    },
+    "languagePopover": {
+      "selectLanguage": "언어 선택",
+      "warningText": "한국어 환경 사용을 권장합니다."
+    }
+  },
+  "userInfo": {
+    "tooltips": {
+      "withdraw": "회원탈퇴"
+    },
+    "labels": {
+      "id": "ID",
+      "username": "유저명",
+      "email": "이메일",
+      "phone": "전화번호",
+      "gender": "성별",
+      "lastLogin": "로그인일시"
+    },
+    "buttons": {
+      "editInfo": "정보수정",
+      "logout": "로그아웃",
+      "withdraw": "회원탈퇴",
+      "processing": "처리 중...",
+      "ok": "확인",
+      "cancel": "취소"
+    },
+    "messages": {
+      "loggingOut": "로그아웃 중...",
+      "withdrawing": "회원탈퇴 처리 중...",
+      "withdrawSuccess": "회원탈퇴가 성공적으로 처리되었습니다.",
+      "emailCopied": "이메일이 복사되었습니다.",
+      "copyFailed": "복사에 실패했습니다.",
+      "enterTextCorrectly": "문자를 정확히 입력해주세요."
+    },
+    "dialogs": {
+      "withdraw": {
+        "inputText": "회원탈퇴"
+      }
+    }
+  },
+  "withdrawConfirm": {
+    "title": "회원탈퇴 안내",
+    "subtitle": "정말로 탈퇴하시겠습니까?",
+    "warning": {
+      "message": "회원탈퇴 시 아래의 정보가 영구적으로 삭제되며, 복구할 수 없습니다.",
+      "item1": "- 계정 정보 및 모든 개인 데이터",
+      "item2": "- 작성한 게시물, 댓글 등 모든 활동 기록"
+    },
+    "finalConfirm": {
+      "line1": "회원탈퇴를 계속 진행하시려면,",
+      "line2": "아래 입력칸에 '{actionText}'를 정확히 입력해주세요.",
+      "actionText": "회원탈퇴"
+    },
+    "placeholder": "'{actionText}'를 입력하세요",
+    "dialog": {
+      "lastConfirmTitle": "마지막 확인",
+      "line1": "계정 정보는 영구적으로 삭제됩니다.",
+      "line2": "정말로 탈퇴하시겠습니까?"
+    }
+  },
+  "waitingAnalyzer": {
+    "title": "웨이팅 지수 분석기",
+    "subtitle": "가게의 오늘 웨이팅 지수를 예측해 드립니다.",
+    "terms": {
+      "peak": "피크",
+      "closed": "휴무일"
+    },
+    "search": {
+      "placeholder": "가게 이름을 입력하세요 (예: 런던베이글)",
+      "button": "분석 시작",
+      "tipTitle": "빠른 검색 팁!",
+      "tipDescription": "네이버 정책에 따라 검색 결과는 {limit}까지 제공됩니다.",
+      "limitText": "최대 5개"
+    },
+    "recommendations": {
+      "title": "이런 가게는 어때요?"
+    },
+    "archive": {
+      "title": "저장소",
+      "tooltipAnalyze": "웨이팅 분석하기",
+      "tooltipDetails": "저장소에서 자세히 보기",
+      "emptyDescription": "아카이브가 비었어요",
+      "emptyImageAlt": "비어있는 아카이브",
+      "visitDatePrefix": "방문일: "
+    },
+    "steps": {
+      "selectStore": {
+        "title": "어느 지점의 웨이팅이 궁금하세요?",
+        "back": "처음으로"
+      },
+      "selectTime": {
+        "peopleLabel": "방문 인원을 설정해주세요.",
+        "timeLabel": "방문 예정 시간을 선택해주세요.",
+        "skipButton": "⚡️ 시간 미정 (현재 시점 분석)",
+        "timeSlots": {
+          "t10_12": "10시 ~ 12시",
+          "t12_14": "12시 ~ 14시",
+          "t14_16": "14시 ~ 16시",
+          "t16_18": "16시 ~ 18시",
+          "t18_20": "18시 ~ 20시",
+          "t20_22": "20시 ~ 22시"
+        },
+        "back": "지점 다시 선택",
+        "analyze": "분석하기"
+      },
+      "loading": {
+        "title": "{storeName} 분석 중...",
+        "message": "잠시만 기다려주세요. 실시간 데이터를 수집하고 있습니다.",
+        "progress": {
+          "opening": "가게 운영 상태 확인",
+          "weather": "기상청 날씨 정보 수집",
+          "reviews": "네이버 리뷰 및 인지도 분석",
+          "holiday": "공휴일 정보 확인",
+          "sns": "네이버 데이터랩 언급량 확인",
+          "surround": "주변 상권정보 조회"
+        }
+      },
+      "result": {
+        "summary": "{storeName}은(는) 현재 {status}",
+        "detailsTitle": "상세 점수 분석",
+        "totalScoreLabel": "최종 웨이팅 점수",
+        "reset": "새로운 가게 분석하기"
+      },
+      "notAvailable": {
+        "storeInfoTitle": "가게 영업 정보",
+        "reset": "다른 가게 분석하기",
+        "states": {
+          "closed": { "emoji": "💤", "title": "오늘은 휴무일입니다", "message": "오늘은 정기 휴무일입니다." },
+          "break_time": { "emoji": "☕", "title": "브레이크 타임입니다", "message": "선택하신 시간은 브레이크 타임입니다." },
+          "before_opening": { "emoji": "⏳", "title": "영업 시작 전입니다", "message": "선택하신 시간은 영업 시작 전입니다." },
+          "after_closing": { "emoji": "🌙", "title": "영업이 종료되었습니다", "message": "선택하신 시간에는 이미 영업이 종료됩니다." },
+          "unknown": { "emoji": "⚠️", "title": "운영 상태 확인 불가", "message": "운영 상태를 확인할 수 없습니다." }
+        }
+      }
+    },
+    "analysis": {
+      "scoreFactors": {
+        "timeAndDay": "시간/요일",
+        "headcount": "방문 인원",
+        "reviews": "인지도(리뷰 수)",
+        "weather": "현재 날씨",
+        "trend": "검색 트렌드",
+        "surrounding": "주변 상권"
+      },
+      "conditions": {
+        "dayOfWeek": { "MONDAY": "월요일", "TUESDAY": "화요일", "WEDNESDAY": "수요일", "THURSDAY": "목요일", "FRIDAY": "금요일", "SATURDAY": "토요일", "SUNDAY": "일요일" },
+        "timeOfDay": { "morning": "오전", "lunchPeak": "점심 피크", "afternoon": "애매한 오후", "dinnerPeak": "저녁 피크", "lateNight": "늦은 저녁" }
+      },
+      "results": {
+        "veryCrowded": { "index": "매우 혼잡", "message": "웨이팅이 매우 길 것으로 예상돼요. 원격 줄서기나 다른 가게를 추천해요.", "emoji": "🌋" },
+        "crowded": { "index": "혼잡", "message": "웨이팅이 있을 가능성이 높아요. 방문에 참고하세요.", "emoji": "🔴" },
+        "moderate": { "index": "보통", "message": "약간의 대기가 있을 수 있어요.", "emoji": "🟡" },
+        "calm": { "index": "여유", "message": "아직은 여유로운 편이에요. 지금 방문하면 좋을 것 같아요.", "emoji": "🟢" },
+        "quiet": { "index": "한산", "message": "매우 한산해요! 기다림 없이 바로 즐길 수 있어요.", "emoji": "🔵" }
+      }
+    },
+    "api": {
+      "dataPortal": "공공데이터포털 (특일 정보)",
+      "naverDevelopers": "네이버 Developers API",
+      "googleCloud": "Google Cloud API"
+    },
+    "errors": {
+      "recommendationFetch": "추천 가게를 불러오는 데 실패했습니다:",
+      "weatherFetch": "날씨 정보 조회 실패:",
+      "holidayFetch": "휴일 정보 조회 실패:",
+      "trendFetch": "데이터랩 검색 추이 조회 실패:",
+      "openingInfoFetch": "영업 정보 조회 실패:",
+      "surroundingFetch": "주변 상권 정보 조회 실패:",
+      "openingInfo": {
+        "unavailable": "영업 정보 확인 불가",
+        "todayUnavailable": "오늘의 영업 정보를 가져올 수 없습니다."
+      }
+    }
   }
 }

@@ -1,19 +1,28 @@
-<script setup>
+<script setup lang="ts">
 import { ref, shallowRef, onMounted, defineAsyncComponent, computed, watch } from 'vue';
 import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
-  Setting, User, CollectionTag, Tools, Operation, ChatSquare, Link, ArrowDown, CopyDocument, Share,
+  Setting, User, CollectionTag, Tools, Operation, Link, ArrowDown, CopyDocument, Share, Close, InfoFilled
 } from '@element-plus/icons-vue';
-import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
+import { ElMessage } from "element-plus";
 import { userStore } from '@/store/userStore';
 import { useRouter } from 'vue-router';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import {ElMessage} from "element-plus";
+import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
+import { useI18n } from "vue-i18n";
+
+import TranslateIcon from '@/assets/images/translation_icon.png';
 
 const activeName = ref('default')
 const githubUrl = ref('https://github.com/koobs97/BonsCore/tree/main');
 const notionUrl = ref('https://bonsang-note.notion.site/cd34738bd0b34dccb15c5b5cb74904d1?source=copy_link');
+
+// i18n
+const { t, locale } = useI18n();
+
+// 언어 변경 팝오버 관련 로직
+const languagePopoverRef = ref();
 
 // router, user
 const router = useRouter();
@@ -22,13 +31,11 @@ const userStoreObj = userStore();
 // ------------------- 상태(State) 관리 -------------------
 const isLoading = ref(true);
 const isAdmin = ref(false);
-// [수정] activeMainTab은 이제 'user' 또는 'UserManagement'와 같은 관리자 메뉴 URL을 직접 가리킵니다.
 const activeMainTab = ref('user');
 const activeUserMenuUrl = ref('');
 
 // ------------------- 메뉴 데이터 -------------------
 const userMenuItems = shallowRef([]);
-// [신규] 관리자 메뉴를 드롭다운으로 사용하기 위한 데이터
 const adminDropdownItems = shallowRef([]);
 
 // 아이콘 매핑 (기존과 동일)
@@ -43,9 +50,17 @@ const iconMap = {
   '기본아이콘': Operation
 };
 
+/**
+ * 언어 변경 핸들러 함수
+ * @param newLang 'ko' 또는 'en'
+ */
+const onLanguageChange = (newLang: 'ko' | 'en') => {
+  locale.value = newLang; // i18n의 locale 상태를 변경
+  localStorage.setItem('language', newLang); // 사용자의 선택을 브라우저에 저장
+};
+
 // 메뉴 트리 변환 함수 (기존과 동일)
 const buildMenuTree = (flatMenus, parentId) => {
-  // parentId가 명시적으로 주어지지 않은 초기 호출 시, null 또는 ''인 것을 찾음
   const isRootCall = parentId === undefined;
 
   return flatMenus
@@ -60,12 +75,13 @@ const buildMenuTree = (flatMenus, parentId) => {
         const children = buildMenuTree(flatMenus, menu.menuId);
         return {
           id: menu.menuId,
-          name: menu.menuName,
-          label: menu.menuName,
+          // DB에서 받은 menu.menuName을 t() 함수로 감싸 번역된 이름을 사용
+          name: t(`main.menus.${menu.menuName}`),
+          label: t(`main.menus.${menu.menuName}`),
           url: menu.menuUrl || '',
+          // iconMap의 키는 DB 원본 값이므로 menu.menuName을 그대로 사용
           icon: iconMap[menu.menuName] || iconMap['기본아이콘'],
-          description: `메뉴: ${menu.menuName}`,
-          // isVisible 속성도 함께 전달하여 활용 가능
+          description: `메뉴: ${t(`menus.${menu.menuName}`)}`,
           isVisible: menu.isVisible === 'Y',
           children: children.length > 0 ? children : undefined,
         };
@@ -123,8 +139,8 @@ onMounted(async () => {
     const menuTree = buildMenuTree(allMenus);
 
     // 2. 생성된 트리에서 '서비스'와 '시스템 관리' 루트를 찾습니다.
-    const serviceRoot = menuTree.find(menu => menu.name === '서비스');
-    const adminRoot = menuTree.find(menu => menu.name === '시스템 관리');
+    const serviceRoot = menuTree.find(menu => menu.name === t('main.menus.서비스'));
+    const adminRoot = menuTree.find(menu => menu.name === t('main.menus.시스템 관리'));
 
     // 3. 각 루트의 '자식' 메뉴들 중 isVisible이 true인 것만 화면에 표시할 메뉴로 할당합니다.
     if (serviceRoot && serviceRoot.children) {
@@ -201,14 +217,14 @@ const copyToClipboard1 = async () => {
   try {
     await navigator.clipboard.writeText(githubUrl.value);
     ElMessage({
-      message: 'URL이 클립보드에 복사되었습니다.',
+      message: t('main.messages.urlCopied'),
       type: 'success',
       duration: 2000,
     });
   } catch (err) {
     console.error('클립보드 복사 실패:', err);
     ElMessage({
-      message: '복사에 실패했습니다.',
+      message: t('main.messages.copyFailed'),
       type: 'error',
     });
   }
@@ -217,39 +233,96 @@ const copyToClipboard2 = async () => {
   try {
     await navigator.clipboard.writeText(notionUrl.value);
     ElMessage({
-      message: 'URL이 클립보드에 복사되었습니다.',
+      message: t('main.messages.urlCopied'),
       type: 'success',
       duration: 2000,
     });
   } catch (err) {
     console.error('클립보드 복사 실패:', err);
     ElMessage({
-      message: '복사에 실패했습니다.',
+      message: t('main.messages.copyFailed'),
       type: 'error',
     });
   }
 };
-
 </script>
 
 <template>
   <div class="page-container">
-    <!-- 상단 네비게이션 바 (기존과 동일) -->
+    <!-- 상단 네비게이션 바 -->
     <el-header class="main-header">
+
       <a href="/" class="logo-container">
-        <!-- 아이콘 영역 -->
         <div class="logo-icon-wrapper">
           <div class="logo-icon"></div>
         </div>
-        <!-- 텍스트 영역 -->
         <div>
           <span class="logo-main-text">BONS</span>
           <span class="logo-sub-text">Project</span>
         </div>
       </a>
+
       <div class="header-actions">
-        <el-button class="custom-image-button" :icon="ChatSquare" />
-        <el-tooltip content="테마 변경" placement="bottom">
+        <el-popover
+            ref="languagePopoverRef"
+            placement="bottom-end"
+            :width="270"
+            trigger="click"
+            popper-class="language-popover"
+        >
+          <!-- 팝오버를 여는 버튼 -->
+          <template #reference>
+            <el-button class="custom-image-button">
+              <img class="theme-icon" :src="TranslateIcon" alt="언어"/>
+            </el-button>
+          </template>
+          <!-- 팝오버 내용 -->
+          <div class="language-popover-content">
+            <!-- 헤더 -->
+            <div class="popover-header">
+              <span class="popover-title-text">{{ t('main.languagePopover.selectLanguage') }}</span>
+              <el-button
+                  :icon="Close"
+                  link
+                  class="close-btn"
+                  @click="languagePopoverRef?.hide()"
+              />
+            </div>
+            <el-divider />
+            <!-- 본문 (언어 선택 버튼) -->
+            <div class="popover-main">
+              <div class="language-buttons">
+                <el-button
+                    :class="{ 'is-active': locale === 'ko' }"
+                    @click="onLanguageChange('ko')"
+                >
+                  한국어
+                </el-button>
+                <el-button
+                    :class="{ 'is-active': locale === 'en' }"
+                    @click="onLanguageChange('en')"
+                >
+                  English
+                </el-button>
+              </div>
+              <div class="language-warning-box">
+                <el-icon :size="15" color="var(--el-color-warning)">
+                  <InfoFilled />
+                </el-icon>
+                <el-text class="warning-text" type="warning">
+                  {{ t('main.languagePopover.warningText') }}
+                </el-text>
+              </div>
+            </div>
+            <el-divider />
+            <!-- 푸터 -->
+            <div class="popover-footer">
+              <p class="footer-text">Bons Translate</p>
+            </div>
+          </div>
+        </el-popover>
+
+        <el-tooltip :content="t('main.header.changeTheme')" placement="bottom">
           <el-button class="custom-image-button" :icon="isDarkMode ? Moon : Sunny" @click="toggleTheme"/>
         </el-tooltip>
 
@@ -280,9 +353,9 @@ const copyToClipboard2 = async () => {
                 <el-divider style="margin: 12px 0 16px 0;" />
                 <div style="display: flex;align-items: center;">
                   <el-icon style="font-size: 14px;"><CopyDocument /></el-icon>
-                  <el-text style="font-size: 12px; margin-left: 4px;">주소복사</el-text>
+                  <el-text style="font-size: 12px; margin-left: 4px;">{{ t('main.sharePopover.copyUrl') }}</el-text>
                   <el-icon style="font-size: 14px; margin-left: 12px;"><Link /></el-icon>
-                  <el-text style="font-size: 12px; margin-left: 4px;">바로가기</el-text>
+                  <el-text style="font-size: 12px; margin-left: 4px;">{{ t('main.sharePopover.visitSite') }}</el-text>
                 </div>
               </el-tab-pane>
               <el-tab-pane name="newTab">
@@ -304,9 +377,9 @@ const copyToClipboard2 = async () => {
                 <el-divider style="margin: 12px 0 16px 0;" />
                 <div style="display: flex;align-items: center;">
                   <el-icon style="font-size: 14px;"><CopyDocument /></el-icon>
-                  <el-text style="font-size: 12px; margin-left: 4px;">주소복사</el-text>
+                  <el-text style="font-size: 12px; margin-left: 4px;">{{ t('main.sharePopover.copyUrl') }}</el-text>
                   <el-icon style="font-size: 14px; margin-left: 12px;"><Link /></el-icon>
-                  <el-text style="font-size: 12px; margin-left: 4px;">바로가기</el-text>
+                  <el-text style="font-size: 12px; margin-left: 4px;">{{ t('main.sharePopover.visitSite') }}</el-text>
                 </div>
               </el-tab-pane>
             </el-tabs>
@@ -332,98 +405,96 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
                 <img src="@/assets/images/spring-icon.svg" class="banner-icon" alt="Spring Boot Icon">
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
-                <h3 style="margin: 0; font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--main-header-text-color2);">개인 프로젝트 공간</h3>
+                <h3 style="margin: 0; font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--main-header-text-color2);">{{ t('main.banner.title') }}</h3>
                 <p style="margin: 0; font-family: 'Noto Sans KR', sans-serif; font-size: 0.85rem; color: var(--main-header-text-color1);">Powered by Spring Boot, Vue 3</p>
               </div>
             </div>
           <UserInfoAvatar/>
         </div>
 
-            <el-skeleton :rows="10" animated v-if="isLoading"/>
-            <el-tabs v-model="activeMainTab" class="main-mode-tabs" v-else>
+        <el-skeleton :rows="10" animated v-if="isLoading"/>
+        <el-tabs v-model="activeMainTab" class="main-mode-tabs" v-else>
 
-              <el-tab-pane name="user">
-                <template #label>
-                  <el-dropdown trigger="hover" @command="handleUserMenuSelect">
-                    <span class="el-dropdown-link">
-                      서비스
-                      <el-icon class="el-icon--right"><arrow-down/></el-icon>
-                    </span>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item
-                            v-for="menu in userMenuItems"
-                            :key="menu.id"
-                            :command="menu.url"
-                            :icon="menu.icon"
-                        >
-                          {{ menu.name }}
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </template>
-
-                <!-- 2. 사용자 탭 컨텐츠 영역 -->
-                <div v-if="userMenuItems.length > 0">
-                  <!-- 3. 선택된 메뉴에 따라 동적으로 컴포넌트를 렌더링 -->
-                  <div class="user-content-container">
-                    <keep-alive>
-                      <component :is="currentUserComponent" :key="activeUserMenuUrl"/>
-                    </keep-alive>
-
-                    <!-- 4. 컴포넌트를 찾지 못했을 경우의 폴백 UI -->
-                    <div v-if="!currentUserComponent && activeUserMenuUrl" class="tab-content-placeholder">
-                      <el-icon :size="32" class="placeholder-icon">
-                        <Tools/>
-                      </el-icon>
-                      <p>'{{ activeUserMenuUrl }}' 컴포넌트를 찾을 수 없습니다.</p>
-                      <p style="font-size: 12px; color: #909399;">/src/views/biz/{{ activeUserMenuUrl }}.vue 파일이 있는지
-                        확인해주세요.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 사용 가능한 서비스 메뉴가 없을 경우 -->
-                <div v-else class="tab-content-placeholder">
-                  <p>사용 가능한 서비스 메뉴가 없습니다.</p>
-                </div>
-              </el-tab-pane>
-
-
-              <!-- 관리자 탭 (기존과 동일) -->
-              <el-tab-pane v-if="isAdmin" :name="activeMainTab === 'user' ? 'admin' : activeMainTab">
-                <template #label>
-                  <el-dropdown trigger="hover" @command="handleAdminMenuSelect">
-                <span class="admin-tab-label"> <!-- 기존 스타일 재사용 -->
-                  관리자
+          <el-tab-pane name="user">
+            <template #label>
+              <el-dropdown trigger="hover" @command="handleUserMenuSelect">
+                <span class="el-dropdown-link">
+                  {{ t('main.tabs.service') }}
                   <el-icon class="el-icon--right"><arrow-down/></el-icon>
                 </span>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item
-                            v-for="menu in adminDropdownItems"
-                            :key="menu.id"
-                            :command="menu.url"
-                            :icon="menu.icon"
-                        >
-                          {{ menu.name }}
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item
+                        v-for="menu in userMenuItems"
+                        :key="menu.id"
+                        :command="menu.url"
+                        :icon="menu.icon"
+                    >
+                      {{ menu.name }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
                 </template>
-                <!-- 관리자 탭 콘텐츠 -->
-                <div class="content-card">
-                  <div class="admin-content-container">
-                    <component :is="currentAdminComponent" v-if="currentAdminComponent"/>
-                    <div v-else class="tab-content-placeholder">
-                      <p>관리자 메뉴를 선택해주세요.</p>
-                    </div>
-                  </div>
+              </el-dropdown>
+            </template>
+
+            <div v-if="userMenuItems.length > 0">
+              <!-- 3. 선택된 메뉴에 따라 동적으로 컴포넌트를 렌더링 -->
+              <div class="user-content-container">
+                <keep-alive>
+                  <component :is="currentUserComponent" :key="activeUserMenuUrl"/>
+                </keep-alive>
+
+                <!-- 4. 컴포넌트를 찾지 못했을 경우의 폴백 UI -->
+                <div v-if="!currentUserComponent && activeUserMenuUrl" class="tab-content-placeholder">
+                  <el-icon :size="32" class="placeholder-icon">
+                    <Tools/>
+                  </el-icon>
+                  <p>{{ t('main.placeholders.componentNotFound', { componentName: activeUserMenuUrl }) }}</p>
+                  <p style="font-size: 12px; color: #909399;">{{ t('main.placeholders.checkComponentPath', { componentName: activeUserMenuUrl }) }}</p>
                 </div>
-              </el-tab-pane>
-            </el-tabs>
+              </div>
+            </div>
+
+            <!-- 사용 가능한 서비스 메뉴가 없을 경우 -->
+            <div v-else class="tab-content-placeholder">
+              <p>{{ t('main.placeholders.noServiceMenu') }}</p>
+            </div>
+          </el-tab-pane>
+
+            <!-- 관리자 탭 -->
+          <el-tab-pane v-if="isAdmin" :name="activeMainTab === 'user' ? 'admin' : activeMainTab">
+            <template #label>
+              <el-dropdown trigger="hover" @command="handleAdminMenuSelect">
+              <span class="admin-tab-label">
+                {{ t('main.tabs.admin') }}
+                <el-icon class="el-icon--right"><arrow-down/></el-icon>
+              </span>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item
+                        v-for="menu in adminDropdownItems"
+                        :key="menu.id"
+                        :command="menu.url"
+                        :icon="menu.icon"
+                    >
+                      {{ menu.name }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+
+            <!-- 관리자 탭 콘텐츠 -->
+            <div class="content-card">
+              <div class="admin-content-container">
+                <component :is="currentAdminComponent" v-if="currentAdminComponent"/>
+                <div v-else class="tab-content-placeholder">
+                  <p>{{ t('main.placeholders.selectAdminMenu') }}</p>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
   </div>
@@ -431,17 +502,14 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 
 <style scoped>
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
-
-/* 모든 스타일은 변경 없이 그대로 유지됩니다 */
 .page-container {
   height: 120vh;
-  max-height: 880px;
+  max-height: 860px;
   display: flex;
   flex-direction: column;
   align-items: center;
   margin: 32px auto;
 }
-
 .main-header {
   width: 100%;
   max-width: 900px;
@@ -460,36 +528,28 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  text-decoration: none; /* a 태그의 밑줄 제거 */
+  text-decoration: none;
 }
-
-/* 2. 아이콘을 감싸는 배경 */
 .logo-icon-wrapper {
   width: 36px;
   height: 36px;
-  border-radius: 8px; /* 부드러운 사각형 */
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--el-color-primary-light-9); /* 아주 연한 배경색 */
+  background-color: var(--el-color-primary-light-9);
   transition: transform 0.2s ease;
 }
-
-/* 3. 실제 아이콘 (핵심 색상) */
 .logo-icon {
   width: 18px;
   height: 18px;
   border-radius: 6px;
   background-color: var(--el-color-primary);
 }
-
-/* 4. 텍스트를 세로로 정렬하기 위한 래퍼 */
 .logo-text-wrapper {
   display: flex;
   flex-direction: column;
 }
-
-/* 5. 메인 텍스트 (BONS) 스타일 */
 .logo-main-text {
   font-family: 'Poppins', sans-serif;
   font-size: 1.1rem;
@@ -497,10 +557,8 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   color: var(--el-text-color-primary);
   line-height: 1.2;
   transition: color 0.2s ease;
-  letter-spacing: 0.5px; /* 글자 간격을 살짝 주어 세련미 추가 */
+  letter-spacing: 0.5px;
 }
-
-/* 6. 서브 텍스트 (Project) 스타일 */
 .logo-sub-text {
   font-family: 'Poppins', sans-serif;
   font-size: 0.75rem;
@@ -510,45 +568,46 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   color: var(--el-text-color-secondary);
   line-height: 1;
 }
-
-/* 7. 마우스를 올렸을 때의 인터랙션 효과 */
 .logo-container:hover .logo-icon-wrapper {
-  transform: rotate(10deg) scale(1.05); /* 아이콘이 살짝 회전하며 커짐 */
+  transform: rotate(10deg) scale(1.05);
 }
-
 .logo-container:hover .logo-main-text {
-  color: var(--el-color-primary); /* 메인 텍스트 색상이 테마 색상으로 변경 */
+  color: var(--el-color-primary);
 }
 .custom-image-button {
   width: 32px;
   height: 32px;
   padding: 0;
-  border-radius: 50%; /* 완전한 원형으로 변경 */
-  border: none; /* 테두리 제거 */
-  background-color: transparent; /* 배경색 제거 */
+  border-radius: 50%;
+  border: none;
+  background-color: transparent;
   color: var(--el-text-color-secondary);
   font-size: 18px;
   transition: all 0.2s ease;
   outline: none;
 }
-
 .custom-image-button:hover {
-  background-color: var(--el-fill-color-light); /* 호버 시 은은한 배경색 */
+  background-color: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
 }
-
 .custom-image-button img {
   width: 20px;
   height: 20px;
   border-radius: 50%;
   display: block;
-  margin: auto; /* 이미지를 버튼 중앙에 위치 */
-  opacity: 0.8;
+  margin: auto;
 }
 .custom-image-button:hover img {
   opacity: 1;
 }
-
+.custom-image-button .theme-icon {
+  opacity: 0.6;
+  filter: none;
+  transition: opacity 0.3s, filter 0.3s;
+}
+.dark .custom-image-button .theme-icon {
+  filter: brightness(0) invert(1);
+}
 .content-layout-wrapper {
   display: flex;
   justify-content: center;
@@ -561,7 +620,6 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   flex-direction: column;
   align-items: center;
 }
-
 .info-wrapper {
   display: flex;
   gap: 12px;
@@ -580,33 +638,33 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05);
 }
 .user-content-container {
-  height: 670px; /* 관리자 패널과 높이를 맞추거나 조절 */
+  height: 670px;
   overflow-y: auto;
   padding: 0;
-  margin: 0; /* 부모 패딩 고려 */
+  margin: 0;
 }
 .el-dropdown-link {
   cursor: pointer;
   display: flex;
   align-items: center;
-  color: var(--el-overlay-color-light); /* Element Plus 테마 색상 사용 */
-  font-size: 1rem; /* [수정] 탭과 동일하게 1rem으로 명시적으로 지정 */
-  font-weight: 500; /* [추가] 탭 기본 폰트 두께와 맞춤 */
-  outline: none; /* 클릭 시 테두리 제거 */
+  color: var(--el-overlay-color-light);
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
   padding: 0 0 0 20px;
 }
 .el-dropdown-link:hover {
   color: var(--el-color-primary-light-3);
 }
 .admin-tab-label {
-  cursor: pointer; /* 클릭 가능한 요소임을 나타내기 위해 커서 변경 */
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--el-overlay-color-light); /* '서비스' 탭과 동일한 색상 적용 */
-  font-size: 1rem;                 /* '서비스' 탭과 동일한 폰트 크기 적용 */
-  font-weight: 500;                /* '서비스' 탭과 동일한 폰트 두께 적용 */
-  outline: none;                   /* 클릭 시 나타나는 포커스 선 제거 */
+  color: var(--el-overlay-color-light);
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
 }
 .admin-tab-label:hover {
   color: var(--el-color-primary-light-3);
@@ -631,79 +689,59 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 .placeholder-icon {
   color: var(--el-text-color-placeholder);
 }
-
-
 .concept-banner .el-icon {
   color: var(--el-color-primary);
 }
-
 .concept-banner .banner-text {
   font-size: 14px;
   color: #606266;
 }
 .banner-icon {
-  width: 24px;  /* 아이콘 크기 지정 */
-  height: 24px; /* 아이콘 크기 지정 */
+  width: 24px;
+  height: 24px;
 }
 .main-mode-tabs {
   font-family: 'Pretendardaw', sans-serif;
   width: 100%;
-  /* 탭 헤더와 콘텐츠 카드 사이의 연결을 위해 margin-bottom을 음수값으로 설정 */
   margin-bottom: -1px;
-  z-index: 1; /* 콘텐츠 카드보다 위에 오도록 설정 */
+  z-index: 1;
 }
-/* 탭 헤더(el-tabs__header) 스타일링 */
 .main-mode-tabs :deep(.el-tabs__header) {
   margin: 0;
   border: 1px solid var(--el-border-color-light);
   background-color: var(--el-fill-color-light);
-  /* 위쪽만 둥글게 설정 */
   border-radius: 4px 4px 0 0;
 }
-
-/* 탭 네비게이션 영역(el-tabs__nav-wrap)의 기본 하단 라인 제거 */
 .main-mode-tabs :deep(.el-tabs__nav-wrap::after) {
   display: none;
 }
-
-/* 개별 탭 아이템(el-tabs__item) 스타일 */
 .main-mode-tabs :deep(.el-tabs__item) {
   font-size: 1rem;
   height: 44px;
   padding: 0 20px;
-  border-top: 3px solid transparent; /* 비활성 탭 상단 테두리 투명 처리 */
+  border-top: 3px solid transparent;
 }
-
-/* 활성화된 탭 아이템 스타일 */
 .main-mode-tabs :deep(.el-tabs__item.is-active) {
-  background-color: var(--el-bg-color); /* 흰색 배경 */
-  border-bottom-color: transparent; /* 하단 테두리 제거하여 콘텐츠와 연결 */
-  /* 위쪽 모서리만 둥글게 하여 카드와 자연스럽게 연결 */
+  background-color: var(--el-bg-color);
+  border-bottom-color: transparent;
   border-radius: 3px 3px 0 0;
   margin-bottom: 6px;
 }
-
 .main-mode-tabs :deep(.el-tabs__item:last-child) {
   padding-right: 20px !important;
 }
-
-/* 드롭다운이 포함된 탭의 padding을 0으로 설정 */
 .main-mode-tabs :deep(.el-tabs__item:has(.el-dropdown)) {
   padding: 0 20px;
 }
-
-/* 2. 가상 요소를 사용해 우리가 원하는 너비의 '새로운 막대'를 생성합니다. */
 .main-mode-tabs :deep(.el-tabs__active-bar)::before {
   content: "";
   position: absolute;
-  /* left와 right를 -20px로 설정하여 양옆으로 20px씩 늘려줍니다. */
   left: -20px;
   right: -20px;
   bottom: 0;
-  height: 2px; /* 원래 막대와 동일한 높이 */
-  background-color: var(--el-color-primary); /* 원래 막대와 동일한 색상 */
+  height: 2px;
+  background-color: var(--el-color-primary);
 }
-/* 드롭다운 메뉴가 나타나는 전체 컨테이너(Popper)의 기본 스타일을 초기화합니다. */
 :deep(.el-popper.is-light) {
   margin-top: 8px !important;
   border: none !important;
@@ -713,14 +751,10 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 :deep(.el-popper.is-light .el-popper__arrow::before) {
   display: none;
 }
-
-
-/* 드롭다운 메뉴 자체를 하나의 세련된 '카드'로 디자인합니다. */
 :deep(.el-dropdown__menu) {
-  /* [NEW] 스크롤이 필요할 수 있도록 최대 높이와 오버플로우 설정 */
-  max-height: 300px; /* 원하는 최대 높이로 조절 가능 */
+  max-height: 300px;
   overflow-y: auto;
-  overflow-x: hidden; /* 가로 스크롤은 항상 숨김 */
+  overflow-x: hidden;
 
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
   border-radius: 12px;
@@ -728,31 +762,25 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   padding: 8px;
   background-color: var(--el-bg-color-overlay);
 
-  /* --- [NEW] 모던 스크롤바 스타일 (Chrome, Safari, Edge 등) --- */
   &::-webkit-scrollbar {
-    width: 6px; /* 스크롤바 너비 */
+    width: 6px;
   }
   &::-webkit-scrollbar-track {
-    background: transparent; /* 트랙 배경은 투명하게 */
-    margin: 8px 0; /* 위아래 여백을 주어 메뉴 패딩과 맞춤 */
+    background: transparent;
+    margin: 8px 0;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: var(--el-border-color-lighter); /* 스크롤바 핸들 색상 */
-    border-radius: 10px; /* 둥글게 처리 */
+    background-color: var(--el-border-color-lighter);
+    border-radius: 10px;
   }
   &::-webkit-scrollbar-thumb:hover {
-    background-color: var(--el-border-color); /* 호버 시 더 진하게 */
+    background-color: var(--el-border-color);
   }
-
-  /* --- [NEW] 모던 스크롤바 스타일 (Firefox) --- */
   scrollbar-width: thin;
   scrollbar-color: var(--el-border-color-lighter) transparent;
 }
-
-
-/* 드롭다운 메뉴의 각 아이템 스타일 */
 :deep(.el-dropdown-menu__item) {
-  position: relative; /* [NEW] 왼쪽 인디케이터를 위한 position 설정 */
+  position: relative;
   display: flex;
   align-items: center;
   font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
@@ -760,52 +788,35 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   font-weight: 500;
   color: var(--el-text-color-regular);
   border-radius: 8px;
-  padding: 0 12px 0 20px; /* [수정] 왼쪽 인디케이터 공간 확보를 위해 padding-left 증가 */
+  padding: 0 12px 0 20px;
   height: 42px;
   line-height: 42px;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
-
-
-/* [NEW] 왼쪽 호버 인디케이터 라인 스타일 (가상 요소 ::before 사용) */
 :deep(.el-dropdown-menu__item::before) {
   content: "";
   position: absolute;
-  left: 8px; /* 왼쪽 여백 */
+  left: 8px;
   top: 50%;
-  height: 50%; /* 아이템 높이의 절반 크기 */
-  width: 3px; /* 라인 두께 */
+  height: 50%;
+  width: 3px;
   background-color: var(--el-color-primary);
   border-radius: 2px;
-  /* 초기 상태: 숨김 (크기를 0으로) */
   transform: translateY(-50%) scaleY(0);
   opacity: 0;
-  /* 부드러운 애니메이션 효과 */
   transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease;
 }
-
-
-/* 마우스를 올렸을 때(hover) 또는 키보드로 포커스됐을 때의 아이템 스타일 */
 :deep(.el-dropdown-menu__item:not(.is-disabled):hover),
 :deep(.el-dropdown-menu__item:not(.is-disabled):focus-visible) {
   outline: none;
   background-color: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
-  /* 기존의 오른쪽 이동 효과는 제거하거나, 값을 줄여서 사용 (선택) */
-  /* transform: translateX(5px); */
 }
-
-
-/* 아이템 호버/포커스 시, 왼쪽 인디케이터 라인을 나타나게 함 */
 :deep(.el-dropdown-menu__item:not(.is-disabled):hover::before),
 :deep(.el-dropdown-menu__item:not(.is-disabled):focus-visible::before) {
-  /* 최종 상태: 보임 (원래 크기로) */
   transform: translateY(-50%) scaleY(1);
   opacity: 1;
 }
-
-
-/* 아이템 내부의 아이콘 스타일 (변경 없음) */
 :deep(.el-dropdown-menu__item .el-icon) {
   margin-right: 12px;
   font-size: 18px;
@@ -814,46 +825,34 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
 :deep(.el-dropdown-menu__item:not(.is-disabled):hover .el-icon) {
   color: var(--el-color-primary);
 }
-
-
-/* 아이템 내부의 아이콘 스타일 */
 :deep(.el-dropdown-menu__item .el-icon) {
-  margin-right: 12px; /* 아이콘과 텍스트 사이 간격을 살짝 넓힙니다. */
-  font-size: 18px; /* 아이콘을 조금 더 잘 보이게 키웁니다. */
-  /* 아이콘 색상도 부드럽게 변하도록 transition을 추가합니다. */
+  margin-right: 12px;
+  font-size: 18px;
   transition: color 0.2s ease;
 }
-
-/* 아이템에 마우스를 올렸을 때 아이콘 색상도 텍스트와 함께 변경되도록 합니다. */
 :deep(.el-dropdown-menu__item:not(.is-disabled):hover .el-icon) {
   color: var(--el-color-primary);
 }
-
 .my-custom-tabs :deep(.el-tabs__item) {
   padding: 0 12px;
 }
-
 .theme-sensitive-poster {
   filter: none;
-  transition: filter 0.3s ease; /* 모드 전환시 부드럽게 */
+  transition: filter 0.3s ease;
   width: 380px;
   height: auto;
   margin-right: 4px;
   border: 2px solid;
 }
-
-/* 기본 (라이트모드) */
 .theme-sensitive {
   filter: none;
-  transition: filter 0.3s ease; /* 모드 전환시 부드럽게 */
+  transition: filter 0.3s ease;
   width: auto;
   height: 24px;
   margin-right: 4px;
   border: 2px solid;
   padding: 2px;
 }
-
-/* 다크모드 */
 .dark .theme-sensitive {
   filter: invert(1) hue-rotate(180deg);
 }
@@ -868,5 +867,74 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   color: var(--el-text-color-primary);
   overflow: hidden;
   transition: var(--el-transition-duration);
+}
+.language-warning-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background-color: var(--el-color-warning-light-9);
+}
+.warning-text {
+  font-size: 11px;
+  line-height: 1.4;
+}
+</style>
+<style>
+.language-popover {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--el-border-color-light) !important;
+  box-shadow: var(--el-box-shadow-light) !important;
+}
+.language-popover-content {
+  background-color: var(--el-bg-color-overlay);
+  border-radius: 12px;
+}
+.popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 8px 12px 16px;
+}
+.popover-title-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.close-btn {
+  font-size: 16px;
+}
+.language-popover-content .el-divider {
+  margin: 0;
+}
+.popover-main {
+  padding: 12px;
+}
+.language-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+.language-buttons .el-button {
+  flex: 1;
+  margin-left: 0;
+  transition: all 0.2s ease;
+}
+.language-buttons .el-button.is-active {
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+}
+.popover-footer {
+  padding: 10px 16px;
+  text-align: center;
+}
+.footer-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

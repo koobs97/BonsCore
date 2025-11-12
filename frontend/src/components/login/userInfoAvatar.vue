@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import {computed, reactive, ref, onMounted, h, nextTick} from 'vue';
+import { computed, reactive, ref, onMounted, h, nextTick } from 'vue';
 import { userStore, userState } from '@/store/userStore';
-import {CopyDocument, Delete, Female, Male, Setting, UserFilled} from "@element-plus/icons-vue";
+import { CopyDocument, Delete, Female, Male, Setting, UserFilled } from "@element-plus/icons-vue";
 import { ElLoading, ElMessage, ElMessageBox } from "element-plus";
-import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
 import UserEditForm from '@/components/login/UserEditForm.vue';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import router from "../../../router";
 import WithdrawConfirm from "@/components/MessageBox/WithdrawConfirm.vue";
 import FinalConfirm from "@/components/MessageBox/FinalConfirm.vue";
-import {Dialogs} from "@/common/dialogs";
+import { Dialogs } from "@/common/dialogs";
+import { useI18n } from "vue-i18n";
 
+const { t } = useI18n();
 const userStoreObj = userStore();
-
 const buttonRef = ref()
 
 // reactive 정의
@@ -96,7 +96,7 @@ const onClickLogOut = async () => {
 
     const loading = ElLoading.service({
       lock: true,
-      text: '로그아웃 중...',
+      text: t('userInfo.messages.loggingOut'),
       background: 'rgba(0, 0, 0, 0.7)',
     });
 
@@ -144,8 +144,8 @@ const onClickWithdraw = async () => {
           'onUpdate:text': (value) => { inputText = value; }
         }),
         {
-          confirmButtonText: '회원탈퇴',
-          cancelButtonText: '취소',
+          confirmButtonText: t('userInfo.buttons.withdraw'),
+          cancelButtonText: t('userInfo.buttons.cancel'),
           customClass: 'withdraw-confirm-box',
           showClose: false,
           type: '',
@@ -158,9 +158,9 @@ const onClickWithdraw = async () => {
             }
 
             // '회원탈퇴' 버튼을 눌렀을 때, 먼저 입력값 검증
-            if (inputText !== '회원탈퇴') {
+            if (inputText !== t('userInfo.dialogs.withdraw.inputText')) {
               ElMessage({
-                message: '문자를 정확히 입력해주세요.',
+                message: t('userInfo.messages.enterTextCorrectly'),
                 grouping: true,
                 type: 'error',
               });
@@ -169,16 +169,17 @@ const onClickWithdraw = async () => {
 
             // 중복 클릭을 방지
             instance.confirmButtonLoading = true;
-            instance.confirmButtonText = '처리 중...';
+            instance.confirmButtonText = t('userInfo.buttons.processing');
 
             try {
               await ElMessageBox.confirm(
                   h(FinalConfirm),
                   {
-                    confirmButtonText: '확인',
-                    cancelButtonText: '취소',
+                    confirmButtonText: t('userInfo.buttons.ok'),
+                    cancelButtonText: t('userInfo.buttons.cancel'),
                     type: '',
-                    customClass: 'final-confirm-box'
+                    customClass: 'final-confirm-box',
+                    showClose: false,
                   }
               );
 
@@ -187,7 +188,7 @@ const onClickWithdraw = async () => {
             } catch (err) { } // 사용자가 '취소'를 누른 경우
             finally {
               instance.confirmButtonLoading = false;
-              instance.confirmButtonText = '회원탈퇴';
+              instance.confirmButtonText = t('userInfo.buttons.withdraw');
             }
           },
         }
@@ -197,7 +198,7 @@ const onClickWithdraw = async () => {
     // 아래의 실제 탈퇴 처리가 시작.
     const loading = ElLoading.service({
       lock: true,
-      text: '회원탈퇴 처리 중...',
+      text: t('userInfo.messages.withdrawing'),
       background: 'rgba(0, 0, 0, 0.7)',
     });
 
@@ -208,7 +209,7 @@ const onClickWithdraw = async () => {
       sessionStorage.clear();
       localStorage.clear();
       router.push("/login");
-      ElMessage.success('회원탈퇴가 성공적으로 처리되었습니다.');
+      ElMessage.success(t('userInfo.messages.withdrawSuccess'));
       loading.close();
     }, 1000);
 
@@ -230,10 +231,10 @@ const onClickWithdraw = async () => {
 const copyEmail = (email: string) => {
   navigator.clipboard.writeText(email)
       .then(() => {
-        ElMessage.success('이메일이 복사되었습니다.')
+        ElMessage.success(t('userInfo.messages.emailCopied'))
       })
       .catch(() => {
-        ElMessage.error('복사에 실패했습니다.')
+        ElMessage.error(t('userInfo.messages.copyFailed'))
       })
 }
 
@@ -323,7 +324,7 @@ const copyEmail = (email: string) => {
                     <el-text tag="mark" style="font-weight: bold; color: var(--el-overlay-color); font-size: 14px;">
                       @{{ state.User.userName }}
                     </el-text>
-                    <el-tooltip content="회원탈퇴" placement="right-end" :hide-after="0">
+                    <el-tooltip :content="t('userInfo.tooltips.withdraw')" placement="right-end" :hide-after="0">
                       <el-button
                           type="danger"
                           :icon="Delete"
@@ -355,7 +356,7 @@ const copyEmail = (email: string) => {
                     <el-descriptions-item>
                       <template #label>
                         <div>
-                          유저명
+                          {{ t('userInfo.labels.username') }}
                         </div>
                       </template>
                       <el-text style="font-weight: bold; font-size: 11px;">
@@ -366,7 +367,7 @@ const copyEmail = (email: string) => {
                     <el-descriptions-item>
                       <template #label>
                         <div class="cell-item">
-                          이메일
+                          {{ t('userInfo.labels.email') }}
                         </div>
                       </template>
                       <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -382,7 +383,7 @@ const copyEmail = (email: string) => {
                     <el-descriptions-item>
                       <template #label>
                         <div class="cell-item">
-                          전화번호
+                          {{ t('userInfo.labels.phone') }}
                         </div>
                       </template>
                       <el-text style="font-weight: bold; font-size: 11px;">
@@ -393,7 +394,7 @@ const copyEmail = (email: string) => {
                     <el-descriptions-item>
                       <template #label>
                         <div class="cell-item">
-                          성별
+                          {{ t('userInfo.labels.gender') }}
                         </div>
                       </template>
                       <el-tag style="width: 24px;">
@@ -408,13 +409,15 @@ const copyEmail = (email: string) => {
                         style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
                         @click="openEditDialog"
                     >
-                      정보수정
+                      {{ t('userInfo.buttons.editInfo') }}
                     </el-button>
                     <el-button
                         icon="Promotion"
                         style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
                         @click="onClickLogOut"
-                    >로그아웃</el-button>
+                    >
+                      {{ t('userInfo.buttons.logout') }}
+                    </el-button>
                   </div>
                 </div>
               </template>
@@ -425,7 +428,7 @@ const copyEmail = (email: string) => {
       </div>
     </template>
     <div style="text-align: left; margin-top: 2px; height: 30px;">
-      <el-tag type="info" effect="light" style="margin-left: 4px; width: 82px;">로그인일시</el-tag>
+      <el-tag type="info" effect="light" style="margin-left: 4px; width: 82px;">{{ t('userInfo.labels.lastLogin') }}</el-tag>
       <el-tag type="info" effect="light" style="margin-left: 4px; width: 136px;">{{ state.User.loginTime }}</el-tag>
     </div>
     <UserEditForm
@@ -465,6 +468,21 @@ const copyEmail = (email: string) => {
 
 /* 컨텐츠 영역의 불필요한 패딩 제거 */
 .withdraw-confirm-box .el-message-box__content {
+  padding: 0;
+}
+.final-confirm-box.el-message-box {
+  width: 450px !important; /* 적절한 너비로 조정 */
+  padding: 20px;
+  border-radius: 8px;
+}
+
+/* FinalConfirm에서도 ElMessageBox의 기본 헤더를 숨김 */
+.final-confirm-box .el-message-box__header {
+  display: none;
+}
+
+/* 컨텐츠 영역의 불필요한 패딩 제거 */
+.final-confirm-box .el-message-box__content {
   padding: 0;
 }
 </style>

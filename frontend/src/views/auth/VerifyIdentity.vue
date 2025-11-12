@@ -5,6 +5,10 @@ import { ElAlert, ElMessage } from 'element-plus';
 import { MoreFilled, Promotion, QuestionFilled, Timer } from "@element-plus/icons-vue";
 import { ApiUrls } from "@/api/apiUrls";
 import { Api } from "@/api/axiosInstance";
+import { useI18n } from "vue-i18n";
+
+// i18n
+const { t } = useI18n();
 
 const router = useRouter();
 
@@ -33,23 +37,21 @@ onMounted(() => {
     verificationType.value = type;
   } else {
     // 유효한 type이 없으면 비정상적인 접근으로 간주하고 로그인 페이지로 리다이렉트
-    ElMessage.error('잘못된 접근입니다. 로그인 페이지로 이동합니다.');
+    ElMessage.error(t('verifyIdentity.messages.invalidAccess'));
     router.replace('/login');
   }
 });
 
 const pageTitle = computed(() => {
-  return verificationType.value === 'ABNORMAL' ? '비정상 로그인 인증' : '휴면 계정 활성화';
+  return verificationType.value ? t(`verifyIdentity.title.${verificationType.value}`) : '';
 });
 
 const pageDescription = computed(() => {
-  return verificationType.value === 'ABNORMAL'
-      ? '회원님의 계정 보호를 위해 본인인증이 필요합니다.'
-      : '본인인증을 통해 안전하게 계정을 다시 활성화하세요.';
+  return verificationType.value ? t(`verifyIdentity.description.${verificationType.value}`) : '';
 });
 
 const submitButtonText = computed(() => {
-  return verificationType.value === 'ABNORMAL' ? '인증 확인' : '확인 및 계정 활성화';
+  return verificationType.value ? t(`verifyIdentity.buttons.submit.${verificationType.value}`) : '';
 });
 
 // 타이머 상태관리
@@ -88,7 +90,7 @@ const startTimer = () => {
       clearInterval(state.timerId as number);
       state.timerId = null;
       state.isVerified = true;
-      ElMessage({ message: '인증시간이 초과되었습니다.', type: 'error' });
+      ElMessage({ message: t('verifyIdentity.messages.authTimeExpired'), type: 'error' });
     }
   }, 1000);
 };
@@ -108,28 +110,12 @@ onBeforeRouteLeave(async(to, from, next) => {
 })
 
 // 메일 안내 창 관련
-const alertDescription = ref('메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.');
-const checklist = ref([
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `<b>스팸(Junk) 메일함</b>을 가장 먼저 확인해주세요.`
-  },
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `<b>[Gmail]</b>의 경우, <b>'프로모션'</b> 또는 <b>'소셜'</b> 탭으로 분류될 수 있습니다.`
-  },
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `입력하신 이메일 주소: <b>email@example.com</b><br>이메일 주소가 정확한지 확인해주세요.`
-  },
-  {
-    type: 'primary',
-    icon: Promotion,
-    text: `발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다.`
-  }
+const alertDescription = computed(() => t('verifyIdentity.emailHelp.description'));
+const checklist = computed(() => [
+  { type: 'primary', icon: MoreFilled, text: t('verifyIdentity.emailHelp.checkJunk') },
+  { type: 'primary', icon: MoreFilled, text: t('verifyIdentity.emailHelp.checkGmailTabs') },
+  { type: 'primary', icon: MoreFilled, text: t('verifyIdentity.emailHelp.checkEmailAddress', { email: email.value || 'email@example.com' }) },
+  { type: 'primary', icon: Promotion, text: t('verifyIdentity.emailHelp.checkSenderAddress') }
 ]);
 
 /**
@@ -138,7 +124,7 @@ const checklist = ref([
 const sendVerificationCode = async () => {
   if (!userName.value || !email.value) {
     ElMessage({
-      message: '이름과 이메일을 모두 입력해주세요.',
+      message: t('verifyIdentity.messages.enterNameAndEmail'),
       grouping: true,
       type: 'error',
     });
@@ -154,7 +140,7 @@ const sendVerificationCode = async () => {
       type: verificationType.value // <-- 'DORMANT' 또는 'ABNORMAL'
     });
 
-    ElMessage({ message: '이메일이 전송되었습니다.', grouping: true, type: 'success' });
+    ElMessage({ message: t('verifyIdentity.messages.emailSent'), grouping: true, type: 'success' });
     isCodeSent.value = true;
     startTimer();
 
@@ -170,7 +156,7 @@ const sendVerificationCode = async () => {
 const verifyAndActivate = async () => {
 
   if (!verificationCode.value) {
-    ElMessage.error('인증번호를 입력해주세요.');
+    ElMessage.error(t('verifyIdentity.messages.enterAuthCode'));
     return;
   }
 
@@ -180,7 +166,7 @@ const verifyAndActivate = async () => {
 
     // 휴먼계정인 경우 테이블 데이터 원복
     if(verificationType.value === 'DORMANT') {
-      ElMessage.info('본인인증 완료. 계정을 활성화합니다...');
+      ElMessage.info(t('verifyIdentity.messages.verificationSuccessDormant'));
       await Api.post(ApiUrls.ACTIVATE_DORMANT, { email: email.value }, // body 데이터
           true,
           { // Axios 요청 설정 객체
@@ -190,7 +176,7 @@ const verifyAndActivate = async () => {
           });
     }
     else {
-      ElMessage.success('본인인증이 완료되었습니다. 계정이 활성화되었습니다.');
+      ElMessage.success(t('verifyIdentity.messages.verificationSuccessAbnormal'));
     }
 
     isCardLoading.value = true;
@@ -205,7 +191,7 @@ const verifyAndActivate = async () => {
     }, 1500);
 
   } catch (error) {
-    ElMessage.error('인증에 실패했습니다. 다시 시도해주세요.');
+    ElMessage.error(t('verifyIdentity.messages.verificationFailed'));
   } finally {
     isVerifying.value = false;
   }
@@ -225,7 +211,7 @@ const goToLogin = () => {
         class="verify-card"
         shadow="never"
         v-loading="isCardLoading"
-        element-loading-text="잠시 후 로그인 페이지로 이동합니다..."
+        :element-loading-text="t('verifyIdentity.loadingText')"
     >
       <h2 class="verify-title">{{ pageTitle }}</h2>
       <p class="verify-description">{{ pageDescription }}</p>
@@ -233,13 +219,13 @@ const goToLogin = () => {
       <el-form class="verify-form" @submit.prevent>
         <el-input
             v-model="userName"
-            placeholder="이름"
+            :placeholder="t('verifyIdentity.placeholders.name')"
             class="verify-input"
             :disabled="isCodeSent"
         />
         <el-input
             v-model="email"
-            placeholder="이메일"
+            :placeholder="t('verifyIdentity.placeholders.email')"
             class="verify-input"
             :disabled="isCodeSent"
         />
@@ -251,13 +237,13 @@ const goToLogin = () => {
             v-if="!isCodeSent"
             :loading="isSendingCode"
         >
-          인증번호 발송
+          {{ t('verifyIdentity.buttons.sendCode') }}
         </el-button>
 
         <template v-if="isCodeSent">
           <el-input
               v-model="verificationCode"
-              placeholder="인증번호 6자리"
+              :placeholder="t('verifyIdentity.placeholders.authCode')"
               class="verify-input"
           />
           <div class="timer-area">
@@ -268,14 +254,14 @@ const goToLogin = () => {
 
             <!-- 오른쪽 ("인증번호가 오지 않나요?" 관련 부분) -->
             <div style="display: flex; align-items: center;">
-              <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+              <el-text style="font-size: 12px;">{{ t('verifyIdentity.timerHelpText') }}</el-text>
               <el-popover placement="right" :width="600" trigger="click">
                 <template #reference>
                   <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
                 </template>
                 <div class="email-help-container">
                   <el-alert
-                      title="이메일이 도착하지 않았나요?"
+                      :title="t('verifyIdentity.emailHelp.title')"
                       :description="alertDescription"
                       type="info"
                       :closable="false"
@@ -308,7 +294,9 @@ const goToLogin = () => {
         </template>
 
         <div class="back-to-login">
-          <el-button type="info" link @click="goToLogin">로그인 페이지로 돌아가기</el-button>
+          <el-button type="info" link @click="goToLogin">
+            {{ t('verifyIdentity.buttons.backToLogin') }}
+          </el-button>
         </div>
       </el-form>
     </el-card>

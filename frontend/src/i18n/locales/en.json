@@ -161,5 +161,390 @@
       "etcListItem2": "Item 2: Another important matter that the user must comply with.",
       "agreeEtc": "(Required) I have confirmed all other terms above and agree to them."
     }
+  },
+  "findId": {
+    "title": "Find ID",
+    "description": "You can find your ID with the information you registered with.",
+    "tabEmail": "Find by Email",
+    "tabPhone": "Find by Phone",
+    "labelName": "Name",
+    "placeholderName": "Enter the name you registered with.",
+    "labelEmail": "Email",
+    "placeholderEmail": "Enter the email you registered with.",
+    "buttonSendCode": "Send Code",
+    "buttonResendCode": "Resend",
+    "labelAuthCode": "Authentication Code",
+    "placeholderAuthCode": "Enter the received authentication code.",
+    "timerHelpText": "Didn't receive the code?",
+    "buttonConfirm": "Confirm",
+    "resultDescription": "Here is the result of your ID inquiry.",
+    "buttonFindPassword": "Find Password",
+    "buttonLogin": "Log In",
+    "phoneServiceNoticeTitle": "Service Unavailable",
+    "phoneServiceNoticeDesc": "The phone number lookup feature is currently unavailable.",
+    "messages": {
+      "enterName": "Please enter your name.",
+      "enterEmail": "Please enter your email.",
+      "emailSent": "The email has been sent.",
+      "idCopied": "ID has been copied.",
+      "copyFailed": "Failed to copy. Please try again.",
+      "authTimeExpired": "Authentication time has expired."
+    },
+    "emailHelp": {
+      "title": "Didn't receive an email?",
+      "description": "Delivery may be delayed up to 5 minutes depending on the mail server.\nIf you don't receive it after 5 minutes, please check the following:",
+      "checkJunk": "First, check your <b>Junk (Spam)</b> folder.",
+      "checkGmailTabs": "For <b>[Gmail]</b>, it might be classified under the <b>'Promotions'</b> or <b>'Social'</b> tab.",
+      "checkEmailAddress": "Your entered email address: <b>{email}</b><br>Please verify that the email address is correct.",
+      "checkSenderAddress": "Sender address: <b>koobs970729@gmail.com</b><br>Adding this to your contacts can help ensure you receive our emails."
+    }
+  },
+  "findPassword": {
+    "title": "Find Password",
+    "description": "Please select a method to find your password.",
+    "methodEmail": "Find by Email",
+    "methodSecurity": "Find by Security Question",
+
+    "step1": {
+      "emailTitle": "Find Password",
+      "emailDescription": "Please verify your identity with your registered information.",
+      "securityTitle": "Find by Security Question",
+      "securityDescription": "Please answer the security question you set up.",
+      "labelUserId": "User ID",
+      "placeholderUserId": "Enter your User ID.",
+      "labelName": "Name",
+      "placeholderName": "Enter the name you registered with.",
+      "labelEmail": "Email",
+      "placeholderEmail": "Enter the email you registered with.",
+      "buttonSendCode": "Send Code",
+      "buttonResendCode": "Resend",
+      "labelAuthCode": "Authentication Code",
+      "placeholderAuthCode": "Enter the code received via email.",
+      "timerHelpText": "Didn't receive the code?",
+      "buttonConfirm": "Confirm",
+      "labelSecurityQuestion": "Security Question",
+      "placeholderSecurityQuestion": "Enter ID and click 'Check Question'.",
+      "buttonCheckQuestion": "Check Question",
+      "labelAnswer": "Answer",
+      "placeholderAnswer": "Enter the answer to the security question.",
+      "buttonConfirmAnswer": "Confirm Answer",
+      "alertNoQuestionTitle": "No Security Question Set",
+      "alertNoQuestionDesc": "There is no security question for this ID.",
+      "switchToEmail": "Find by Email"
+    },
+
+    "step2": {
+      "title": "Reset Password",
+      "description": "Please enter your new password.",
+      "labelNewPassword": "New Password",
+      "placeholderNewPassword": "8+ characters, combo of letters/numbers/symbols.",
+      "labelConfirmPassword": "Confirm New Password",
+      "placeholderConfirmPassword": "Please enter your new password again.",
+      "buttonReset": "Change Password"
+    },
+
+    "step3": {
+      "title": "Password Changed Successfully",
+      "description": "Your password has been changed successfully. <br>Please log in again.",
+      "buttonLogin": "Go to Login"
+    },
+
+    "nav": {
+      "login": "Log in",
+      "findId": "Find ID",
+      "backToStart": "Back to Start"
+    },
+
+    "messages": {
+      "enterAllFields": "Please enter your ID, name, and email.",
+      "enterUserIdFirst": "Please enter your User ID first.",
+      "enterAnswer": "Please enter your answer.",
+      "verificationComplete": "Identity verification complete.",
+      "answerMismatch": "The answer does not match.",
+      "answerCheckError": "An error occurred while checking the answer.",
+      "emailSent": "The email has been sent.",
+      "enterAuthCode": "Please enter the authentication code.",
+      "authTimeExpired": "Authentication time has expired.",
+      "enterPasswords": "Please enter both the new password and the confirmation password.",
+      "passwordMismatch": "The passwords do not match.",
+      "passwordChanged": "Your password has been changed."
+    },
+
+    "dialogs": {
+      "confirmChangeTitle": "Change Password",
+      "confirmChangeMessage": "Are you sure you want to change your password?",
+      "buttonOk": "OK",
+      "buttonCancel": "Cancel"
+    },
+
+    "emailHelp": {
+      "title": "Didn't receive an email?",
+      "description": "Delivery may be delayed up to 5 minutes depending on the mail server.\nIf you don't receive it after 5 minutes, please check the following:",
+      "checkJunk": "First, check your <b>Junk (Spam)</b> folder.",
+      "checkGmailTabs": "For <b>[Gmail]</b>, it might be classified under the <b>'Promotions'</b> or <b>'Social'</b> tab.",
+      "checkEmailAddress": "Your entered email address: <b>{email}</b><br>Please verify that the email address is correct.",
+      "checkSenderAddress": "Sender address: <b>koobs970729@gmail.com</b><br>Adding this to your contacts can help ensure you receive our emails."
+    }
+  },
+  "verifyIdentity": {
+    "loadingText": "Redirecting to the login page shortly...",
+    "title": {
+      "ABNORMAL": "Abnormal Login Verification",
+      "DORMANT": "Activate Dormant Account"
+    },
+    "description": {
+      "ABNORMAL": "Identity verification is required to protect your account.",
+      "DORMANT": "Reactivate your account securely through identity verification."
+    },
+    "placeholders": {
+      "name": "Name",
+      "email": "Email",
+      "authCode": "6-digit verification code"
+    },
+    "buttons": {
+      "sendCode": "Send Code",
+      "submit": {
+        "ABNORMAL": "Verify",
+        "DORMANT": "Confirm and Activate Account"
+      },
+      "backToLogin": "Back to Login Page"
+    },
+    "timerHelpText": "Didn't receive the code?",
+    "messages": {
+      "invalidAccess": "Invalid access. Redirecting to the login page.",
+      "authTimeExpired": "Authentication time has expired.",
+      "enterNameAndEmail": "Please enter both your name and email.",
+      "emailSent": "The email has been sent.",
+      "enterAuthCode": "Please enter the verification code.",
+      "verificationSuccessDormant": "Verification complete. Activating your account...",
+      "verificationSuccessAbnormal": "Verification complete. Your account has been activated.",
+      "verificationFailed": "Verification failed. Please try again."
+    },
+    "emailHelp": {
+      "title": "Didn't receive an email?",
+      "description": "Delivery may be delayed up to 5 minutes depending on the mail server.\nIf you don't receive it after 5 minutes, please check the following:",
+      "checkJunk": "First, check your <b>Junk (Spam)</b> folder.",
+      "checkGmailTabs": "For <b>[Gmail]</b>, it might be classified under the <b>'Promotions'</b> or <b>'Social'</b> tab.",
+      "checkEmailAddress": "Your entered email address: <b>{email}</b><br>Please verify that the email address is correct.",
+      "checkSenderAddress": "Sender address: <b>koobs970729@gmail.com</b><br>Adding this to your contacts can help ensure you receive our emails."
+    }
+  },
+  "main": {
+    "header": {
+      "projectName": "BONS Project",
+      "changeTheme": "Change Theme"
+    },
+    "sharePopover": {
+      "github": "GitHub",
+      "notion": "Notion",
+      "copyUrl": "Copy URL",
+      "visitSite": "Visit Site"
+    },
+    "banner": {
+      "title": "Personal Project Space",
+      "poweredBy": "Powered by Spring Boot, Vue 3"
+    },
+    "tabs": {
+      "service": "Services",
+      "admin": "Admin"
+    },
+    "placeholders": {
+      "componentNotFound": "Component '{componentName}' could not be found.",
+      "checkComponentPath": "Please check if the file /src/views/biz/{componentName}.vue exists.",
+      "noServiceMenu": "No available service menus.",
+      "selectAdminMenu": "Please select an admin menu."
+    },
+    "messages": {
+      "urlCopied": "URL has been copied to the clipboard.",
+      "copyFailed": "Failed to copy.",
+      "menuFetchFailed": "Failed to fetch menu information:"
+    },
+    "menus": {
+      "serviceRoot": "서비스",
+      "adminRoot": "시스템 관리",
+      "서비스": "Service",
+      "시스템 관리": "System Management",
+      "사용자 관리": "User Management",
+      "메뉴 관리": "Menu Management",
+      "활동 로그": "Activity Log",
+      "시간대별 예측": "Time-based Prediction",
+      "저장소": "Storage"
+    },
+    "popHeader": {
+      "changeLanguage": "Change Language",
+      "changeTheme": "Change Theme"
+    },
+    "languagePopover": {
+      "selectLanguage": "Select Language",
+      "warningText": "Please use Korean for clarity."
+    }
+  },
+  "userInfo": {
+    "tooltips": {
+      "withdraw": "Withdraw Account"
+    },
+    "labels": {
+      "id": "ID",
+      "username": "Username",
+      "email": "Email",
+      "phone": "Phone",
+      "gender": "Gender",
+      "lastLogin": "Last Login"
+    },
+    "buttons": {
+      "editInfo": "Edit Info",
+      "logout": "Logout",
+      "withdraw": "Withdraw",
+      "processing": "Processing...",
+      "ok": "OK",
+      "cancel": "Cancel"
+    },
+    "messages": {
+      "loggingOut": "Logging out...",
+      "withdrawing": "Processing withdrawal...",
+      "withdrawSuccess": "Your account has been successfully withdrawn.",
+      "emailCopied": "Email copied to clipboard.",
+      "copyFailed": "Failed to copy.",
+      "enterTextCorrectly": "Please enter the text correctly."
+    },
+    "dialogs": {
+      "withdraw": {
+        "inputText": "Withdraw"
+      }
+    }
+  },
+  "withdrawConfirm": {
+    "title": "Account Withdrawal Guide",
+    "subtitle": "Are you sure you want to withdraw your account?",
+    "warning": {
+      "message": "Upon withdrawal, the following information will be permanently deleted and cannot be recovered.",
+      "item1": "- Account information and all personal data",
+      "item2": "- All activity records such as posts and comments"
+    },
+    "finalConfirm": {
+      "line1": "To proceed with the withdrawal,",
+      "line2": "please enter '{actionText}' exactly in the field below.",
+      "actionText": "Withdraw"
+    },
+    "placeholder": "Enter '{actionText}'",
+    "finalConfirmDialog": {
+      "title": "Final Confirmation",
+      "line1": "Your account information will be permanently deleted.",
+      "line2": "Are you absolutely sure you want to proceed?"
+    }
+  },
+  "waitingAnalyzer": {
+    "title": "Waiting Index Analyzer",
+    "subtitle": "Predicting today's waiting index for you.",
+    "terms": {
+      "peak": "Peak",
+      "closed": "Closed"
+    },
+    "search": {
+      "placeholder": "Enter restaurant name (e.g., London Bagel)",
+      "button": "Start Analysis",
+      "tipTitle": "Quick Search Tips!",
+      "tipDescription": "Due to Naver's policy, search results provide up to {limit}.",
+      "limitText": "5 items"
+    },
+    "recommendations": {
+      "title": "How about these places?"
+    },
+    "archive": {
+      "title": "My Archive",
+      "tooltipAnalyze": "Analyze Waiting Index",
+      "tooltipDetails": "View in Archive",
+      "emptyDescription": "Your archive is empty",
+      "emptyImageAlt": "Empty archive box",
+      "visitDatePrefix": "Visited: "
+    },
+    "steps": {
+      "selectStore": {
+        "title": "Which location are you curious about?",
+        "back": "Back to Start"
+      },
+      "selectTime": {
+        "peopleLabel": "Set the number of people.",
+        "timeLabel": "Select your planned visit time.",
+        "skipButton": "⚡️ Undecided (Analyze for Now)",
+        "timeSlots": {
+          "t10_12": "10 AM ~ 12 PM",
+          "t12_14": "12 PM ~ 2 PM",
+          "t14_16": "2 PM ~ 4 PM",
+          "t16_18": "4 PM ~ 6 PM",
+          "t18_20": "6 PM ~ 8 PM",
+          "t20_22": "8 PM ~ 10 PM"
+        },
+        "back": "Select Location Again",
+        "analyze": "Analyze"
+      },
+      "loading": {
+        "title": "Analyzing {storeName}...",
+        "message": "Please wait a moment. Collecting real-time data.",
+        "progress": {
+          "opening": "Checking business hours",
+          "weather": "Collecting weather data",
+          "reviews": "Analyzing Naver reviews and popularity",
+          "holiday": "Checking holiday information",
+          "sns": "Checking Naver DataLab trends",
+          "surround": "Analyzing surrounding commercial area"
+        }
+      },
+      "result": {
+        "summary": "{storeName} is currently {status}",
+        "detailsTitle": "Detailed Score Analysis",
+        "totalScoreLabel": "Final Waiting Score",
+        "reset": "Analyze a New Place"
+      },
+      "notAvailable": {
+        "storeInfoTitle": "Business Information",
+        "reset": "Analyze Another Place",
+        "states": {
+          "closed": { "emoji": "💤", "title": "Closed Today", "message": "This place is closed for the day." },
+          "break_time": { "emoji": "☕", "title": "On a Break", "message": "This is their break time." },
+          "before_opening": { "emoji": "⏳", "title": "Before Opening", "message": "They haven't opened yet." },
+          "after_closing": { "emoji": "🌙", "title": "Already Closed", "message": "They have already closed for the day." },
+          "unknown": { "emoji": "⚠️", "title": "Cannot Confirm Status", "message": "Could not confirm their operating status." }
+        }
+      }
+    },
+    "analysis": {
+      "scoreFactors": {
+        "timeAndDay": "Time/Day",
+        "headcount": "Headcount",
+        "reviews": "Popularity (Reviews)",
+        "weather": "Current Weather",
+        "trend": "Search Trend",
+        "surrounding": "Surrounding Area"
+      },
+      "conditions": {
+        "dayOfWeek": { "MONDAY": "Monday", "TUESDAY": "Tuesday", "WEDNESDAY": "Wednesday", "THURSDAY": "Thursday", "FRIDAY": "Friday", "SATURDAY": "Saturday", "SUNDAY": "Sunday" },
+        "timeOfDay": { "morning": "Morning", "lunchPeak": "Lunch Peak", "afternoon": "Afternoon", "dinnerPeak": "Dinner Peak", "lateNight": "Late Night" }
+      },
+      "results": {
+        "veryCrowded": { "index": "Very Crowded", "message": "A very long wait is expected. Consider other options.", "emoji": "🌋" },
+        "crowded": { "index": "Crowded", "message": "There's a high chance of waiting. Plan accordingly.", "emoji": "🔴" },
+        "moderate": { "index": "Moderate", "message": "There might be a short wait.", "emoji": "🟡" },
+        "calm": { "index": "Calm", "message": "It's relatively calm. A good time to visit.", "emoji": "🟢" },
+        "quiet": { "index": "Quiet", "message": "It's very quiet! You can get in without any wait.", "emoji": "🔵" }
+      }
+    },
+    "api": {
+      "dataPortal": "DATA.GO.KR (Holiday Info)",
+      "naverDevelopers": "Naver Developers API",
+      "googleCloud": "Google Cloud API"
+    },
+    "errors": {
+      "recommendationFetch": "Failed to fetch recommended stores:",
+      "weatherFetch": "Failed to fetch weather information:",
+      "holidayFetch": "Failed to fetch holiday information:",
+      "trendFetch": "Failed to fetch DataLab search trends:",
+      "openingInfoFetch": "Failed to fetch opening information:",
+      "surroundingFetch": "Failed to fetch surrounding area data:",
+      "openingInfo": {
+        "unavailable": "Could not confirm business information",
+        "todayUnavailable": "Could not retrieve today's business information."
+      }
+    }
   }
 }

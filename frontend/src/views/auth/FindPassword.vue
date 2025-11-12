@@ -26,6 +26,10 @@ import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { Common } from '@/common/common';
 import { Dialogs } from "@/common/dialogs";
+import { useI18n } from "vue-i18n";
+
+// i18n
+const { t } = useI18n();
 
 // Vue 라우터 인스턴스
 const router = useRouter();
@@ -106,7 +110,7 @@ const selectMethod = (method: 'email' | 'security') => {
  */
 const fetchUserSecurityQuestion = async () => {
   if (!formData.userId) {
-    ElMessage.error('아이디를 먼저 입력해주세요.');
+    ElMessage.error(t('findPassword.messages.enterUserIdFirst'));
     return;
   }
   securityQuestionLoading.value = true;
@@ -135,7 +139,7 @@ const fetchUserSecurityQuestion = async () => {
  */
 const verifySecurityAnswer = async () => {
   if (!securityAnswer.value) {
-    ElMessage.error('답변을 입력해주세요.');
+    ElMessage.error(t('findPassword.messages.enterAnswer'));
     return;
   }
   try {
@@ -147,15 +151,15 @@ const verifySecurityAnswer = async () => {
     if (response.data) {
       token.value = response.data.token;
       currentStep.value = 2; // 비밀번호 재설정 단계로 이동
-      ElMessage.success('본인 확인이 완료되었습니다.');
+      ElMessage.success(t('findPassword.messages.verificationComplete'));
       nextTick(() => {
         newPassword.value.focus();
       });
     } else {
-      ElMessage.error('답변이 일치하지 않습니다.');
+      ElMessage.error(t('findPassword.messages.answerMismatch'));
     }
   } catch (error) {
-    ElMessage.error('답변 확인 중 오류가 발생했습니다.');
+    ElMessage.error(t('findPassword.messages.answerCheckError'));
   }
 };
 
@@ -168,7 +172,7 @@ const sendAuthCode = async () => {
 
   // 간단한 유효성 검사
   if (!formData.userId || !formData.userName || !formData.email) {
-    ElMessage.error('아이디, 이름, 이메일을 모두 입력해주세요.');
+    ElMessage.error(t('findPassword.messages.enterAllFields'));
     return;
   }
 
@@ -176,7 +180,7 @@ const sendAuthCode = async () => {
     emailLoading.value = true;
     await Api.post(ApiUrls.SEND_MAIL, { nonMaskedId: formData.userId, userName: formData.userName, email: formData.email, type: 'PW' });
     ElMessage({
-      message: '이메일이 전송되었습니다.',
+      message: t('findPassword.messages.emailSent'),
       grouping: true,
       type: 'success',
     });
@@ -196,7 +200,11 @@ const sendAuthCode = async () => {
  */
 const verifyAndProceed = async () => {
   if (!formData.authCode) {
-    ElMessage.error('인증번호를 입력해주세요.');
+    ElMessage({
+      message: t('findPassword.messages.enterAuthCode'),
+      grouping: true,
+      type: 'success',
+    });
     return;
   }
   const result = await Api.post(ApiUrls.CHECK_CODE, { email: formData.email, code: formData.authCode, type: 'FIND_PW' });
@@ -242,7 +250,7 @@ const startTimer = () => {
       state.timerId = null;
       ElMessage({
         type: 'error',
-        message: '인증시간이 초과되었습니다.',
+        message: t('findPassword.messages.authTimeExpired'),
       });
     }
   }, 1000);
@@ -255,23 +263,23 @@ const startTimer = () => {
 const resetPassword = async () => {
   // 비밀번호 유효성 검사
   if (!formData.newPassword || !formData.confirmPassword) {
-    ElMessage.error('새 비밀번호와 확인 비밀번호를 모두 입력해주세요.');
+    ElMessage.error(t('findPassword.messages.enterPasswords'));
     return;
   }
   if (formData.newPassword !== formData.confirmPassword) {
-    ElMessage.error('비밀번호가 일치하지 않습니다.');
+    ElMessage.error(t('findPassword.messages.passwordMismatch'));
     return;
   }
 
   try {
 
     await Dialogs.customConfirm(
-        '비밀번호 변경'
-        , '비밀번호를 변경하시겠습니까?'
-        , '확인'
-        , '취소'
-        , '420px'
-    )
+        t('findPassword.dialogs.confirmChangeTitle'),
+        t('findPassword.dialogs.confirmChangeMessage'),
+        t('findPassword.dialogs.buttonOk'),
+        t('findPassword.dialogs.buttonCancel'),
+        '420px'
+    );
 
     // 비밀번호 암호화
     const encryptedPassword = await Common.encryptPassword(formData.newPassword);
@@ -286,7 +294,7 @@ const resetPassword = async () => {
     })
     setTimeout(()=>{
       loading.close();
-      ElMessage.success('비밀번호가 변경되었습니다.');
+      ElMessage.success(t('findPassword.messages.passwordChanged'));
       currentStep.value = 3; // 완료 단계로 이동
     }, 1000);
 
@@ -350,28 +358,12 @@ const switchToEmailMethod = () => {
 /**
  * 이메일이 오지 않나요?
  */
-const alertDescription = ref('메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.');
-const checklist = ref([
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `<b>스팸(Junk) 메일함</b>을 가장 먼저 확인해주세요.`
-  },
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `<b>[Gmail]</b>의 경우, <b>'프로모션'</b> 또는 <b>'소셜'</b> 탭으로 분류될 수 있습니다.`
-  },
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `입력하신 이메일 주소: <b>email@example.com</b><br>이메일 주소가 정확한지 확인해주세요.`
-  },
-  {
-    type: 'primary',
-    icon: Promotion,
-    text: `발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다.`
-  }
+const alertDescription = computed(() => t('findPassword.emailHelp.description'));
+const checklist = computed(() => [
+  { type: 'primary', icon: MoreFilled, text: t('findPassword.emailHelp.checkJunk') },
+  { type: 'primary', icon: MoreFilled, text: t('findPassword.emailHelp.checkGmailTabs') },
+  { type: 'primary', icon: MoreFilled, text: t('findPassword.emailHelp.checkEmailAddress', { email: formData.email || 'email@example.com' }) },
+  { type: 'primary', icon: Promotion, text: t('findPassword.emailHelp.checkSenderAddress') }
 ]);
 </script>
 
@@ -381,22 +373,22 @@ const checklist = ref([
 
       <!-- Step 0: 방법 선택 -->
       <div v-if="currentStep === 0">
-        <h2 class="title">비밀번호 찾기</h2>
-        <p class="description">비밀번호를 찾을 방법을 선택해주세요.</p>
+        <h2 class="title">{{ t('findPassword.title') }}</h2>
+        <p class="description">{{ t('findPassword.description') }}</p>
         <div class="method-selection">
           <el-button
               type="primary"
               class="action-button"
               @click="selectMethod('email')"
           >
-            이메일로 찾기
+            {{ t('findPassword.methodEmail') }}
           </el-button>
           <el-button
               type="success"
               class="action-button"
               @click="selectMethod('security')"
           >
-            보안 질문으로 찾기
+            {{ t('findPassword.methodSecurity') }}
           </el-button>
         </div>
       </div>
@@ -404,30 +396,30 @@ const checklist = ref([
 
       <!-- Step 1: 본인 인증 (이메일) -->
       <div v-if="currentStep === 1 && findMethod === 'email'">
-        <h2 class="title">비밀번호 찾기</h2>
-        <p class="description">가입 시 등록한 정보로 본인인증을 진행합니다.</p>
+        <h2 class="title">{{ t('findPassword.step1.emailTitle') }}</h2>
+        <p class="description">{{ t('findPassword.step1.emailDescription') }}</p>
 
         <el-form class="find-form" label-position="top" :model="formData">
-          <el-form-item label="아이디">
+          <el-form-item :label="t('findPassword.step1.labelUserId')">
             <el-input
                 v-model="formData.userId"
                 ref="userId"
-                placeholder="아이디를 입력하세요."
+                :placeholder="t('findPassword.step1.placeholderUserId')"
                 size="large"
                 :prefix-icon="User"
             />
           </el-form-item>
-          <el-form-item label="이름">
+          <el-form-item :label="t('findPassword.step1.labelName')">
             <el-input
                 v-model="formData.userName"
-                placeholder="가입 시 등록한 이름을 입력하세요."
+                :placeholder="t('findPassword.step1.placeholderName')"
                 size="large"
             />
           </el-form-item>
-          <el-form-item label="이메일">
+          <el-form-item :label="t('findPassword.step1.labelEmail')">
             <el-input
                 v-model="formData.email"
-                placeholder="가입 시 등록한 이메일을 입력하세요."
+                :placeholder="t('findPassword.step1.placeholderEmail')"
                 size="large"
                 class="input-with-button"
             >
@@ -439,16 +431,16 @@ const checklist = ref([
                     :disabled="isCodeSent"
                     :loading="emailLoading"
                 >
-                  {{ isCodeSent ? '재전송' : '인증번호 전송' }}
+                  {{ isCodeSent ? t('findPassword.step1.buttonResendCode') : t('findPassword.step1.buttonSendCode') }}
                 </el-button>
               </template>
             </el-input>
           </el-form-item>
-          <el-form-item label="인증번호">
+          <el-form-item :label="t('findPassword.step1.labelAuthCode')">
             <el-input
                 v-model="formData.authCode"
                 :disabled="!isCodeSent"
-                placeholder="이메일로 수신된 인증번호를 입력하세요."
+                :placeholder="t('findPassword.step1.placeholderAuthCode')"
                 size="large"
                 :prefix-icon="Key"
             />
@@ -461,7 +453,7 @@ const checklist = ref([
               {{ formattedTime }}
             </el-text>
             <div style="display: flex; align-items: center;">
-              <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+              <el-text style="font-size: 12px;">{{ t('findPassword.step1.timerHelpText') }}</el-text>
               <el-popover
                   placement="right"
                   :width="600"
@@ -471,7 +463,7 @@ const checklist = ref([
                 </template>
                 <div class="email-help-container">
                   <el-alert
-                      title="이메일이 도착하지 않았나요?"
+                      :title="t('findPassword.emailHelp.title')"
                       :description="alertDescription"
                       type="info"
                       :closable="false"
@@ -497,63 +489,65 @@ const checklist = ref([
         </el-form>
 
         <el-button type="primary" class="action-button" :disabled="!isCodeSent" @click="verifyAndProceed">
-          확인
+          {{ t('findPassword.step1.buttonConfirm') }}
         </el-button>
       </div>
 
       <!-- Step 1: 본인 인증 (보안 질문) -->
       <div v-if="currentStep === 1 && findMethod === 'security'">
-        <h2 class="title">보안 질문으로 찾기</h2>
-        <p class="description">가입 시 설정한 보안 질문에 답변해주세요.</p>
+        <h2 class="title">{{ t('findPassword.step1.securityTitle') }}</h2>
+        <p class="description">{{ t('findPassword.step1.securityDescription') }}</p>
 
         <!-- 보안 질문이 없는 경우 표시되는 경고창 -->
         <el-alert
             v-if="showNoQuestionAlert"
-            title="설정된 보안 질문이 없습니다"
+            :title="t('findPassword.step1.alertNoQuestionTitle')"
             type="warning"
             :closable="false"
             show-icon
             style="margin-bottom: 20px;"
         >
           <div class="alert-content">
-            <span>이 아이디에는 보안 질문이 없습니다.</span>
+            <span>{{ t('findPassword.step1.alertNoQuestionDesc') }}</span>
             <el-button link @click="switchToEmailMethod">
               <el-text style="font-weight: bold; margin-top: 4px;">
                 <el-icon><Right /></el-icon>
-                이메일로 찾기
+                {{ t('findPassword.step1.switchToEmail') }}
               </el-text>
             </el-button>
           </div>
         </el-alert>
 
         <el-form class="find-form" label-position="top" :model="formData">
-          <el-form-item label="아이디">
+          <el-form-item :label="t('findPassword.step1.labelUserId')">
             <el-input
                 v-model="formData.userId"
                 ref="userId"
-                placeholder="아이디를 입력하세요."
+                :placeholder="t('findPassword.step1.placeholderUserId')"
                 size="large"
                 :prefix-icon="User"
                 class="input-with-button"
             >
               <template #append>
-                <el-button @click="fetchUserSecurityQuestion" :loading="securityQuestionLoading">질문 확인</el-button>
+                <el-button @click="fetchUserSecurityQuestion" :loading="securityQuestionLoading">
+                  {{ t('findPassword.step1.buttonCheckQuestion') }}
+                </el-button>
               </template>
             </el-input>
           </el-form-item>
-          <el-form-item label="보안 질문">
+          <el-form-item :label="t('findPassword.step1.labelSecurityQuestion')">
             <el-input
                 v-model="securityQuestion"
-                placeholder="아이디 입력 후 '질문 확인'을 눌러주세요."
+                :placeholder="t('findPassword.step1.placeholderSecurityQuestion')"
                 size="large"
                 readonly
                 :prefix-icon="QuestionFilled"
             />
           </el-form-item>
-          <el-form-item label="답변">
+          <el-form-item :label="t('findPassword.step1.labelAnswer')">
             <el-input
                 v-model="securityAnswer"
-                placeholder="보안 질문에 대한 답변을 입력하세요."
+                :placeholder="t('findPassword.step1.placeholderAnswer')"
                 size="large"
                 :disabled="!securityQuestion"
                 @keyup.enter="verifySecurityAnswer"
@@ -561,34 +555,38 @@ const checklist = ref([
           </el-form-item>
         </el-form>
 
-        <el-button type="primary" class="action-button" @click="verifySecurityAnswer" :disabled="!securityQuestion || !securityAnswer">
-          답변 확인
+        <el-button
+            type="primary"
+            class="action-button"
+            @click="verifySecurityAnswer"
+            :disabled="!securityQuestion || !securityAnswer">
+          {{ t('findPassword.step1.buttonConfirmAnswer') }}
         </el-button>
       </div>
 
 
       <!-- Step 2: 비밀번호 재설정 -->
       <div v-if="currentStep === 2">
-        <h2 class="title">비밀번호 재설정</h2>
-        <p class="description">새로 사용할 비밀번호를 입력해주세요.</p>
+        <h2 class="title">{{ t('findPassword.step2.title') }}</h2>
+        <p class="description">{{ t('findPassword.step2.description') }}</p>
 
         <el-form class="find-form" label-position="top" :model="formData">
-          <el-form-item label="새 비밀번호">
+          <el-form-item :label="t('findPassword.step2.labelNewPassword')">
             <el-input
                 v-model="formData.newPassword"
                 ref="newPassword"
                 type="password"
-                placeholder="8자 이상, 영문/숫자/특수기호 조합"
+                :placeholder="t('findPassword.step2.placeholderNewPassword')"
                 size="large"
                 show-password
                 :prefix-icon="Lock"
             />
           </el-form-item>
-          <el-form-item label="새 비밀번호 확인">
+          <el-form-item :label="t('findPassword.step2.labelConfirmPassword')">
             <el-input
                 v-model="formData.confirmPassword"
                 type="password"
-                placeholder="비밀번호를 다시 한번 입력해주세요."
+                :placeholder="t('findPassword.step2.placeholderConfirmPassword')"
                 size="large"
                 show-password
                 :prefix-icon="Lock"
@@ -597,7 +595,7 @@ const checklist = ref([
         </el-form>
 
         <el-button type="primary" class="action-button" @click="resetPassword">
-          비밀번호 변경
+          {{ t('findPassword.step2.buttonReset') }}
         </el-button>
       </div>
 
@@ -605,10 +603,9 @@ const checklist = ref([
       <div v-if="currentStep === 3" class="result-section">
         <el-result
             icon="success"
-            title="비밀번호 변경 완료"
-        >
+            :title="t('findPassword.step3.title')">
           <template #sub-title>
-            <p v-html="'성공적으로 비밀번호가 변경되었습니다. <br>다시 로그인해주세요.'"></p>
+            <p v-html="t('findPassword.step3.description')"></p>
           </template>
           <template #icon>
             <el-icon :size="64" color="var(--el-color-success)">
@@ -617,7 +614,7 @@ const checklist = ref([
           </template>
           <template #extra>
             <el-button type="primary" @click="goToLogin">
-              로그인 하기
+              {{ t('findPassword.step3.buttonLogin') }}
             </el-button>
           </template>
         </el-result>
@@ -625,13 +622,13 @@ const checklist = ref([
 
       <!-- 하단 공통 링크 -->
       <div v-if="currentStep < 3" class="navigation-links">
-        <el-button type="info" link @click="goToLogin">로그인</el-button>
+        <el-button type="info" link @click="goToLogin">{{ t('findPassword.nav.login') }}</el-button>
         <el-divider direction="vertical" />
-        <el-button type="info" link @click="goToFindId">아이디 찾기</el-button>
+        <el-button type="info" link @click="goToFindId">{{ t('findPassword.nav.findId') }}</el-button>
         <!-- '처음으로' 버튼은 인증 단계(step 1)에서만 표시 -->
         <template v-if="currentStep === 1">
           <el-divider direction="vertical" />
-          <el-button type="info" link @click="goToFirstStep">처음으로</el-button>
+          <el-button type="info" link @click="goToFirstStep">{{ t('findPassword.nav.backToStart') }}</el-button>
         </template>
       </div>
     </el-card>

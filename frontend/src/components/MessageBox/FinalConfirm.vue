@@ -1,4 +1,8 @@
-<!-- src/components/MessageBox/FinalConfirm.vue -->
+<script setup lang="ts">
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+</script>
 <template>
   <div class="final-confirm-container">
     <div class="icon-wrapper">
@@ -7,44 +11,54 @@
       </svg>
     </div>
     <div class="content-wrapper">
-      <h3>마지막 확인</h3>
-      <p>계정 정보는 영구적으로 삭제됩니다.<br/>정말로 탈퇴하시겠습니까?</p>
+      <h3>{{ t('withdrawConfirm.finalConfirmDialog.title') }}</h3>
+      <p>
+        {{ t('withdrawConfirm.finalConfirmDialog.line1') }}
+        <br/>
+        {{ t('withdrawConfirm.finalConfirmDialog.line2') }}
+      </p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ------------------------------------ */
-/*           컴포넌트 변수 정의            */
-/* ------------------------------------ */
 .final-confirm-container {
-  --final-confirm-title-color: var(--el-text-color-primary, #303133);
-  --final-confirm-text-color: var(--el-text-color-regular, #606266);
-  --final-confirm-icon-color: var(--el-color-warning, #e6a23c);
+  --final-confirm-background: var(--el-fill-color-lighter);
+  --final-confirm-title-color: var(--el-text-color-primary);
+  --final-confirm-text-color: var(--el-text-color-placeholder);
+  --final-confirm-icon-color: #f59e0b;
+  --final-confirm-icon-background: var(--el-bg-color-overlay);
+  --final-confirm-border-radius: 12px;
+  --final-confirm-box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --final-confirm-padding: 24px;
 }
-
-:deep(html.dark) .final-confirm-container {
-  --final-confirm-title-color: #EAECEF;
-  --final-confirm-text-color: #c0c4cc;
-  --final-confirm-icon-color: #e6a23c;
-}
-
-/* ------------------------------------ */
-/*           실제 스타일 적용             */
-/* ------------------------------------ */
-
 .final-confirm-container {
   display: flex;
   align-items: flex-start;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  padding: 5px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  padding: var(--final-confirm-padding);
+  background-color: var(--final-confirm-background);
+  border-radius: var(--final-confirm-border-radius);
+  box-shadow: var(--final-confirm-box-shadow);
+  transition: all 0.3s ease-in-out;
+  border: 1px solid rgba(0,0,0,0.05);
 }
-
+.final-confirm-container:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
 .icon-wrapper {
-  margin-right: 15px;
-  color: var(--final-confirm-icon-color);
+  margin-right: 20px;
   flex-shrink: 0;
-  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--final-confirm-icon-background);
+  color: var(--final-confirm-icon-color);
+  animation: pulse-icon 2s infinite;
 }
 
 .icon-wrapper svg {
@@ -54,10 +68,9 @@
 
 .content-wrapper h3 {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--final-confirm-title-color);
-  margin-top: 0;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
 }
 
 .content-wrapper p {
@@ -65,5 +78,20 @@
   color: var(--final-confirm-text-color);
   line-height: 1.6;
   margin: 0;
+}
+
+@keyframes pulse-icon {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
 }
 </style>

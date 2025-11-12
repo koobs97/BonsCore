@@ -16,6 +16,10 @@ import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ApiUrls } from "@/api/apiUrls";
 import { Api } from "@/api/axiosInstance";
 import { Common } from "@/common/common";
+import { useI18n } from "vue-i18n";
+
+// i18n
+const { t } = useI18n();
 
 // router
 const router = useRouter();
@@ -76,12 +80,12 @@ const sendAuthCode = async () => {
 
   // 필수입력 체크
   if(Common.isEmpty(userName.value)) {
-    ElMessage({ message: '이름을 입력하세요.', grouping: true, type: 'error' });
+    ElMessage({ message: t('findId.messages.enterName'), grouping: true, type: 'error' });
     userNameRef.value.focus();
     return;
   }
   if(Common.isEmpty(userEmail.value)) {
-    ElMessage({ message: '이메일을 입력하세요.', grouping: true, type: 'error' });
+    ElMessage({ message: t('findId.messages.enterEmail'), grouping: true, type: 'error' });
     emailRef.value.focus();
     return;
   }
@@ -90,7 +94,7 @@ const sendAuthCode = async () => {
   try {
     emailLoading.value = true;
     await Api.post(ApiUrls.SEND_MAIL, { userName: userName.value, email: userEmail.value, type: 'ID' });
-    ElMessage({ message: '이메일이 전송되었습니다.', grouping: true, type: 'success' });
+    ElMessage({ message: t('findId.messages.emailSent'), grouping: true, type: 'success' });
   } finally {
     emailLoading.value = false;
   }
@@ -127,9 +131,9 @@ const copyToClipboard = async (text: string) => {
   try {
     const response = await Api.post(ApiUrls.COPY_ID, { email: userEmail.value })
     await navigator.clipboard.writeText(response);
-    ElMessage({ message: '아이디가 복사되었습니다.', grouping: true, type: 'success' });
+    ElMessage({ message: t('findId.messages.idCopied'), grouping: true, type: 'success' });
   } catch (err) {
-    ElMessage({ message: '복사에 실패했습니다. 다시 시도해주세요.', grouping: true, type: 'error' });
+    ElMessage({ message: t('findId.messages.copyFailed'), grouping: true, type: 'error' });
     console.error('Failed to copy ID: ', err);
   }
 };
@@ -163,7 +167,7 @@ const startTimer = () => {
       clearInterval(state.timerId as number);
       state.timerId = null;
       state.isVerified = true;
-      ElMessage({ message: '인증시간이 초과되었습니다.', type: 'error' });
+      ElMessage({ message: t('findId.messages.authTimeExpired'), type: 'error' });
     }
   }, 1000);
 };
@@ -177,28 +181,12 @@ const onClickToGoPage = (param: string) => {
 }
 
 // 메일 안내 창 관련
-const alertDescription = ref('메일 서버 상황에 따라 최대 5분까지 지연될 수 있습니다.\n5분 후에도 메일이 없다면 아래 내용을 확인해주세요.');
-const checklist = ref([
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `<b>스팸(Junk) 메일함</b>을 가장 먼저 확인해주세요.`
-  },
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `<b>[Gmail]</b>의 경우, <b>'프로모션'</b> 또는 <b>'소셜'</b> 탭으로 분류될 수 있습니다.`
-  },
-  {
-    type: 'primary',
-    icon: MoreFilled,
-    text: `입력하신 이메일 주소: <b>email@example.com</b><br>이메일 주소가 정확한지 확인해주세요.`
-  },
-  {
-    type: 'primary',
-    icon: Promotion,
-    text: `발신자 주소: <b>koobs970729@gmail.com</b><br>주소록에 추가하면 다음부터 메일을 안정적으로 받을 수 있습니다.`
-  }
+const alertDescription = computed(() => t('findId.emailHelp.description'));
+const checklist = computed(() => [
+  { type: 'primary', icon: MoreFilled, text: t('findId.emailHelp.checkJunk') },
+  { type: 'primary', icon: MoreFilled, text: t('findId.emailHelp.checkGmailTabs') },
+  { type: 'primary', icon: MoreFilled, text: t('findId.emailHelp.checkEmailAddress', { email: userEmail.value || 'email@example.com' }) },
+  { type: 'primary', icon: Promotion, text: t('findId.emailHelp.checkSenderAddress') }
 ]);
 </script>
 
@@ -208,29 +196,27 @@ const checklist = ref([
 
       <!-- 1단계: 아이디 찾기 정보 입력 -->
       <div v-if="!isIdFound">
-        <h2 class="title">아이디 찾기</h2>
-        <p class="description">가입 시 등록한 정보로 아이디를 찾을 수 있습니다.</p>
+        <h2 class="title">{{ t('findId.title') }}</h2>
+        <p class="description">{{ t('findId.description') }}</p>
 
         <el-tabs v-model="activeTab" class="find-tabs" stretch>
+
           <!-- 이메일 인증 -->
-          <el-tab-pane label="이메일로 찾기" name="email">
-            <el-form
-                class="find-form"
-                label-position="top"
-            >
-              <el-form-item label="이름">
+          <el-tab-pane :label="t('findId.tabEmail')" name="email">
+            <el-form class="find-form" label-position="top">
+              <el-form-item :label="t('findId.labelName')">
                 <el-input
                     v-model="userName"
                     ref="userNameRef"
-                    placeholder="가입 시 등록한 이름을 입력하세요."
+                    :placeholder="t('findId.placeholderName')"
                     size="large"
                 />
               </el-form-item>
-              <el-form-item label="이메일">
+              <el-form-item :label="t('findId.labelEmail')">
                 <el-input
                     v-model="userEmail"
                     ref="emailRef"
-                    placeholder="가입 시 등록한 이메일을 입력하세요."
+                    :placeholder="t('findId.placeholderEmail')"
                     size="large"
                     class="input-with-button"
                 >
@@ -241,18 +227,18 @@ const checklist = ref([
                         @click="sendAuthCode"
                         :loading="emailLoading"
                     >
-                      {{ isCodeSent ? '재전송' : '인증번호 전송' }}
+                      {{ isCodeSent ? t('findId.buttonResendCode') : t('findId.buttonSendCode') }}
                     </el-button>
                   </template>
                 </el-input>
               </el-form-item>
 
               <!-- 인증번호 입력 필드는 전송 후에만 활성화되며 표시됩니다. -->
-              <el-form-item label="인증번호" style="margin-bottom: 4px;">
+              <el-form-item :label="t('findId.labelAuthCode')" style="margin-bottom: 4px;">
                 <el-input
                     v-model="authCode"
                     :disabled="!isCodeSent"
-                    placeholder="수신된 인증번호를 입력하세요."
+                    :placeholder="t('findId.placeholderAuthCode')"
                     size="large"
                     :prefix-icon="Key"
                 />
@@ -267,14 +253,19 @@ const checklist = ref([
 
                 <!-- 오른쪽 ("인증번호가 오지 않나요?" 관련 부분) -->
                 <div style="display: flex; align-items: center;">
-                  <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+                  <el-text style="font-size: 12px;">{{ t('findId.timerHelpText') }}</el-text>
                   <el-popover placement="right" :width="600" trigger="click">
                     <template #reference>
-                      <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
+                      <el-button
+                          :icon="QuestionFilled"
+                          type="info"
+                          link
+                          class="help-icon-button"
+                      />
                     </template>
                     <div class="email-help-container">
                       <el-alert
-                          title="이메일이 도착하지 않았나요?"
+                          :title="t('findId.emailHelp.title')"
                           :description="alertDescription"
                           type="info"
                           :closable="false"
@@ -303,7 +294,7 @@ const checklist = ref([
           <!-- 이메일 인증 -->
 
           <!-- 전화번호 인증 - 미개발로 음영처리 -->
-          <el-tab-pane label="전화번호로 찾기" name="phone">
+          <el-tab-pane :label="t('findId.tabPhone')" name="phone">
             <div class="form-container-with-overlay">
               <!-- 오버레이 레이어 -->
               <div class="form-overlay">
@@ -314,35 +305,35 @@ const checklist = ref([
                   >
                     <InfoFilled />
                   </el-icon>
-                  <p class="overlay-title">서비스 준비 중입니다</p>
-                  <p class="overlay-description">현재 전화번호 찾기 기능은 이용할 수 없습니다.</p>
+                  <p class="overlay-title">{{ t('findId.phoneServiceNoticeTitle') }}</p>
+                  <p class="overlay-description">{{ t('findId.phoneServiceNoticeDesc') }}</p>
                 </div>
               </div>
 
               <el-form class="find-form" label-position="top">
                 <!-- ... 기존 폼 아이템들 ... -->
-                <el-form-item label="이름">
+                <el-form-item :label="t('findId.labelName')">
                   <el-input
                       disabled
-                      placeholder="가입 시 등록한 이름을 입력하세요."
+                      :placeholder="t('findId.placeholderName')"
                       size="large"
                   />
                 </el-form-item>
-                <el-form-item label="전화번호">
+                <el-form-item :label="t('findId.labelAuthCode')">
                   <el-input
                       disabled
-                      placeholder="'-' 없이 숫자만 입력하세요."
+                      placeholder=""
                       size="large"
                   >
                     <template #append>
-                      <el-button disabled>인증번호 전송</el-button>
+                      <el-button disabled>{{ t('findId.buttonSendCode') }}</el-button>
                     </template>
                   </el-input>
                 </el-form-item>
-                <el-form-item label="인증번호" style="margin-bottom: 4px;">
+                <el-form-item :label="t('findId.labelAuthCode')" style="margin-bottom: 4px;">
                   <el-input
                       disabled
-                      placeholder="수신된 인증번호를 입력하세요."
+                      placeholder=""
                       size="large"
                   />
                 </el-form-item>
@@ -352,7 +343,7 @@ const checklist = ref([
                   <el-icon class="timer-icon"><Timer /></el-icon>
                 </el-text>
                 <div style="display: flex; align-items: center;">
-                  <el-text style="font-size: 12px;">인증번호가 오지 않나요?</el-text>
+                  <el-text style="font-size: 12px;">{{ t('findId.timerHelpText') }}</el-text>
                   <el-button :icon="QuestionFilled" type="info" link class="help-icon-button"/>
                 </div>
               </div>
@@ -362,13 +353,13 @@ const checklist = ref([
         </el-tabs>
 
         <el-button type="primary" class="action-button" :disabled="!isCodeSent" @click="findId">
-          확인
+          {{ t('findId.buttonConfirm') }}
         </el-button>
       </div>
 
       <!-- 2단계: 아이디 찾기 결과 (복사하기 기능 추가) -->
       <div v-else class="result-section">
-        <p class="result-description">고객님의 아이디 찾기 결과입니다.</p>
+        <p class="result-description">{{ t('findId.resultDescription') }}</p>
         <div class="result-box">
           <span>{{ maskedFoundUserId }}</span>
           <el-button
@@ -381,16 +372,16 @@ const checklist = ref([
           />
         </div>
         <div>
-          <el-button @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
-          <el-button type="primary" @click="onClickToGoPage('login')">로그인 하기</el-button>
+          <el-button @click="onClickToGoPage('FindPassword')">{{ t('findId.buttonFindPassword') }}</el-button>
+          <el-button type="primary" @click="onClickToGoPage('login')">{{ t('findId.buttonLogin') }}</el-button>
         </div>
       </div>
 
       <!-- 인증 전 떠있는 링크 버튼 -->
       <div v-if="!isIdFound" class="find-links">
-        <el-button type="info" link @click="onClickToGoPage('login')">로그인 하기</el-button>
+        <el-button type="info" link @click="onClickToGoPage('login')">{{ t('findId.buttonLogin') }}</el-button>
         <el-divider direction="vertical" />
-        <el-button type="info" link @click="onClickToGoPage('FindPassword')">비밀번호 찾기</el-button>
+        <el-button type="info" link @click="onClickToGoPage('FindPassword')">{{ t('findId.buttonFindPassword') }}</el-button>
       </div>
     </el-card>
   </div>

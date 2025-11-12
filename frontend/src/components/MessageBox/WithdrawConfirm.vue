@@ -1,33 +1,36 @@
 <template>
   <div class="withdraw-container">
-    <h3>회원탈퇴 안내</h3>
-    <p class="subtitle">정말로 탈퇴하시겠습니까?</p>
+    <h3>{{ t('withdrawConfirm.title') }}</h3>
+    <p class="subtitle">{{ t('withdrawConfirm.subtitle') }}</p>
 
     <div class="warning-box">
-      <!-- 아이콘을 담을 별도의 div 생성 -->
       <div class="icon-wrapper">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path>
         </svg>
       </div>
-      <!-- 텍스트 컨텐츠를 담을 별도의 div 생성 -->
       <div class="content-wrapper">
-        <p>회원탈퇴 시 아래의 정보가 영구적으로 삭제되며, 복구할 수 없습니다.</p>
+        <p>{{ t('withdrawConfirm.warning.message') }}</p>
         <ul>
-          <li>- 계정 정보 및 모든 개인 데이터</li>
-          <li>- 작성한 게시물, 댓글 등 모든 활동 기록</li>
+          <li>{{ t('withdrawConfirm.warning.item1') }}</li>
+          <li>{{ t('withdrawConfirm.warning.item2') }}</li>
         </ul>
       </div>
     </div>
 
     <p class="final-confirm-text">
-      회원탈퇴를 계속 진행하시려면,<br/>아래 입력칸에 '<b>회원탈퇴</b>'를 정확히 입력해주세요.
+      {{ t('withdrawConfirm.finalConfirm.line1') }}<br/>
+      <i18n-t keypath="withdrawConfirm.finalConfirm.line2" tag="span">
+        <template #actionText>
+          <b>{{ t('withdrawConfirm.finalConfirm.actionText') }}</b>
+        </template>
+      </i18n-t>
     </p>
 
     <el-input
         v-model="confirmText"
         @input="onInput"
-        placeholder="'회원탈퇴'를 입력하세요"
+        :placeholder="t('withdrawConfirm.placeholder', { actionText: t('withdrawConfirm.finalConfirm.actionText') })"
         size="large"
     />
   </div>
@@ -35,9 +38,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from "vue-i18n";
 
+const { t } = useI18n();
 const confirmText = ref('');
-
 const emit = defineEmits(['update:text']);
 
 // 이벤트가 발생할 때마다 부모에게 값을 전달하는 함수
@@ -47,12 +51,7 @@ const onInput = (value: string) => {
 </script>
 
 <style scoped>
-/* ----------------------------------------- */
-/* 1. 컴포넌트 테마 변수 정의 (라이트/다크)    */
-/* ----------------------------------------- */
-
 .withdraw-container {
-  /* 라이트 모드 기본 색상 변수 */
   --withdraw-title-color: var(--el-text-color-primary, #2c3e50);
   --withdraw-subtitle-color: var(--el-text-color-secondary, #8492a6);
   --withdraw-text-color: var(--el-text-color-regular, #5a687c);
@@ -171,12 +170,17 @@ h3 {
   transition: color 0.3s;
 }
 
+.final-confirm-box .el-message-box__header {
+  display: none;
+}
+.final-confirm-box .el-message-box__content {
+  padding: 0;
+}
 /* 최종 확인 텍스트의 굵은 글씨 스타일 */
 .final-confirm-text b {
   color: var(--withdraw-warning-border);
   font-weight: 700;
 }
-
 .el-input {
   margin-top: 0;
 }

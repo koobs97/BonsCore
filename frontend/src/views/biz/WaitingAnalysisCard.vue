@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import { reactive, ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { QuestionFilled, InfoFilled, Refresh, Search, MoreFilled } from "@element-plus/icons-vue";
@@ -16,6 +17,7 @@ import stars from "@/assets/images/stars_icon.png";
 import archive from "@/assets/images/archive-icon.png";
 import emptyBox from "@/assets/images/enpty_box.png";
 
+const { t } = useI18n();
 const userStoreObj = userStore();
 const step = ref('search');
 const searchQuery = ref('');
@@ -111,12 +113,12 @@ const numberOfPeople = ref(1);
 
 const selectedTime = ref() as any;
 const timeSlots = ref([
-  { label: '10시 ~ 12시', value: '10-12' },
-  { label: '12시 ~ 14시', value: '12-14' },
-  { label: '14시 ~ 16시', value: '14-16' },
-  { label: '16시 ~ 18시', value: '16-18' },
-  { label: '18시 ~ 20시', value: '18-20' },
-  { label: '20시 ~ 22시', value: '20-22' },
+  { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t10_12'), value: '10-12' },
+  { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t12_14'), value: '12-14' },
+  { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t14_16'), value: '14-16' },
+  { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t16_18'), value: '16-18' },
+  { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t18_20'), value: '18-20' },
+  { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t20_22'), value: '20-22' },
 ]);
 
 const searchStores = async () => {
@@ -290,23 +292,23 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
   const todayHoursText = openingInfo.weekdayText[todayIndex];
 
   if (!todayHoursText || typeof todayHoursText !== 'string') {
-    return { status: 'UNKNOWN', message: '오늘의 영업 정보를 가져올 수 없습니다.' };
+    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.todayUnavailable') };
   }
 
   if (todayHoursText.includes('휴무일')) {
-    return { status: 'CLOSED_TODAY', message: '오늘은 정기 휴무일입니다.' };
+    return { status: 'CLOSED_TODAY', message: t('waitingAnalyzer.steps.notAvailable.states.closed.message') };
   }
 
   const colonIndex = todayHoursText.indexOf(':'); // 콜론의 위치를 찾습니다.
 
   if (colonIndex === -1 || todayHoursText.includes('정보 없음')) {
-    return { status: 'UNKNOWN', message: '오늘의 영업 정보를 확인할 수 없습니다.' };
+    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.todayUnavailable') };
   }
 
   const timeInfoString = todayHoursText.substring(colonIndex + 1).trim();
 
   if (!timeInfoString) {
-    return { status: 'UNKNOWN', message: '영업 시간 정보를 찾을 수 없습니다.' };
+    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.todayUnavailable') };
   }
 
   const hourBlocks = timeInfoString.split(',').map(s => s.trim());
@@ -435,29 +437,11 @@ const startAnalysis = async () => {
 
   // 'OPERATIONAL' 상태가 아니면, 분석을 중단하고 상태에 맞는 메시지를 표시
   if (currentState.status !== 'OPERATIONAL') {
-    switch (currentState.status) {
-      case 'CLOSED_TODAY':
-        notAvailableInfo.emoji = '💤';
-        notAvailableInfo.title = '오늘은 휴무일입니다';
-        break;
-      case 'BREAK_TIME':
-        notAvailableInfo.emoji = '☕';
-        notAvailableInfo.title = '브레이크 타임입니다';
-        break;
-      case 'BEFORE_OPENING':
-        notAvailableInfo.emoji = '⏳';
-        notAvailableInfo.title = '영업 시작 전입니다';
-        break;
-      case 'AFTER_CLOSING':
-        notAvailableInfo.emoji = '🌙';
-        notAvailableInfo.title = '영업이 종료되었습니다';
-        break;
-      default: // 'UNKNOWN' 포함
-        notAvailableInfo.emoji = '⚠️';
-        notAvailableInfo.title = '운영 상태 확인 불가';
-    }
+    const stateKey = currentState.status.toLowerCase().replace('_today', '');
+    notAvailableInfo.emoji = t(`waitingAnalyzer.steps.notAvailable.states.${stateKey}.emoji`);
+    notAvailableInfo.title = t(`waitingAnalyzer.steps.notAvailable.states.${stateKey}.title`);
     notAvailableInfo.message = currentState.message;
-    step.value = 'notAvailable'; // 통합 '운영 안 함' 상태로 전환
+    step.value = 'notAvailable';
     return;
   }
 
@@ -866,12 +850,12 @@ const reset = () => {
     <div class="card">
       <div class="card-header">
         <div style="display: flex; align-items: center; justify-content: center;">
-          <h1 class="title">웨이팅 지수 분석기</h1>
+          <h1 class="title">{{ t('waitingAnalyzer.title') }}</h1>
           <div class="icon-flipper">
             <img class="title-icon" :src="Graph" alt="분석 아이콘" />
           </div>
         </div>
-        <p class="subtitle">가게의 오늘 웨이팅 지수를 예측해 드립니다.</p>
+        <p class="subtitle">{{ t('waitingAnalyzer.subtitle') }}</p>
       </div>
 
       <!-- 1. 초기 검색 단계 (수정됨) -->
@@ -881,7 +865,7 @@ const reset = () => {
           <div class="search-form">
             <el-input
                 v-model="searchQuery"
-                placeholder="가게 이름을 입력하세요 (예: 런던베이글)"
+                :placeholder="t('waitingAnalyzer.search.placeholder')"
                 @keyup.enter="searchStores"
                 size="large"
                 clearable
@@ -902,11 +886,13 @@ const reset = () => {
                   <div class="tip-accent-themed">
                     <p class="tip-accent-title">
                       <el-icon><InfoFilled /></el-icon>
-                      빠른 검색 팁!
+                      {{ t('waitingAnalyzer.search.tipTitle') }}
                     </p>
-                    <p class="tip-accent-description">
-                      네이버 정책에 따라 검색 결과는 <strong>최대 5개</strong>까지 제공됩니다.
-                    </p>
+                    <i18n-t keypath="waitingAnalyzer.search.tipDescription" tag="p" class="tip-accent-description">
+                      <template #limit>
+                        <strong>{{ t('waitingAnalyzer.search.limitText') }}</strong>
+                      </template>
+                    </i18n-t>
                   </div>
 
                 </el-popover>
@@ -919,7 +905,7 @@ const reset = () => {
                 :class="{ 'is-disabled': !searchQuery }"
                 class="search-button"
             >
-              분석 시작
+              {{ t('waitingAnalyzer.search.button') }}
             </button>
           </div>
         </div>
@@ -929,7 +915,7 @@ const reset = () => {
           <div class="info-block">
             <div class="info-title-wrapper">
               <img class="highlight-icon" :src="stars" alt="별 아이콘" />
-              <h3 class="info-title">이런 가게는 어때요?</h3>
+              <h3 class="info-title">{{ t('waitingAnalyzer.recommendations.title') }}</h3>
               <el-button
                   :icon="Refresh"
                   circle
@@ -963,7 +949,7 @@ const reset = () => {
         <div class="info-block">
           <div class="info-title-wrapper">
             <img class="highlight-icon" :src="archive" alt="저장소 아이콘" />
-            <h3 class="info-title">저장소</h3>
+            <h3 class="info-title">{{ t('waitingAnalyzer.archive.title') }}</h3>
           </div>
 
           <el-skeleton :rows="3" animated v-if="isArchiveLoading" class="archive-skeleton" />
@@ -978,12 +964,12 @@ const reset = () => {
               <div class="item-info">
                 <span class="item-name">{{ store.name }}</span>
                 <span class="item-category">{{ store.category }}</span>
-                <span class="item-date">방문일: {{ store.visitDate }}</span>
+                <span class="item-date">{{ t('waitingAnalyzer.archive.visitDatePrefix') }}{{ store.visitDate }}</span>
               </div>
 
               <!-- 액션 버튼 영역: 클래스 이름 변경 -->
               <div class="archive-item-actions">
-                <el-tooltip content="웨이팅 분석하기" placement="top">
+                <el-tooltip :content="t('waitingAnalyzer.archive.tooltipAnalyze')" placement="top">
                   <el-button
                       type="primary"
                       :icon="Search"
@@ -993,7 +979,7 @@ const reset = () => {
                       class="action-btn"
                   />
                 </el-tooltip>
-                <el-tooltip content="저장소에서 자세히 보기" placement="top">
+                <el-tooltip :content="t('waitingAnalyzer.archive.tooltipDetails')" placement="top">
                   <el-button
                       :icon="MoreFilled"
                       circle
@@ -1005,11 +991,10 @@ const reset = () => {
             </div>
             <el-empty
                 v-if="myArchiveStores.length === 0"
-                description="아카이브가 비었어요"
+                :description="t('waitingAnalyzer.archive.emptyDescription')"
                 :image-size="80"
                 style="padding: 20px;"
             >
-              <!-- [수정] 이 부분을 추가합니다 -->
               <template #image>
                 <img
                     :src="emptyBox"
@@ -1026,20 +1011,20 @@ const reset = () => {
 
       <!-- 2. 지점 선택 단계 -->
       <div v-if="step === 'selectStore'" class="card-body">
-        <h2 class="step-title">어느 지점의 웨이팅이 궁금하세요?</h2>
+        <h2 class="step-title">{{ t('waitingAnalyzer.steps.selectStore.title') }}</h2>
         <ul class="store-list">
           <li v-for="store in foundStores" :key="store.id" @click="selectStore(store)">
             <el-text>{{ store.name }}</el-text>
             <span>{{ store.simpleAddress }}</span>
           </li>
         </ul>
-        <button class="back-button" @click="reset">처음으로</button>
+        <button class="back-button" @click="reset">{{ t('waitingAnalyzer.steps.selectStore.back') }}</button>
       </div>
 
-      <!-- 2.5. ★★★ 방문 시간 선택 단계 (새로 추가) ★★★ -->
+      <!-- 방문 시간 선택 단계 -->
       <div v-if="step === 'selectTime'" class="card-body">
         <div class="input-group">
-          <h3 class="input-label">방문 인원을 설정해주세요.</h3>
+          <h3 class="input-label">{{ t('waitingAnalyzer.steps.selectTime.peopleLabel') }}</h3>
           <el-input-number
               v-model="numberOfPeople"
               :min="1"
@@ -1049,12 +1034,12 @@ const reset = () => {
               style="width: 100%;"
           />
         </div>
-        <h2 class="step-title">방문 예정 시간을 선택해주세요.</h2>
+        <h2 class="step-title">{{ t('waitingAnalyzer.steps.selectTime.timeLabel') }}</h2>
         <button
             class="skip-time-btn"
             @click="selectedTime = 'now'; confirmTimeAndAnalyze()"
         >
-          <span>⚡️ 시간 미정 (현재 시점 분석)</span>
+          <span>{{ t('waitingAnalyzer.steps.selectTime.skipButton') }}</span>
         </button>
         <div class="time-slots">
           <button
@@ -1069,23 +1054,23 @@ const reset = () => {
           </button>
         </div>
         <div class="button-group">
-          <button class="back-button" @click="step = 'selectStore'">지점 다시 선택</button>
-          <button class="right-button"@click="confirmTimeAndAnalyze" :disabled="!selectedTime">분석하기</button>
+          <button class="back-button" @click="step = 'selectStore'">{{ t('waitingAnalyzer.steps.selectTime.back') }}</button>
+          <button class="right-button"@click="confirmTimeAndAnalyze" :disabled="!selectedTime">{{ t('waitingAnalyzer.steps.selectTime.analyze') }}</button>
         </div>
       </div>
 
       <!-- 3. 데이터 분석 중 (로딩) 단계 -->
       <div v-if="step === 'loading'" class="card-body loading-state">
         <div class="spinner"></div>
-        <h2 class="step-title">{{ selectedStore.name }} 분석 중...</h2>
-        <p class="loading-message">잠시만 기다려주세요. 실시간 데이터를 수집하고 있습니다.</p>
+        <h2 class="step-title">{{ t('waitingAnalyzer.steps.loading.title', { storeName: selectedStore.name }) }}</h2>
+        <p class="loading-message">{{ t('waitingAnalyzer.steps.loading.message') }}</p>
         <div class="progress-list">
-          <p :class="{ done: progress.opening }">가게 운영 상태 확인</p>
-          <p :class="{ done: progress.weather }">기상청 날씨 정보 수집</p>
-          <p :class="{ done: progress.reviews }">네이버 리뷰 및 인지도 분석</p>
-          <p :class="{ done: progress.holiday }">공휴일 정보 확인</p>
-          <p :class="{ done: progress.sns }">네이버 데이터랩 언급량 확인</p>
-          <p :class="{ done: progress.surround }">주변 상권정보 조회</p>
+          <p :class="{ done: progress.opening }">{{ t('waitingAnalyzer.steps.loading.progress.opening') }}</p>
+          <p :class="{ done: progress.weather }">{{ t('waitingAnalyzer.steps.loading.progress.weather') }}</p>
+          <p :class="{ done: progress.reviews }">{{ t('waitingAnalyzer.steps.loading.progress.reviews') }}</p>
+          <p :class="{ done: progress.holiday }">{{ t('waitingAnalyzer.steps.loading.progress.holiday') }}</p>
+          <p :class="{ done: progress.sns }">{{ t('waitingAnalyzer.steps.loading.progress.sns') }}</p>
+          <p :class="{ done: progress.surround }">{{ t('waitingAnalyzer.steps.loading.progress.surround') }}</p>
         </div>
       </div>
 
@@ -1095,14 +1080,19 @@ const reset = () => {
         <div class="result-summary">
           <span class="result-emoji">{{ result.emoji }}</span>
           <div class="result-text">
-            <h2 class="result-index">{{ selectedStore.name }}은(는) 현재 <span :class="result.waitingIndex">{{ result.waitingIndex }}</span></h2>
+            <h2 class="result-index">
+              <i18n-t keypath="waitingAnalyzer.steps.result.summary" tag="span">
+                <template #storeName>{{ selectedStore.name }}</template>
+                <template #status><span :class="result.waitingIndex">{{ result.waitingIndex }}</span></template>
+              </i18n-t>
+            </h2>
             <p class="result-message">{{ result.message }}</p>
           </div>
         </div>
 
         <!-- 상세 점수 분석 (스크롤 영역) -->
         <div class="score-details">
-          <h3 class="details-title">상세 점수 분석</h3>
+          <h3 class="details-title">{{ t('waitingAnalyzer.steps.result.detailsTitle') }}</h3>
           <ul class="details-list">
             <li v-for="(detail, index) in scoreDetails" :key="index">
               <!-- 요인 이름과 정보 아이콘을 함께 묶음 -->
@@ -1143,10 +1133,10 @@ const reset = () => {
         <!-- 최종 점수 및 리셋 버튼 -->
         <div class="result-footer">
           <div class="total-score">
-            <span class="factor">최종 웨이팅 점수</span>
+            <span class="factor">{{ t('waitingAnalyzer.steps.result.totalScoreLabel') }}</span>
             <span class="score">{{ result.totalScore }}</span>
           </div>
-          <el-button type="primary" class="reset-button" @click="reset">새로운 가게 분석하기</el-button>
+          <el-button type="primary" class="reset-button" @click="reset">{{ t('waitingAnalyzer.steps.result.reset') }}</el-button>
         </div>
       </div>
 
@@ -1159,7 +1149,7 @@ const reset = () => {
         <!-- 영업시간 정보는 모든 '운영 안 함' 상태에서 유용하므로 그대로 유지 -->
         <div v-if="analysis.openingInfo && analysis.openingInfo.weekdayText" class="opening-hours-closed">
           <h3 class="details-title">
-            가게 영업 정보
+            {{ t('waitingAnalyzer.steps.notAvailable.storeInfoTitle') }}
             <el-popover
                 placement="right-end"
                 :width="180"
@@ -1187,7 +1177,7 @@ const reset = () => {
           </ul>
         </div>
 
-        <button class="reset-button" @click="reset">다른 가게 분석하기</button>
+        <button class="reset-button" @click="reset">{{ t('waitingAnalyzer.steps.notAvailable.reset') }}</button>
       </div>
     </div>
   </div>
