@@ -22,16 +22,42 @@
       "enterPassword": "Please enter your password.",
       "languageChangedTo": "Language changed to {lang}.",
       "checkRecaptcha": "Please check “I’m not a robot.”"
-    }
-  },
-  "dialog": {
-    "resolution": {
-      "title": "System Requirements",
-      "optimal": "Optimal Resolution",
-      "zoom": "Browser Zoom"
     },
-    "buttons": {
-      "ok": "OK"
+    "dialogs": {
+      "resolution": {
+        "title": "System Requirements",
+        "optimal": "Optimal Resolution",
+        "zoom": "Browser Zoom"
+      },
+      "buttons": {
+        "ok": "OK",
+        "login": "Login",
+        "cancel": "Cancel",
+        "verifyIdentity": "Verify Identity",
+        "close": "Close"
+      },
+      "duplicateLogin": {
+        "title": "Duplicate Login Detected",
+        "guide": "Selecting 'Login' will terminate the session on the other device."
+      },
+      "dormantAccount": {
+        "title": "Dormant Account Notice",
+        "defaultMessage": "Your account has been switched to a dormant state due to prolonged inactivity.<br>You can use the service normally immediately after identity verification."
+      },
+      "abnormalLogin": {
+        "title": "Abnormal Login Detected"
+      },
+      "recaptcha": {
+        "title": "Security Verification",
+        "description1": "For account security, reCAPTCHA verification is required.",
+        "description2": "To ensure a secure login, please prove you are not a robot.",
+        "altIcon": "Security shield icon",
+        "cancelMessage": "Security verification was cancelled.",
+        "successMessage": "Security verification completed.",
+        "expiredMessage": "Security verification has expired. Please try again.",
+        "errorMessage": "An error occurred during security verification.",
+        "loadFailedMessage": "Could not load the security verification module."
+      }
     }
   },
   "signup": {
@@ -546,5 +572,41 @@
         "todayUnavailable": "Could not retrieve today's business information."
       }
     }
+  },
+  "errors": {
+    "ER_000": "An internal server error has occurred.",
+    "ER_001": "The refresh token is invalid.",
+    "ER_002": "The access token has expired.",
+    "ER_003": "The access token is invalid.",
+    "ER_004": "You do not have permission.",
+    "ER_104": "A duplicate login has been detected. You will be forcibly logged out.",
+    "ER_105": "You do not have permission to access this resource.",
+    "ER_106": "The account has been locked due to excessive login attempts.",
+    "ER_107": "This password cannot be used as it has been previously compromised.",
+    "ER_108": "Dormant user information could not be found.",
+    "ER_005": "Invalid username or password.",
+    "ER_006": "Login failed.",
+    "ER_007": "The refresh token has expired.",
+    "ER_008": "Refresh token not found.",
+    "ER_009": "The request is already being processed. Please try again later.",
+    "ER_010": "The input value is not valid.",
+    "F001": "This file extension is not allowed.",
+    "F002": "Failed to save the file.",
+    "ER_109": "Your account has been locked due to exceeding the maximum login attempts (5 times). Please try again in 5 minutes.",
+    "ER_110": "This password cannot be used as it has been previously compromised. Please use a different password.",
+    "ER_111": "For account security, reCAPTCHA verification is required.",
+    "ER_112": "Failed to verify reCAPTCHA.",
+    "ER_113": "You are already logged in on another device.<br>Would you like to force disconnection and log in here?",
+    "ER_114": "You do not have access rights.",
+    "ER_115": "Your account has been converted to a dormant state due to a long period of inactivity.<br>You can reactivate your account through identity verification.",
+    "ER_116": "A login from a different environment has been detected.<br>For account protection, please proceed with identity verification.",
+    "ER_117": "Please enter your username.",
+    "ER_118": "Please enter your email.",
+    "ER_119": "No user matches the information you entered.",
+    "ER_120": "Please enter your ID.",
+    "ER_121": "Verification type is not set.",
+    "ER_122": "The verification code is invalid or has expired.",
+    "ER_123": "The answer is incorrect.",
+    "ER_124": "The token is invalid or has expired."
   }
 }

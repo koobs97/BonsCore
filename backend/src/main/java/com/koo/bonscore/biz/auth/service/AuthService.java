@@ -137,6 +137,7 @@ public class AuthService {
         return LoginResponseDto.builder()
                 .success(false)
                 .reason("DORMANT_ACCOUNT")
+                .code(ErrorCode.ACCOUNT_DORMANT_LONG_INACTIVE.getCode())
                 .message("장기간 미접속으로 계정이 휴면 상태로 전환되었습니다.<br>본인인증을 통해 계정을 활성화할 수 있습니다.")
                 .build();
     }

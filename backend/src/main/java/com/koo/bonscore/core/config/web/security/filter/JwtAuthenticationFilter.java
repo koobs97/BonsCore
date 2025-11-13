@@ -47,6 +47,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final LoginSessionManager loginSessionManager;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
+    private static final List<String> PERMIT_ALL_PATHS = List.of(
+            "/login/oauth2/",
+            "/oauth2/",
+            "/api/auth/",
+            "/api/public-key/",
+            "/images/"
+    );
+
     /**
      * 모든 HTTP 요청에 대해 JWT 인증을 시도하는 필터 메소드
      *
@@ -60,6 +68,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
+
+        // 요청 URI가 permitAll 경로에 해당하는지 먼저 확인
+        final String requestURI = request.getRequestURI();
+        boolean isPublicPath = PERMIT_ALL_PATHS.stream().anyMatch(requestURI::startsWith);
+        if (isPublicPath) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         try {
             // 요청 헤더에서 JWT 토큰을 추출

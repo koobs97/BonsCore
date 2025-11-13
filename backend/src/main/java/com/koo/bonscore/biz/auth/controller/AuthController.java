@@ -99,6 +99,7 @@ public class AuthController {
             if (recaptchaToken == null || recaptchaToken.isBlank()) {
                 return LoginResponseDto.builder()
                         .success(false)
+                        .code(ErrorCode.RECAPTCHA_REQUIRED.getCode())
                         .message("계정 보안을 위해 reCAPTCHA 인증이 필요합니다.")
                         .captchaRequired(true)
                         .build();
@@ -110,6 +111,7 @@ public class AuthController {
             if (!isRecaptchaValid) {
                 return LoginResponseDto.builder()
                         .success(false)
+                        .code(ErrorCode.RECAPTCHA_FAILED.getCode())
                         .message("자동 입력 방지 문자 확인에 실패했습니다.")
                         .captchaRequired(true)
                         .build();
@@ -132,7 +134,8 @@ public class AuthController {
                 if (!request.isForce() && loginSessionManager.isDuplicateLogin(request.getUserId())) {
                     responseDto.setSuccess(false);
                     responseDto.setReason("DUPLICATE_LOGIN");
-                    responseDto.setMessage("다른 기기에서 로그인 중입니다.<br>접속을 강제로 끊고 로그인하시겠습니까?");
+                    responseDto.setCode(ErrorCode.LOGGED_IN_ON_ANOTHER_DEVICE.getCode());
+                    responseDto.setMessage(ErrorCode.LOGGED_IN_ON_ANOTHER_DEVICE.getMessage());
                     return responseDto;
                 }
 
@@ -169,6 +172,9 @@ public class AuthController {
 
             // reCAPTCHA가 필요하다면, 예외 메시지 대신 reCAPTCHA 안내 메시지를 사용
             boolean captchaRequired = loginAttemptService.isCaptchaRequired(userId);
+            String responseCode = captchaRequired
+                    ? ErrorCode.RECAPTCHA_REQUIRED.getCode()
+                    : e.getErrorCode();
             String responseMessage = captchaRequired
                     ? "계정 보안을 위해 reCAPTCHA 인증이 필요합니다."
                     : e.getMessage();
@@ -176,6 +182,7 @@ public class AuthController {
             // 실패 후 응답 DTO 생성
             return LoginResponseDto.builder()
                     .success(false)
+                    .code(responseCode)
                     .message(responseMessage)
                     .captchaRequired(captchaRequired)
                     .build();

@@ -135,6 +135,8 @@
             , PHONE_NUMBER          = NULL                  /* 사용자 전화번호 */
             , BIRTH_DATE            = NULL                  /* 사용자 생년월일 */
             , GENDER_CODE           = NULL                  /* 성별 코드 */
+            , OAUTH_PROVIDER        = NULL                  /* 소셜 서비스 구분 */
+            , OAUTH_PROVIDER_ID     = NULL                  /* 소셜 서비스 발급 ID */
             , PASSWORD_HASH         = ' '                   /* 비밀번호 해쉬 */
             , PASSWORD_HINT         = NULL                  /* 비밀번호 힌트 */
             , PASSWORD_HINT_ANSWER  = NULL                  /* 비밀번호 힌트 정답 */

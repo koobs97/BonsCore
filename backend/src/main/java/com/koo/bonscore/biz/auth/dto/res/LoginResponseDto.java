@@ -20,6 +20,7 @@ import lombok.*;
 public class LoginResponseDto {
     private Boolean success;
     private String message;
+    private String code;
     private String accessToken;
     private String refreshToken;
     private String reason;

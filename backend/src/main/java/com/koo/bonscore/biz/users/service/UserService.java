@@ -154,7 +154,7 @@ public class UserService {
 
         if (dormantUserInfo == null) {
             log.warn("휴면 해제 요청이 있었으나, 휴면 정보 테이블에 해당 사용자가 없습니다. UserId: {}", userId);
-            throw new BsCoreException(HttpStatusCode.NOT_FOUND, ErrorCode.USER_NOT_FOUND, "휴면 상태 정보를 찾을 수 없습니다.");
+            throw new BsCoreException(HttpStatusCode.NOT_FOUND, ErrorCode.DORMANT_USER_NOT_FOUND, "휴면 상태 정보를 찾을 수 없습니다.");
         }
 
         // 원본 유저 테이블 복원

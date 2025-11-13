@@ -9,25 +9,26 @@
  * 작성일자 : 2025-01-30
  * ========================================
  */
-import { Hide, QuestionFilled, View } from "@element-plus/icons-vue";
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { Api } from "@/api/axiosInstance";
-import { ApiUrls } from "@/api/apiUrls";
-import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
-import { Common } from '@/common/common';
-import { useRoute, useRouter } from 'vue-router';
-import { userState, userStore } from '@/store/userStore';
-import { Dialogs } from "@/common/dialogs";
+import {Hide, QuestionFilled, View} from "@element-plus/icons-vue";
+import {computed, nextTick, onMounted, onUnmounted, reactive, ref} from 'vue';
+import {Api} from "@/api/axiosInstance";
+import {ApiUrls} from "@/api/apiUrls";
+import {ElIcon, ElMessage, ElMessageBox} from 'element-plus';
+import {Common} from '@/common/common';
+import {useRoute, useRouter} from 'vue-router';
+import {userState, userStore} from '@/store/userStore';
+import {Dialogs} from "@/common/dialogs";
 import SocialLoginButtons from '@/components/login/SocialLoginButtons.vue';
 import Setting from '@/assets/images/setting_icon.png';
-import { useTheme } from '@/composables/useTheme';
-import { useI18n } from 'vue-i18n';
-const { t, locale } = useI18n();
-
+import {useTheme} from '@/composables/useTheme';
+import {useI18n} from 'vue-i18n';
 // 커스텀 아이콘 이미지 임포트
 import SunnyIcon from '@/assets/images/Sunny_icon.png';
 import MoonIcon from '@/assets/images/Moon_icon.png';
 import SystemIcon from '@/assets/images/System_icon.png';
+import i18n from "@/i18n";
+
+const { t, locale } = useI18n();
 
 // router
 const router = useRouter();
@@ -250,20 +251,53 @@ const onClickLogin = async (isForced: boolean) => {
       // CAPTCHA가 필요한 경우
       if (res.data.captchaRequired) {
 
+        const message = res.data.message;
+        const backendResponse = res.data;
+        const reason = backendResponse.reason;
+        const backendMessage = backendResponse.message;
+        const errorCode = backendResponse.code;
+
+        let messageToShow = backendMessage; // 기본값은 백엔드 메시지
+
+        // ErrorCode가 존재하면 i18n 번역을 시도합니다.
+        if (errorCode) {
+          const translationKey = `errors.${errorCode}`;
+          const { t, te } = i18n.global;
+
+          if (te(translationKey)) {
+            messageToShow = t(translationKey); // 번역된 메시지 사용
+          }
+        }
+
         state.isProcessing = false;
-        state.recaptchaToken = await Dialogs.showRecaptchaDialog(res.data.message);
+        state.recaptchaToken = await Dialogs.showRecaptchaDialog(messageToShow);
 
       }
       // CAPTCHA가 필요 없는 다른 실패 사유(휴면 계정 등) 처리
       else {
 
-        const reason = res.data.reason;
         const message = res.data.message;
+        const backendResponse = res.data;
+        const reason = backendResponse.reason;
+        const backendMessage = backendResponse.message;
+        const errorCode = backendResponse.code;
+
+        let messageToShow = backendMessage; // 기본값은 백엔드 메시지
+
+        // ErrorCode가 존재하면 i18n 번역을 시도합니다.
+        if (errorCode) {
+          const translationKey = `errors.${errorCode}`;
+          const { t, te } = i18n.global;
+
+          if (te(translationKey)) {
+            messageToShow = t(translationKey); // 번역된 메시지 사용
+          }
+        }
 
         switch (reason) {
             // 중복 로그인 시
           case 'DUPLICATE_LOGIN':
-            await Dialogs.showDuplicateLoginConfirm(message)
+            await Dialogs.showDuplicateLoginConfirm(messageToShow)
                 .then(() => { // '로그인' 버튼 클릭 시
                   state.isProcessing = false;
                   onClickLogin(true);
@@ -274,7 +308,10 @@ const onClickLogin = async (isForced: boolean) => {
 
             // 휴먼 계정일 시
           case 'DORMANT_ACCOUNT':
-            await Dialogs.showDormantAccountNotice('휴면 계정 안내', message)
+            await Dialogs.showDormantAccountNotice(
+                t('login.dialogs.dormantAccount.title'),
+                messageToShow
+            )
                 .then(() => { // '본인인증' 버튼 클릭 시
                   router.push({ path: '/VerifyIdentity', state: { type: 'DORMANT' } });
                 }).catch((action) => {});
@@ -282,7 +319,10 @@ const onClickLogin = async (isForced: boolean) => {
 
             // 비정상 로그인 탐지 시
           case 'ACCOUNT_VERIFICATION_REQUIRED':
-            await Dialogs.showDormantAccountNotice('비정상 로그인 감지', message)
+            await Dialogs.showDormantAccountNotice(
+                t('login.dialogs.abnormalLogin.title'),
+                message
+            )
                 .then(() => { // '본인인증' 버튼 클릭 시
                   router.push({ path: '/VerifyIdentity', state: { type: 'ABNORMAL' } });
                 }).catch((action) => {});
@@ -290,7 +330,7 @@ const onClickLogin = async (isForced: boolean) => {
 
             // 기타 로그인 에러 메시지
           default:
-            ElMessage({ message: message, grouping: true, type: 'error' });
+            ElMessage({ message: messageToShow, grouping: true, type: 'error' });
         }
       }
     }

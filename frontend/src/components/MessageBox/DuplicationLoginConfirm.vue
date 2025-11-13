@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { defineProps } from 'vue';
-import { WarningFilled } from '@element-plus/icons-vue'; // Element Plus 아이콘 사용
+import { WarningFilled } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps<{
   title: string;
@@ -23,7 +26,7 @@ defineProps<{
       <!-- v-html을 사용하여 서버에서 받은 <br> 태그 등을 렌더링 -->
       <p class="custom-message" v-html="message"></p>
       <p class="custom-guide">
-        '로그인'을 선택하면 다른 기기에서의 접속이 종료됩니다.
+        {{ t('login.dialogs.duplicateLogin.guide') }}
       </p>
     </div>
   </div>
@@ -131,8 +134,12 @@ defineProps<{
 }
 </style>
 <style>
-.el-message-box.custom-message-box {
+.el-message-box.custom-message-box-ko {
   width: 488px !important;
+  max-width: none;
+}
+.el-message-box.custom-message-box-en {
+  width: 531px !important;
   max-width: none;
 }
 </style>

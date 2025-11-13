@@ -17,7 +17,7 @@ import { h } from "vue";
 import type { Router } from 'vue-router';
 import SessionExpiredAlert from "@/components/MessageBox/SessionExpiredAlert.vue";
 import { Dialogs } from "@/common/dialogs";
-
+import i18n from '@/i18n';
 let routerInstance: Router | null = null;
 
 // 라우터 인스턴스를 주입하는 함수
@@ -234,14 +234,43 @@ export class Api {
             
             // 401, 403 에러는 인터셉터에서 처리
             if(error.response.status !== 401 && error.response.status !== 403) {
-                // 에러 response message 출력Error
-                if(error.response.data.message) {
-                    ElMessage({ message: error.response.data.message, grouping: true, type: 'error' })
+
+                let errorCodeFromBackend: string | undefined;
+                let backendMessage: string | undefined;
+
+                // 1. ApiResponse 구조에서 header.code를 먼저 시도
+                if (error.response.data && error.response.data.header && error.response.data.header.code) {
+                    errorCodeFromBackend = error.response.data.header.code;
+                    backendMessage = error.response.data.message; // ApiResponse의 message 필드
+                }
+                // 2. LoginResponseDto와 같이 응답 DTO 자체가 code 필드를 가질 경우
+                else if (error.response.data && error.response.data.code) {
+                    errorCodeFromBackend = error.response.data.code;
+                    backendMessage = error.response.data.message; // LoginResponseDto의 message 필드
+                }
+                // 3. 그 외 경우 (메시지만 있는 경우 등)
+                else if (error.response.data && error.response.data.message) {
+                    backendMessage = error.response.data.message;
                 }
 
+                let messageToShow = backendMessage; // 기본값은 백엔드에서 받은 메시지
+
+                // 에러 코드가 있다면 i18n 번역을 시도
+                if (errorCodeFromBackend) {
+                    const translationKey = `errors.${errorCodeFromBackend}`; // 예: "errors.ER_005"
+                    const { t, te } = i18n.global;
+
+                    if (te(translationKey)) {
+                        messageToShow = t(translationKey); // 번역된 메시지 사용
+                    }
+                }
                 // CORS는 서버에 도달하기 전에 에러내용이 출력됨, 따라서 data부의 message가 없음
                 else if (error.response.data?.includes('CORS')) {
-                    ElMessage.error("서버와 연결할 수 없습니다");
+                    messageToShow = "서버와 연결할 수 없습니다"; // 클라이언트 자체 정의 에러
+                }
+
+                if (messageToShow) {
+                    ElMessage({ message: messageToShow, grouping: true, type: 'error' });
                 }
             }
             
