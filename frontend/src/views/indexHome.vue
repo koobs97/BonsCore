@@ -401,7 +401,7 @@ linear-gradient(to right, rgba(74, 144, 226, 0.2) 1px, transparent 1px); /* 세�
 background-size: 100%, 20px 20px, 20px 20px; /* 그리드 크기 지정 */
 border: 1px solid #e2dffc;
 box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
-              <div style="width: 52px; height: 52px; border-radius: 50%; background-color: #eef2f7; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background-color: #eef2f7; border: 1px solid #333; display: flex; align-items: center; justify-content: center;">
                 <img src="@/assets/images/spring-icon.svg" class="banner-icon" alt="Spring Boot Icon">
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">

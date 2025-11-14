@@ -454,7 +454,7 @@ const copyEmail = (email: string) => {
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05);
 }
 .card-header-content {
-  height: 60px;
+  height: 62px;
   display: flex;
   align-items: center;
 }
