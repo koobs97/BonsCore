@@ -86,10 +86,7 @@ public class AuthController {
 
         // 계정이 5회 초과 잠김인지 확인
         if (loginAttemptService.isAccountLocked(request.getUserId())) {
-            throw new BsCoreException(
-                    HttpStatusCode.FORBIDDEN,
-                    ErrorCode.ACCOUNT_LOCKED,
-                    "로그인 횟수(5회)를 초과하여 계정이 잠겼습니다. 5분 후에 다시 시도해주세요.");
+            throw new BsCoreException(ErrorCode.ACCOUNT_LOCKED);
         }
 
         // CAPTCHA 검증이 필요한지 확인

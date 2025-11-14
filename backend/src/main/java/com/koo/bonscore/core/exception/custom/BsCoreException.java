@@ -41,7 +41,6 @@ public class BsCoreException extends RuntimeException {
     public BsCoreException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
-        // ErrorCode에 새로 추가된 status 필드를 사용
         this.httpStatus = errorCode.getStatus();
     }
 

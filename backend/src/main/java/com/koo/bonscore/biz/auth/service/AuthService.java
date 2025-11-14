@@ -100,25 +100,12 @@ public class AuthService {
      */
     private LoginCheckDto validateCredentials(LoginDto request, String decryptedPassword) {
         LoginCheckDto loginCheckDto = authMapper.login(request);
-        if(loginCheckDto == null) {
 
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INVALID_CREDENTIALS
-                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
-        }
+        if(loginCheckDto == null)
+            throw new BsCoreException(ErrorCode.INVALID_CREDENTIALS);
 
-        String getHasedPassword = loginCheckDto.getPasswordHash();
-
-        // 비밀번호 비교는 matches 함수 사용
-        boolean isMatch = passwordEncoder.matches(decryptedPassword, getHasedPassword);
-
-        if (!isMatch) {
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INVALID_CREDENTIALS
-                    , ErrorCode.INVALID_CREDENTIALS.getMessage());
-        }
+        if (!passwordEncoder.matches(decryptedPassword, loginCheckDto.getPasswordHash()))
+            throw new BsCoreException(ErrorCode.INVALID_CREDENTIALS);
 
         return loginCheckDto;
     }
@@ -291,10 +278,7 @@ public class AuthService {
         // 2. 유출된 비밀번호인지 서버 측에서 최종 확인
         boolean isPwned = Boolean.TRUE.equals(pwnedPasswordService.isPasswordPwned(decryptedPassword).block()); // 비동기 결과를 동기적으로 기다림
         if (isPwned) {
-            throw new BsCoreException(
-                    HttpStatusCode.BAD_REQUEST,
-                    ErrorCode.WEAK_PASSWORD,
-                    "이 비밀번호는 유출된 이력이 있어 사용할 수 없습니다. 다른 비밀번호를 사용해주세요.");
+            throw new BsCoreException(ErrorCode.WEAK_PASSWORD);
         }
 
         // 암호화 대상 : 유저명, 패스워드, 이메일, 전화번호, 생년월일
@@ -332,15 +316,9 @@ public class AuthService {
 
         // 형식(Format)검증 - 아이디/비밀번호 찾기 공통 입력값
         if(StringUtils.isEmpty(request.getUserName()))
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.USERNAME_REQUIRED
-                    , "유저명을 입력해주세요.");
+            throw new BsCoreException(ErrorCode.USERNAME_REQUIRED);
         if(StringUtils.isEmpty(request.getEmail()))
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.EMAIL_REQUIRED
-                    , "이메일을 입력해주세요.");
+            throw new BsCoreException(ErrorCode.EMAIL_REQUIRED);
 
         /* 아이디 찾기 일 때 */
         if("ID".equals(type)) {
@@ -353,10 +331,7 @@ public class AuthService {
             // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
             String userName = authMapper.findByUserNameAndEmail(input);
             if(userName == null || !encryptionService.decrypt(userName).equals(request.getUserName()))
-                throw new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR
-                        , ErrorCode.USER_INFO_NOT_MATCH
-                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
+                throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
 
         } // ID
         
@@ -365,17 +340,11 @@ public class AuthService {
 
             // 형식(Format)검증
             if(StringUtils.isEmpty(request.getNonMaskedId()))
-                throw new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR
-                        , ErrorCode.USERID_REQUIRED
-                        , "아이디를 입력해주세요.");
+                throw new BsCoreException(ErrorCode.USERID_REQUIRED);
 
             UserInfoSearchDto result = authMapper.findUserById(request);
             if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()) || !encryptionService.decrypt(result.getEmail()).equals(request.getEmail()))
-                throw new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR
-                        , ErrorCode.USER_INFO_NOT_MATCH
-                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
+                throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
 
         } // PW
 
@@ -388,10 +357,7 @@ public class AuthService {
 
             UserInfoSearchDto result = authMapper.findUserByNameMail(input);
             if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()))
-                throw new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR
-                        , ErrorCode.USER_INFO_NOT_MATCH
-                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
+                throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
         }
 
         /* 휴먼계정 풀기 */
@@ -403,10 +369,7 @@ public class AuthService {
 
             UserInfoSearchDto result = authMapper.findDormantUserByNameAndEmail(input);
             if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()))
-                throw new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR
-                        , ErrorCode.USER_INFO_NOT_MATCH
-                        , "입력하신 정보와 일치하는 사용자가 없습니다.");
+                throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
         }
 
         // 메일 전송
@@ -442,12 +405,8 @@ public class AuthService {
                     .build();
 
             // 타입 체크
-            if(StringUtils.isEmpty(type)) {
-                throw new BsCoreException(
-                        HttpStatusCode.INTERNAL_SERVER_ERROR
-                        , ErrorCode.AUTH_TYPE_NOT_SET
-                        , "인증타입이 설정되지 않았습니다.");
-            }
+            if(StringUtils.isEmpty(type))
+                throw new BsCoreException(ErrorCode.AUTH_TYPE_NOT_SET);
 
             // 아이디찾기, 비밀번호찾기, 비정상 접근
             if (type.matches("FIND_ID|FIND_PW|PW|ABNORMAL")) {
@@ -472,12 +431,8 @@ public class AuthService {
                     // 만료시간 15분 -> 비밀번호 찾기 -> 비밀번호 변경에서 사용할 토큰
                     .token(jwtTokenProvider.createToken(userId, List.of("ROLE_REFRESH"), JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
                     .build();
-        } else {
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.AUTH_CODE_INVALID_OR_EXPIRED
-                    , "인증 코드가 유효하지 않거나 만료되었습니다.");
-        }
+        } else
+            throw new BsCoreException(ErrorCode.AUTH_CODE_INVALID_OR_EXPIRED);
     }
 
     /**
@@ -509,10 +464,7 @@ public class AuthService {
     public UserInfoSearchDto searchHintAnswerById(UserInfoSearchDto request) {
         String passwordHintAnswer = authMapper.findHintAnswerById(request);
         if(StringUtils.isEmpty(passwordHintAnswer))
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INCORRECT_ANSWER
-                    , "답변이 올바르지 않습니다.");
+            throw new BsCoreException(ErrorCode.INCORRECT_ANSWER);
         if(encryptionService.decrypt(passwordHintAnswer).equals(request.getPasswordHintAnswer()))
             return UserInfoSearchDto.builder()
                     .userId(request.getUserId())
@@ -520,10 +472,7 @@ public class AuthService {
                     .token(jwtTokenProvider.createToken(request.getUserId(), List.of("ROLE_REFRESH"), JwtTokenProvider.ACCESS_TOKEN_VALIDITY))
                     .build();
         else
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INCORRECT_ANSWER
-                    , "답변이 올바르지 않습니다.");
+            throw new BsCoreException(ErrorCode.INCORRECT_ANSWER);
     }
 
     /**
@@ -538,10 +487,7 @@ public class AuthService {
 
         // 1. 토큰 유효성 검증 (만료 여부, 위변조 여부 등)
         if (!jwtTokenProvider.validateToken(token)) {
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.TOKEN_INVALID_OR_EXPIRED
-                    , "토큰이 유효하지 않거나 만료되었습니다.");
+            throw new BsCoreException(ErrorCode.TOKEN_INVALID_OR_EXPIRED);
         }
 
         // 2. 토큰에서 사용자 ID 추출
@@ -553,10 +499,7 @@ public class AuthService {
         // 3. 사용자 유효성 검증
         UserInfoSearchDto result = authMapper.findUserById(user);
         if(result == null) {
-            throw new BsCoreException(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR
-                    , ErrorCode.INVALID_INPUT
-                    , "입력하신 정보와 일치하는 사용자가 없습니다.");
+            throw new BsCoreException(ErrorCode.INVALID_INPUT);
         }
 
         // 4. 입력값 세팅

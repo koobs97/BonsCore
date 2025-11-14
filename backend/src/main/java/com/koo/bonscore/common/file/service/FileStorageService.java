@@ -135,25 +135,15 @@ public class FileStorageService {
         int dotIndex = fileName.lastIndexOf('.');
 
         // '.'이 없거나, 파일 이름이 '.'으로 시작하는 경우 (예: .bashrc)
-        if (dotIndex == -1 || dotIndex == 0) {
-            throw new BsCoreException(
-                    HttpStatusCode.BAD_REQUEST, // 잘못된 요청으로 처리
-                    ErrorCode.INVALID_FILE_EXTENSION,
-                    "파일 확장자가 유효하지 않습니다."
-            );
-        }
+        if (dotIndex == -1 || dotIndex == 0)
+            throw new BsCoreException(ErrorCode.INVALID_FILE_EXTENSION);
 
         // 확장자 추출 후 소문자로 변환
         String extension = fileName.substring(dotIndex + 1).toLowerCase();
 
         // 허용된 확장자 목록에 포함되어 있는지 확인
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new BsCoreException(
-                    HttpStatusCode.BAD_REQUEST, // 잘못된 요청으로 처리
-                    ErrorCode.INVALID_FILE_EXTENSION,
-                    "허용되지 않는 파일 확장자입니다. (허용: " + String.join(", ", ALLOWED_EXTENSIONS) + ")"
-            );
-        }
+        if (!ALLOWED_EXTENSIONS.contains(extension))
+            throw new BsCoreException(ErrorCode.INVALID_FILE_EXTENSION);
     }
 
     /**
