@@ -4,8 +4,9 @@ import { reactive, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import { QuestionFilled, InfoFilled, Refresh, Search, MoreFilled } from "@element-plus/icons-vue";
+import { QuestionFilled, InfoFilled, Refresh, Search, MoreFilled, WarningFilled } from "@element-plus/icons-vue";
 import { userStore } from "@/store/userStore";
+import ServiceErrorState from '@/components/biz/ServiceErrorState.vue';
 
 import publicDataPortalLogo from "@/assets/images/data-logo.jpeg";
 import naverApiLogo from "@/assets/images/naver-api-logo.png";
@@ -16,6 +17,20 @@ import Graph from "@/assets/images/graph-icon.png";
 import stars from "@/assets/images/stars_icon.png";
 import archive from "@/assets/images/archive-icon.png";
 import emptyBox from "@/assets/images/enpty_box.png";
+
+// 서비스 장애 상태 변수
+const isRecommendationUnavailable = ref(false);
+const isArchiveUnavailable = ref(false);
+
+// 기본 추천 가게 데이터 정의
+const defaultRecommendedStores = [
+  { name: '런던 베이글 뮤지엄', category: '카페, 디저트' },
+  { name: '다운타우너 안국', category: '햄버거' },
+  { name: '카멜커피 5호점', category: '카페, 디저트' },
+  { name: '온천집 익선', category: '일식' },
+  { name: '소금집 델리 안국', category: '샌드위치' },
+  { name: '진저베어 파이샵', category: '카페, 디저트' },
+];
 
 const { t } = useI18n();
 const userStoreObj = userStore();
@@ -41,15 +56,24 @@ const isRecommendationLoading = ref(true);
 // 추천 가게 목록을 불러오는 함수
 const fetchRecommendedStores = async () => {
   isRecommendationLoading.value = true;
+  isRecommendationUnavailable.value = false; // 함수 호출 시 장애 상태 초기화
   try {
     const response = await Api.post(ApiUrls.RANDOM_RECOMMENDATIONS, {});
     recommendedStores.value = response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("추천 가게를 불러오는 데 실패했습니다:", error);
-    recommendedStores.value = []; // 실패 시 목록 비우기
+    recommendedStores.value = [];
+    isRecommendationUnavailable.value = true;
   } finally {
     isRecommendationLoading.value = false;
   }
+};
+
+// "기본 추천 보기" 버튼을 눌렀을 때 실행될 함수
+const handleShowDefaultRecommendations = () => {
+  recommendedStores.value = defaultRecommendedStores;
+  // 기본 데이터를 보여줬으므로, 더 이상 '장애' 상태가 아님. UI를 목록으로 되돌리기 위해 상태 변경
+  isRecommendationUnavailable.value = false;
 };
 
 // 추천 가게를 선택했을 때의 동작을 정의하는 함수
@@ -62,7 +86,7 @@ const myArchiveStores = ref<any[]>([]);
 const isArchiveLoading = ref(true);
 
 /**
- * ★★★ 새로운 함수: 저장소의 특정 맛집 상세 페이지로 이동
+ * 저장소의 특정 맛집 상세 페이지로 이동
  * @param storeId 이동할 가게의 고유 ID
  */
 const goToArchiveDetail = (storeId: number) => {
@@ -73,6 +97,7 @@ const goToArchiveDetail = (storeId: number) => {
 
 const fetchMyArchiveStores = async () => {
   isArchiveLoading.value = true;
+  isArchiveUnavailable.value = false; // 함수 호출 시 장애 상태 초기화
   try {
     // 사용자 ID를 페이로드에 담아 API를 호출합니다.
     const payload = { userId: userStoreObj.getUserInfo.userId };
@@ -97,8 +122,12 @@ const fetchMyArchiveStores = async () => {
         new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()
     );
 
-  } catch (error) {
-    myArchiveStores.value = []; // 실패 시 목록을 비웁니다.
+  } catch (error: any) { // ★★★ catch 블록에서 에러 처리 강화 ★★★
+    console.error("내 저장소 목록을 불러오는 데 실패했습니다:", error);
+    myArchiveStores.value = [];
+    if (error.response?.data?.header?.code || error.response?.data?.code) {
+      isArchiveUnavailable.value = true;
+    }
   } finally {
     isArchiveLoading.value = false;
   }
@@ -910,7 +939,7 @@ const reset = () => {
           </div>
         </div>
 
-        <!-- 아래 정보 섹션은 그대로 유지 -->
+        <!-- 가게 추천 영역 -->
         <div class="info-section">
           <div class="info-block">
             <div class="info-title-wrapper">
@@ -931,6 +960,17 @@ const reset = () => {
               <div class="skeleton-item" v-for="i in 6" :key="i"></div>
             </div>
 
+            <ServiceErrorState
+                v-else-if="isRecommendationUnavailable"
+                :title="t('waitingAnalyzer.errors.recommendationTitle')"
+                :message="t('waitingAnalyzer.errors.recommendationMessage')"
+                :show-fallback-action="true"
+                :fallback-action-text="t('waitingAnalyzer.errors.showDefaultRecommendations')"
+                :retry-action-text="t('waitingAnalyzer.errors.retry')"
+                @retry="fetchRecommendedStores"
+                @fallback="handleShowDefaultRecommendations"
+            />
+
             <!-- 로딩 완료 후 목록 표시 -->
             <ul v-else class="recommend-list">
               <li
@@ -950,6 +990,12 @@ const reset = () => {
           <div class="info-title-wrapper">
             <img class="highlight-icon" :src="archive" alt="저장소 아이콘" />
             <h3 class="info-title">{{ t('waitingAnalyzer.archive.title') }}</h3>
+          </div>
+
+          <!-- 서비스 장애 시 UI -->
+          <div v-if="isArchiveUnavailable" class="service-unavailable-box archive-style">
+            <el-icon :size="20"><WarningFilled /></el-icon>
+            <span>{{ t('waitingAnalyzer.recommendations.errorMessage2') }}</span>
           </div>
 
           <el-skeleton :rows="3" animated v-if="isArchiveLoading" class="archive-skeleton" />
@@ -1378,6 +1424,27 @@ input[type="text"]:focus {
   color: var(--el-color-primary); /* 메인 색상으로 강조 */
   transform: rotate(180deg) scale(1.1); /* 회전하며 약간 커지는 효과 */
   background-color: var(--el-fill-color-light); /* 아주 연한 배경색으로 클릭 영역 표시 */
+}
+.service-unavailable-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  height: 120px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid var(--el-color-danger-light-7);
+}
+/* 저장소 섹션의 장애 박스는 높이가 다르므로 별도 스타일 적용 */
+.service-unavailable-box.archive-style {
+  height: 165px; /* 저장소 목록의 높이와 맞춤 */
+  border-style: dashed;
 }
 .recommend-list {
   list-style: none;

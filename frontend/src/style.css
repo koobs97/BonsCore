@@ -258,3 +258,133 @@ button:focus-visible {
   padding: 10px;
   border-radius: 8px;
 }
+
+/* ================================================================== */
+/* =============== Modern ElMessage Global Styles =============== */
+/* ================================================================== */
+.el-message {
+  /* 레이아웃 및 디자인 */
+  min-width: 320px; /* 너무 좁아지지 않도록 최소 너비 설정 */
+  padding: 14px 20px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); /* 입체감을 주는 그림자 */
+  display: flex;
+  align-items: center;
+  gap: 12px; /* 아이콘과 텍스트 사이 간격 */
+
+  /* 애니메이션 효과 */
+  transition: opacity 0.3s, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 2. 등장 애니메이션 (아래에서 위로 떠오르는 효과) */
+.el-message.v-enter-from,
+.el-message.v-leave-to {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+.el-message.v-leave-active {
+  position: absolute; /* 사라질 때 다른 요소가 밀리지 않도록 */
+}
+
+/* 3. 내부 아이콘 및 텍스트 스타일 */
+.el-message__icon {
+  font-size: 20px; /* 아이콘 크기 살짝 키움 */
+}
+.el-message__content {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--el-text-color-primary); /* 모든 타입에서 기본 텍스트 색상 통일 */
+}
+
+/* 4. 닫기 버튼 스타일 (선택사항) */
+.el-message__closeBtn {
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+  transition: color 0.2s ease;
+}
+.el-message__closeBtn:hover {
+  color: var(--el-text-color-primary);
+}
+
+
+/* ================================================================== */
+/* =============== 타입별 상세 스타일 정의 =============== */
+/* ================================================================== */
+
+/* --- Success (성공) --- */
+.el-message--success {
+  background-color: #F0FDF4; /* 매우 연한 녹색 배경 */
+  border-color: #E1F3E9;
+}
+.el-message--success .el-message__icon {
+  color: var(--el-color-success); /* 아이콘은 진한 녹색 */
+}
+html.dark .el-message--success {
+  background-color: #1A3423;
+  border-color: #274C34;
+  --el-message-close-hover-color: var(--el-color-white); /* 닫기 버튼 호버 색상 */
+}
+
+/* --- Warning (경고) --- */
+.el-message--warning {
+  background-color: #FEFBF2; /* 매우 연한 주황색 배경 */
+  border-color: #F8F1DD;
+}
+.el-message--warning .el-message__icon {
+  color: var(--el-color-warning); /* 아이콘은 진한 주황색 */
+}
+html.dark .el-message--warning {
+  background-color: #382E1A;
+  border-color: #524326;
+  --el-message-close-hover-color: var(--el-color-white);
+}
+
+/* --- Error (에러) --- */
+.el-message--error {
+  /* 기존에 정의된 변수를 그대로 활용하거나, 새롭게 정의 */
+  background-color: var(--el-color-error-light-9, #FEF0F0); /* 연한 빨강 배경 */
+  border-color: var(--el-color-error-light-8, #FDE2E2);
+}
+.el-message--error .el-message__icon {
+  color: var(--el-color-error, #D93025); /* 아이콘은 진한 빨강 */
+}
+.el-message--error .el-message__content {
+  color: var(--el-color-error, #D93025); /* 에러는 텍스트도 강조 */
+  font-weight: 600;
+}
+html.dark .el-message--error {
+  background-color: #3C2020;
+  border-color: #572E2E;
+  --el-message-close-hover-color: var(--el-color-white);
+}
+html.dark .el-message--error .el-message__content {
+  color: #FAB7B3; /* 다크모드에서는 밝은 빨강으로 텍스트 색상 변경 */
+}
+
+
+/* --- Info (정보) --- */
+.el-message--info {
+  background-color: #F4F4F5; /* 연한 회색 배경 */
+  border-color: #E9E9EB;
+}
+.el-message--info .el-message__icon {
+  color: var(--el-color-info); /* 아이콘은 진한 회색 */
+}
+html.dark .el-message--info {
+  background-color: #2D2F33;
+  border-color: #404348;
+  --el-message-close-hover-color: var(--el-color-white);
+}
+
+/* ================================================================== */
+/* 다크모드 공통 스타일 (텍스트 색상 등) */
+/* ================================================================== */
+html.dark .el-message__content {
+  color: var(--el-text-color-primary, #E5E5E5); /* 다크모드 기본 텍스트 색상 */
+}
+html.dark .el-message__closeBtn {
+  color: var(--el-text-color-secondary, #A8A8A8);
+}

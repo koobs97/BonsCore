@@ -9,59 +9,64 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
 public class LoginSessionManager {
 
-//    private final Map<String, String> activeSessions = new ConcurrentHashMap<>();
     // Redis를 사용하여 블랙리스트 관리
-    private final RedisTemplate<String, String> redisTemplate; // RedisTemplate 주입
-    private static final String ACTIVE_SESSION_KEY_PREFIX = "jwt:active:session:";
-    private static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:"; // Redis 키 접두사
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String ACTIVE_TOKENS_KEY_PREFIX = "jwt:active:tokens:";
+    private static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
 
     private final JwtTokenProvider jwtTokenProvider;
 
+    /**
+     * 새로운 세션(토큰)을 등록
+     * 발급된 토큰을 해당 사용자의 활성 토큰 목록(Set)에 추가한다.
+     *
+     * @param userId 사용자 ID
+     * @param token 새로 발급된 Access Token
+     */
     public void registerSession(String userId, String token) {
-
-        // 기존에 로그인된 세션이 있다면 무효화 처리 (Redis에서 삭제)
-        invalidateOldSession(userId);
-
-        // 새로운 세션을 Redis에 등록. Access Token의 만료 시간과 동일한 TTL 설정
-        try {
-            Claims claims = jwtTokenProvider.getClaimsFromToken(token);
-            long expirationMillis = claims.getExpiration().getTime();
-            long nowMillis = new Date().getTime();
-            long remainingMillis = expirationMillis - nowMillis;
-
-            if (remainingMillis > 0) {
-                // key: "jwt:active:session:유저ID", value: "AccessToken 값"
-                redisTemplate.opsForValue().set(
-                        ACTIVE_SESSION_KEY_PREFIX + userId,
-                        token,
-                        Duration.ofMillis(remainingMillis) // 남은 만료 시간만큼 TTL 설정
-                );
-            }
-        } catch (Exception e) {
-            // 토큰 파싱 실패 시 로깅 또는 예외 처리
-        }
+        // 새로운 토큰을 사용자의 활성 토큰 Set에 추가합니다.
+        redisTemplate.opsForSet().add(ACTIVE_TOKENS_KEY_PREFIX + userId, token);
+        // Set 자체에 대한 만료 시간을 넉넉하게 설정 (예: 7일)
+        // 개별 토큰의 만료는 JWT 자체의 만료 시간으로 검증됩니다.
+        redisTemplate.expire(ACTIVE_TOKENS_KEY_PREFIX + userId, Duration.ofDays(7));
     }
 
+    /**
+     * 중복 로그인이 있는지 확인한다. (활성 세션이 하나라도 있는지)
+     *
+     * @param userId 사용자 ID
+     * @return 활성 세션 존재 여부
+     */
     public boolean isDuplicateLogin(String userId) {
-        // Redis에 해당 유저의 활성 세션 키가 존재하는지 확인
-        return Boolean.TRUE.equals(redisTemplate.hasKey(ACTIVE_SESSION_KEY_PREFIX + userId));
+        // 활성 토큰 Set에 멤버가 1개 이상 있는지 확인
+        Long size = redisTemplate.opsForSet().size(ACTIVE_TOKENS_KEY_PREFIX + userId);
+        return size != null && size > 0;
     }
 
-    public void invalidateOldSession(String userId) {
-        // Redis에서 기존 활성 세션 토큰을 가져온다.
-        String oldToken = redisTemplate.opsForValue().get(ACTIVE_SESSION_KEY_PREFIX + userId);
+    /**
+     * 특정 사용자의 모든 기존 세션을 무효화한다.
+     * 새로운 강제 로그인 시 호출되어, 해당 사용자의 모든 다른 기기 로그인을 끊는다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void invalidateAllOldSessions(String userId) {
+        Set<String> activeTokens = redisTemplate.opsForSet().members(ACTIVE_TOKENS_KEY_PREFIX + userId);
 
-        if (oldToken != null) {
-            // 1. 기존 활성 세션 정보를 Redis에서 삭제한다.
-            redisTemplate.delete(ACTIVE_SESSION_KEY_PREFIX + userId);
-            // 2. 가져온 기존 토큰을 블랙리스트에 추가한다.
-            addTokenToBlacklist(oldToken);
+        if (activeTokens != null && !activeTokens.isEmpty()) {
+            // 1. 가져온 모든 기존 활성 토큰을 블랙리스트에 추가합니다.
+            for (String token : activeTokens) {
+                addTokenToBlacklist(token);
+            }
+            // 2. 기존 활성 세션 정보 (Set 자체)를 Redis에서 삭제합니다.
+            redisTemplate.delete(ACTIVE_TOKENS_KEY_PREFIX + userId);
         }
     }
 
@@ -91,7 +96,7 @@ public class LoginSessionManager {
     }
 
     /**
-     * 토큰이 블랙리스트(Redis)에 있는지 확인합니다.
+     * 토큰이 블랙리스트(Redis)에 있는지 확인한다.
      * @param token 확인할 Access Token
      * @return 블랙리스트 포함 여부
      */
@@ -99,15 +104,19 @@ public class LoginSessionManager {
         return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_KEY_PREFIX + token));
     }
 
-    // 로그아웃 메서드도 Redis를 사용하도록 수정
+    /**
+     * 로그아웃 시 특정 세션을 무효화한다.
+     * @param userId 사용자 ID
+     * @param accessToken 무효화할 Access Token
+     * @param refreshToken 무효화할 Refresh Token
+     */
     public void logoutSession(String userId, String accessToken, String refreshToken) {
-        // 1. 활성 세션 목록에서 제거
-        redisTemplate.delete(ACTIVE_SESSION_KEY_PREFIX + userId);
-
-        // 2. Access Token과 Refresh Token을 블랙리스트에 추가
+        // 1. 활성 세션 목록(Set)에서 해당 Access Token 제거
         if (accessToken != null) {
+            redisTemplate.opsForSet().remove(ACTIVE_TOKENS_KEY_PREFIX + userId, accessToken);
             addTokenToBlacklist(accessToken);
         }
+        // 2. Refresh Token도 블랙리스트에 추가
         if (refreshToken != null) {
             addTokenToBlacklist(refreshToken);
         }

@@ -1,6 +1,8 @@
 package com.koo.bonscore.common.api.kakao.surround.service;
 
 import com.koo.bonscore.common.api.kakao.surround.dto.KakaoMapResponse;
+import com.koo.bonscore.core.exception.custom.BsCoreException;
+import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +35,6 @@ public class KakaoMapService {
         return null;
     }
 
-    // ★★★★★ 핵심 수정 부분 1: 키워드 검색 메서드 변경 ★★★★★
     /**
      * 키워드로 장소 검색 (RestTemplate이 직접 인코딩하도록 변경)
      */
@@ -53,11 +54,10 @@ public class KakaoMapService {
             return restTemplate.exchange(urlTemplate, HttpMethod.GET, entity, KakaoMapResponse.class, query).getBody();
         } catch (Exception e) {
             log.error("Kakao API 요청 실패: {}", e.getMessage());
-            return null;
+            throw new BsCoreException(ErrorCode.KAKAO_API_FAILURE);
         }
     }
 
-    // ★★★★★ 핵심 수정 부분 2: 주변 검색 메서드도 동일한 방식으로 변경 ★★★★★
     /**
      * 특정 좌표 주변의 키워드별 장소 검색 (RestTemplate 인코딩 방식 적용)
      */
@@ -74,7 +74,7 @@ public class KakaoMapService {
             return restTemplate.exchange(urlTemplate, HttpMethod.GET, entity, KakaoMapResponse.class, keyword, longitude, latitude, radius).getBody();
         } catch (Exception e) {
             log.error("Kakao API 요청 실패: {}", e.getMessage());
-            return null;
+            throw new BsCoreException(ErrorCode.KAKAO_API_FAILURE);
         }
     }
 
@@ -90,7 +90,7 @@ public class KakaoMapService {
             return restTemplate.exchange(urlTemplate, HttpMethod.GET, entity, KakaoMapResponse.class, categoryCode, longitude, latitude, radius).getBody();
         } catch (Exception e) {
             log.error("Kakao API 요청 실패: {}", e.getMessage());
-            return null;
+            throw new BsCoreException(ErrorCode.KAKAO_API_FAILURE);
         }
     }
 }

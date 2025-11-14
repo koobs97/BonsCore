@@ -12,7 +12,7 @@ import FinalConfirm from "@/components/MessageBox/FinalConfirm.vue";
 import { Dialogs } from "@/common/dialogs";
 import { useI18n } from "vue-i18n";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const userStoreObj = userStore();
 const buttonRef = ref()
 
@@ -21,6 +21,7 @@ const state = reactive({
   User: {
     userId      : '' as string,
     userName    : '' as string,
+    userNameEn  : '' as string,
     email       : '' as string,
     phoneNumber : '' as string,
     birthDate   : '' as string,
@@ -29,6 +30,11 @@ const state = reactive({
     oauthProvider : '' as string | null,
   } as userState,
 })
+
+// 현재 언어에 따라 사용자 이름을 반환
+const displayedUserName = computed(() => {
+  return locale.value === 'en' ? state.User.userNameEn : state.User.userName;
+});
 
 // 소셜 로그인 관련 정보
 const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID;
@@ -241,10 +247,10 @@ const copyEmail = (email: string) => {
 </script>
 
 <template>
-  <el-card class="custom-el-card" shadow="never" style="width: 230px; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05);">
+  <el-card class="custom-el-card user-profile-card" shadow="never">
     <template #header>
-      <div style="height: 60px; display: flex; align-items: center;">
-        <div style="display: flex; justify-content: flex-start; padding: 0 0 0 8px;">
+      <div class="card-header-content">
+        <div class="user-info-wrapper">
 
           <el-popover
               :width="338"
@@ -252,56 +258,28 @@ const copyEmail = (email: string) => {
               placement="right-start"
               persistent
               trigger="manual"
-              popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 12px;"
+              popper-class="user-popover"
           >
             <template #reference>
-              <div style="display: inline-flex; align-items: center;">
-                <!-- 메인 아바타 -->
-                <div style="position: relative; width: 40px; height: 40px;">
+              <div class="avatar-name-container">
+                <div class="avatar-container">
                   <el-avatar shape="square" :size="40">
-                    <el-icon style="font-size: 24px;">
+                    <el-icon class="user-filled-icon">
                       <UserFilled />
                     </el-icon>
                   </el-avatar>
-
-                  <!-- 설정 아이콘 -->
                   <el-icon
-                      style="
-                        position: absolute;
-                        bottom: -4px;
-                        right: -4px;
-                        background: var(--el-bg-color);
-                        border-radius: 50%;
-                        font-size: 14px;
-                        padding: 2px;
-                        box-shadow: 0 0 2px rgba(0,0,0,0.2);
-                        cursor: pointer;
-                      "
+                      class="settings-icon"
                       @click="custromTrigger"
                   >
                     <Setting />
                   </el-icon>
                 </div>
-
-                <!-- 이름/이메일 세로 배치 -->
-                <div
-                    style="
-                      display: flex;
-                      flex-direction: column;
-                      justify-content: flex-start;
-                      margin-left: 8px;
-                      user-select: none;
-                      min-width: 150px;
-                      text-align: left;
-                    "
-                >
-                  <!-- 이름 -->
-                  <div style="font-weight: bold; font-size: 14px; user-select: text;">
-                    {{ state.User.userName }}
+                <div class="user-details">
+                  <div class="user-name">
+                    {{ displayedUserName }}
                   </div>
-
-                  <!-- 이메일 -->
-                  <div style="font-size: 12px; color: #666; user-select: text; margin-top: 2px;">
+                  <div class="user-email">
                     {{ state.User.email }}
                   </div>
                 </div>
@@ -310,19 +288,17 @@ const copyEmail = (email: string) => {
 
             <el-card shadow="never">
               <template #default>
-                <div
-                    style="text-align: center;"
-                >
-                  <div style="margin-bottom: 6px;">
+                <div class="popover-content-center">
+                  <div class="popover-avatar-wrapper">
                     <el-avatar
                         :size="85"
-                        style="margin: 0 0 0 0; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
+                        class="popover-avatar"
                         src='https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
                     />
                   </div>
-                  <div style="display: flex; align-items: center; justify-content: center; margin-top: 6px; margin-left: 32px;">
-                    <el-text tag="mark" style="font-weight: bold; color: var(--el-overlay-color); font-size: 14px;">
-                      @{{ state.User.userName }}
+                  <div class="popover-username-wrapper">
+                    <el-text tag="mark" class="popover-username">
+                      @{{ displayedUserName }}
                     </el-text>
                     <el-tooltip :content="t('userInfo.tooltips.withdraw')" placement="right-end" :hide-after="0">
                       <el-button
@@ -332,12 +308,12 @@ const copyEmail = (email: string) => {
                           bg
                           circle
                           @click.stop="onClickWithdraw"
-                          style="width: 24px; height: 24px; margin-left: 8px; outline: none;"
+                          class="withdraw-button"
                       />
                     </el-tooltip>
                   </div>
                   <el-descriptions
-                      style="margin-top: 12px;"
+                      class="user-description-table"
                       :column="1"
                       size="small"
                       border
@@ -348,7 +324,7 @@ const copyEmail = (email: string) => {
                           ID
                         </div>
                       </template>
-                      <el-text style="font-weight: bold; font-size: 11px;">
+                      <el-text class="description-text">
                         {{ state.User.userId }}
                       </el-text>
                     </el-descriptions-item>
@@ -359,8 +335,8 @@ const copyEmail = (email: string) => {
                           {{ t('userInfo.labels.username') }}
                         </div>
                       </template>
-                      <el-text style="font-weight: bold; font-size: 11px;">
-                        {{ state.User.userName }}
+                      <el-text class="description-text">
+                        {{ displayedUserName }}
                       </el-text>
                     </el-descriptions-item>
 
@@ -370,11 +346,11 @@ const copyEmail = (email: string) => {
                           {{ t('userInfo.labels.email') }}
                         </div>
                       </template>
-                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <el-text style="font-weight: bold; font-size: 11px;">
+                      <div class="description-item-flex">
+                        <el-text class="description-text">
                           {{ state.User.email }}
                         </el-text>
-                        <el-tag type="success" style="width: 24px;" @click="copyEmail(state.User.email)">
+                        <el-tag type="success" class="copy-tag" @click="copyEmail(state.User.email)">
                           <el-icon><CopyDocument /></el-icon>
                         </el-tag>
                       </div>
@@ -386,7 +362,7 @@ const copyEmail = (email: string) => {
                           {{ t('userInfo.labels.phone') }}
                         </div>
                       </template>
-                      <el-text style="font-weight: bold; font-size: 11px;">
+                      <el-text class="description-text">
                         {{ formattedPhoneNumber }}
                       </el-text>
                     </el-descriptions-item>
@@ -397,7 +373,7 @@ const copyEmail = (email: string) => {
                           {{ t('userInfo.labels.gender') }}
                         </div>
                       </template>
-                      <el-tag style="width: 24px;">
+                      <el-tag class="gender-tag">
                         <el-icon><genderIcon /></el-icon>
                       </el-tag>
                     </el-descriptions-item>
@@ -406,14 +382,14 @@ const copyEmail = (email: string) => {
                   <div>
                     <el-button
                         icon="EditPen"
-                        style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
+                        class="action-button"
                         @click="openEditDialog"
                     >
                       {{ t('userInfo.buttons.editInfo') }}
                     </el-button>
                     <el-button
                         icon="Promotion"
-                        style="font-size: 12px; width: 90px; height: 30px; margin: 12px 2px 0 0;"
+                        class="action-button"
                         @click="onClickLogOut"
                     >
                       {{ t('userInfo.buttons.logout') }}
@@ -427,9 +403,21 @@ const copyEmail = (email: string) => {
         </div>
       </div>
     </template>
-    <div style="text-align: left; margin-top: 2px; height: 30px;">
-      <el-tag type="info" effect="light" style="margin-left: 4px; width: 82px;">{{ t('userInfo.labels.lastLogin') }}</el-tag>
-      <el-tag type="info" effect="light" style="margin-left: 4px; width: 136px;">{{ state.User.loginTime }}</el-tag>
+    <div class="card-body-content">
+      <el-tag
+          type="info"
+          effect="light"
+          class="info-tag last-login-label-tag"
+      >
+        {{ t('userInfo.labels.lastLogin') }}
+      </el-tag>
+      <el-tag
+          type="info"
+          effect="light"
+          class="info-tag last-login-time-tag"
+      >
+        {{ state.User.loginTime }}
+      </el-tag>
     </div>
     <UserEditForm
         v-model:visible="editDialogVisible"
@@ -453,6 +441,132 @@ const copyEmail = (email: string) => {
   transition: var(--el-transition-duration);
 }
 
+/* 새로 추가된 스타일 */
+.user-profile-card {
+  width: 230px;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05);
+}
+.card-header-content {
+  height: 60px;
+  display: flex;
+  align-items: center;
+}
+.user-info-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 0 0 8px;
+}
+.avatar-name-container {
+  display: inline-flex;
+  align-items: center;
+}
+.avatar-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+.user-filled-icon {
+  font-size: 24px;
+}
+.settings-icon {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: var(--el-bg-color);
+  border-radius: 50%;
+  font-size: 14px;
+  padding: 2px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+.user-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-left: 8px;
+  user-select: none;
+  min-width: 150px;
+  text-align: left;
+}
+.user-name {
+  font-weight: bold;
+  font-size: 14px;
+  user-select: text;
+}
+.user-email {
+  font-size: 12px;
+  color: #666;
+  user-select: text;
+  margin-top: 2px;
+}
+.popover-content-center {
+  text-align: center;
+}
+.popover-avatar-wrapper {
+  margin-bottom: 6px;
+}
+.popover-avatar {
+  margin: 0;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.popover-username-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  margin-left: 32px;
+}
+.popover-username {
+  font-weight: bold;
+  color: var(--el-overlay-color);
+  font-size: 14px;
+}
+.withdraw-button {
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;
+  outline: none;
+}
+.user-description-table {
+  margin-top: 12px;
+}
+.description-text {
+  font-weight: bold;
+  font-size: 11px;
+}
+.description-item-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.copy-tag {
+  width: 24px;
+}
+.gender-tag {
+  width: 24px;
+}
+.action-button {
+  font-size: 12px;
+  width: 90px;
+  height: 30px;
+  margin: 12px 2px 0 0;
+}
+.card-body-content {
+  text-align: left;
+  margin-top: 2px;
+  height: 30px;
+}
+.info-tag {
+  margin-left: 4px;
+}
+.last-login-label-tag {
+  width: 82px;
+}
+.last-login-time-tag {
+  width: 136px;
+}
 </style>
 <style>
 .withdraw-confirm-box.el-message-box {
@@ -460,13 +574,9 @@ const copyEmail = (email: string) => {
   padding: 20px;
   border-radius: 4px;
 }
-
-/* 커스텀 컴포넌트에 자체 헤더가 있으므로 기본 헤더는 숨김 */
 .withdraw-confirm-box .el-message-box__header {
   display: none;
 }
-
-/* 컨텐츠 영역의 불필요한 패딩 제거 */
 .withdraw-confirm-box .el-message-box__content {
   padding: 0;
 }
@@ -475,14 +585,14 @@ const copyEmail = (email: string) => {
   padding: 20px;
   border-radius: 8px;
 }
-
-/* FinalConfirm에서도 ElMessageBox의 기본 헤더를 숨김 */
 .final-confirm-box .el-message-box__header {
   display: none;
 }
-
-/* 컨텐츠 영역의 불필요한 패딩 제거 */
 .final-confirm-box .el-message-box__content {
   padding: 0;
+}
+.user-popover {
+  box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px;
+  padding: 12px;
 }
 </style>

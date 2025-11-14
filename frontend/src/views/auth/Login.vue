@@ -22,6 +22,7 @@ import SocialLoginButtons from '@/components/login/SocialLoginButtons.vue';
 import Setting from '@/assets/images/setting_icon.png';
 import {useTheme} from '@/composables/useTheme';
 import {useI18n} from 'vue-i18n';
+
 // 커스텀 아이콘 이미지 임포트
 import SunnyIcon from '@/assets/images/Sunny_icon.png';
 import MoonIcon from '@/assets/images/Moon_icon.png';
@@ -95,12 +96,11 @@ onMounted(async () => {
   await nextTick();
   ElMessageBox.close();
   ElMessage.closeAll();
-  console.log("Login page mounted: All previous messages have been cleared.");
 
   // 로그아웃 시 meesage
   if (route.query.status === 'logged-out') {
     await nextTick();
-    ElMessage.success('성공적으로 로그아웃되었습니다.');
+    ElMessage.success(t('logout.successMessage'));
 
     const newUrl = window.location.pathname;
     history.replaceState({}, '', newUrl);
@@ -109,15 +109,10 @@ onMounted(async () => {
   // 로그인되어있는 경우 로그아웃
   const isLoggedIn = userStore().isLoggedIn;
   if (isLoggedIn) {
-    try {
-      await Api.post(ApiUrls.LOGOUT, {}, true);
-      setTimeout(()=>{
-        userStore().delUserInfo();
-      }, 1000);
-    } catch (error){}
-    finally {
+    setTimeout(()=>{
+      userStore().delUserInfo();
       resetState();
-    }
+    }, 1000);
   }
 
   // CapsLock 탐지 이벤트리스너 등록
@@ -220,8 +215,9 @@ const onClickLogin = async (isForced: boolean) => {
       sessionStorage.setItem('accessToken', res.data.accessToken);
 
       // 유저정보 세팅
-      const user = await Api.post(ApiUrls.GET_USER, { userId : userId.value }, true);
-      const userInfo = user.data as userState
+      const response = await Api.post(ApiUrls.GET_USER, { userId : userId.value }, true);
+      let userInfo = response.data as userState
+      userInfo.userNameEn = Common.romanizeName(userInfo.userName, "upper");
       sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
       userStore().setUserInfo(userInfo);
 

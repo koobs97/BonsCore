@@ -538,6 +538,7 @@ box-shadow: 0 4px 12px rgba(108, 92, 231, 0.05); width: 64%;">
   align-items: center;
   justify-content: center;
   background-color: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-border-color);
   transition: transform 0.2s ease;
 }
 .logo-icon {

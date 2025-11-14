@@ -130,8 +130,10 @@ public class AuthController {
             // 로그인 성공 시 세션 처리
             if (responseDto.getSuccess()) {
 
-                // 사용자 ID로 중복 로그인 확인
-                if (!request.isForce() && loginSessionManager.isDuplicateLogin(request.getUserId())) {
+                boolean isDuplicate = loginSessionManager.isDuplicateLogin(userId);
+
+                // 중복 로그인 상태이고, 강제 로그인('force') 옵션이 없는 경우
+                if (isDuplicate && !request.isForce()) {
                     responseDto.setSuccess(false);
                     responseDto.setReason("DUPLICATE_LOGIN");
                     responseDto.setCode(ErrorCode.LOGGED_IN_ON_ANOTHER_DEVICE.getCode());
@@ -139,9 +141,15 @@ public class AuthController {
                     return responseDto;
                 }
 
+                // 중복 로그인 상태이고, 강제 로그인('force') 옵션이 있는 경우
+                if (isDuplicate) {
+                    // 이 사용자의 다른 모든 세션을 무효화시킵니다.
+                    loginSessionManager.invalidateAllOldSessions(userId);
+                }
+
                 String accessToken = responseDto.getAccessToken();
 
-                // 새로운 세션 등록 (이 과정에서 기존 세션은 블랙리스트 처리됨
+                // 새로운 세션 등록
                 loginSessionManager.registerSession(userId, accessToken);
 
                 // Refresh Token 쿠키로 전달

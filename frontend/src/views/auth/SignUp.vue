@@ -115,6 +115,7 @@ const onClickToGoPage = (path: string) => {
   align-items: center;
   justify-content: center;
   background-color: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-border-color);
   transition: transform 0.2s ease;
 }
 .logo-icon {

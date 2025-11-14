@@ -27,38 +27,46 @@ export class Dialogs {
      * @returns {Promise<string>} ElMessageBox.confirm의 Promise 객체
      */
     public static showLogoutConfirm = () => {
-        // 1. 다이얼로그가 호출될 때 스타일을 생성하고 삽입합니다.
+
+
         const style = document.createElement('style');
-        style.innerHTML = `
-        .logout-confirm-box.el-message-box {
-            width: 470px !important;
-            max-width: none !important;
-        }
-        
-        .el-message-box__header {
-            padding-bottom: 0;
-        }
-    `;
+
+        const { t, locale } = i18n.global;
+        const currentLocale = locale.value;
+        const dynamicCustomClass = currentLocale === 'en'
+            ? style.innerHTML = `
+                .logout-confirm-box.el-message-box {
+                    width: 490px !important;
+                    max-width: none !important;
+                }
+                .el-message-box__header {
+                    padding-bottom: 0;
+                }
+            `
+            : style.innerHTML = `
+                .logout-confirm-box.el-message-box {
+                    width: 470px !important;
+                    max-width: none !important;
+                }
+                .el-message-box__header {
+                    padding-bottom: 0;
+                }
+            `;
         document.head.appendChild(style);
 
-        // 2. ElMessageBox의 Promise를 변수에 저장합니다. (callback 옵션은 여전히 제거해야 합니다!)
         const confirmPromise = ElMessageBox.confirm(
             h(LogOutConfirm),
             '',
             {
-                confirmButtonText: '로그아웃',
-                cancelButtonText: '취소',
+                confirmButtonText: t('logout.button.confirmButtonText'),
+                cancelButtonText: t('logout.button.cancelButtonText'),
                 customClass: 'logout-confirm-box',
                 type: '',
                 showClose: false,
             }
         );
 
-        // 3. ★★★ 핵심 ★★★
-        // Promise에 .finally()를 체이닝하여 다이얼로그가 닫힐 때(성공/실패 무관)
-        // 스타일을 제거하는 작업을 예약하고, 그 Promise를 반환합니다.
         return confirmPromise.finally(() => {
-            // 이 코드는 사용자가 '확인'을 누르든 '취소'를 누르든 항상 실행됩니다.
             if (document.head.contains(style)) {
                 document.head.removeChild(style);
             }

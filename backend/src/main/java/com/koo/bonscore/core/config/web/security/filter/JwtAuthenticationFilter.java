@@ -1,4 +1,6 @@
 package com.koo.bonscore.core.config.web.security.filter;
+import com.koo.bonscore.core.exception.custom.DuplicateLoginException;
+import com.koo.bonscore.core.exception.custom.SessionExpiredException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -86,7 +88,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 1. 블랙리스트에 토큰이 있는지 확인
                 if (loginSessionManager.isTokenBlacklisted(token)) {
-                    throw new JwtException("중복 로그인이 감지되어 강제 로그아웃 됩니다.");
+                    throw new DuplicateLoginException();
                 }
 
                 // 2. 토큰 유효성 검증
@@ -95,7 +97,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } else {
                     // 만료되거나 잘못된 토큰인 경우
-                    throw new JwtException("세션이 만료되었습니다.");
+                    throw new SessionExpiredException();
                 }
 
             }

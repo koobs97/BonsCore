@@ -18,6 +18,9 @@ import type { Router } from 'vue-router';
 import SessionExpiredAlert from "@/components/MessageBox/SessionExpiredAlert.vue";
 import { Dialogs } from "@/common/dialogs";
 import i18n from '@/i18n';
+import DuplicationLoginConfirm from "@/components/MessageBox/DuplicationLoginConfirm.vue";
+import DuplicateLoginDialog from "@/components/MessageBox/DuplicateLoginDialog.vue";
+import {userStore} from "@/store/userStore";
 let routerInstance: Router | null = null;
 
 // 라우터 인스턴스를 주입하는 함수
@@ -60,7 +63,9 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
     response => response,
     async error => {
+
         const originalRequest = error.config;
+        const { t } = i18n.global;
 
         // 403 - FORBIDDEN
         if (error.response && error.response.status === 403 && !originalRequest._retry) {
@@ -126,31 +131,57 @@ axiosInstance.interceptors.response.use(
         // 401 - UNAUTHORIZED
         else if(error.response && error.response.status === 401 && !publicPaths.includes(router.currentRoute.value.path)) {
 
-            // 로그인 페이지로 이동하는 함수 선언
+            // ElMessageBox 인스턴스를 닫는 함수
+            const closeMessageBox = () => {
+                ElMessageBox.close();
+            };
+
+            // 로그인 페이지로 이동하는 함수
             const redirectToLogin = async () => {
                 if(router.currentRoute.value.path !== '/login') {
+                    userStore().delUserInfo();
+                    sessionStorage.clear();
                     await router.push("/login");
                     window.location.reload();
                 }
             };
 
-            // 1. SessionExpiredAlert 컴포넌트의 props 타입을 가져옵니다.
-            type AlertProps = InstanceType<typeof SessionExpiredAlert>['$props'];
+            // 비밀번호 변경 페이지로 이동하는 함수
+            const redirectToChangePassword = async () => {
+                closeMessageBox();
+                await router.push("/ChangePassword");
+                window.location.reload();
+            };
 
             let alertProps: any = {};
 
             // 1-1. 중복 로그인 감지 시
             if(error.response.data.data.code === 'ER_104') {
-                const customMessage = error.response.data.data.message;
+                const { locale } = i18n.global;
+                const currentLocale = locale.value;
+                const dynamicCustomClass = currentLocale === 'en'
+                    ? 'duplicate-login-box-en'
+                    : 'duplicate-login-box-ko';
 
-                // 2-1. props 객체를 타입과 함께 별도의 변수로 선언합니다.
-                alertProps = {
-                    initialSeconds: 10,
-                    onComplete: () => {
-                        redirectToLogin();
-                    },
-                    message: customMessage
-                };
+                ElMessageBox({
+                    title: ' ', // 제목은 컴포넌트 내부에서 처리하므로 비워둠
+                    message: h(DuplicateLoginDialog, {
+                        onGoToLogin: redirectToLogin,
+                        onGoToChangePassword: redirectToChangePassword,
+                    }),
+                    customClass: dynamicCustomClass,
+                    showConfirmButton: false,
+                    showCancelButton: false,
+                    type: '',
+                    showClose: false,
+                    closeOnClickModal: false,
+                    closeOnPressEscape: false,
+                }).catch(() => {
+                    // 비정상적으로 닫혔을 때 (거의 발생하지 않음)
+                    redirectToLogin();
+                });
+
+                return Promise.reject(error);
             }
             else {
                 // 2-2. props 객체를 타입과 함께 별도의 변수로 선언합니다.
@@ -160,34 +191,34 @@ axiosInstance.interceptors.response.use(
                         redirectToLogin();
                     },
                 };
+
+                // 메시지 박스 호출
+                const messageBoxPromise = ElMessageBox.alert(
+                    h(SessionExpiredAlert, alertProps),
+                    '',
+                    {
+                        confirmButtonText: t('session.expired.confirmButtonText'),
+
+                        // --- 버튼 가운데 정렬을 위한 옵션 ---
+                        center: false,
+
+                        type: '',
+                        showClose: false,
+                        closeOnClickModal: false,
+                        closeOnPressEscape: false,
+                    }
+                ).catch(() => {});
+
+                messageBoxPromise.then(() => {
+                    // '확인' 버튼을 누르거나, 코드로 close()가 호출되어 성공적으로 닫혔을 때 실행
+                    redirectToLogin();
+                }).catch(() => {
+                    console.log('MessageBox가 비정상적으로 닫혔습니다.');
+                    redirectToLogin(); // 어떤 경우든 로그인 페이지로 이동하도록 보장
+                });
+
+                return false;
             }
-
-            // 메시지 박스 호출
-            const messageBoxPromise = ElMessageBox.alert(
-                h(SessionExpiredAlert, alertProps),
-                '',
-                {
-                    confirmButtonText: '즉시 로그아웃',
-
-                    // --- 버튼 가운데 정렬을 위한 옵션 ---
-                    center: false,
-
-                    type: '',
-                    showClose: false,
-                    closeOnClickModal: false,
-                    closeOnPressEscape: false,
-                }
-            ).catch(() => {});
-
-            messageBoxPromise.then(() => {
-                // '확인' 버튼을 누르거나, 코드로 close()가 호출되어 성공적으로 닫혔을 때 실행
-                redirectToLogin();
-            }).catch(() => {
-                console.log('MessageBox가 비정상적으로 닫혔습니다.');
-                redirectToLogin(); // 어떤 경우든 로그인 페이지로 이동하도록 보장
-            });
-
-            return false;
         }
         // 401, 403 에러가 아닌 경우 post에서 처리하도록 던짐
         else {
@@ -220,14 +251,10 @@ export class Api {
                 background: 'rgba(0, 0, 0, 0.7)',
             })
         }
-
         try {
-
             const retData = await axiosInstance.post(url, params, { headers: options.headers })
             const returnData = retData.data
-
             if(loadingOption) loading.close();
-
             return returnData
         } catch (error: any) {
             if(loadingOption) loading.close();
@@ -235,18 +262,22 @@ export class Api {
             // 401, 403 에러는 인터셉터에서 처리
             if(error.response.status !== 401 && error.response.status !== 403) {
 
+                // EX_001 -> 가게 추천 서비스 이용 불가 시에는 alert 제외
+                if(error.response.data.header.code === "EX_001")
+                    throw(error);
+
                 let errorCodeFromBackend: string | undefined;
                 let backendMessage: string | undefined;
 
                 // 1. ApiResponse 구조에서 header.code를 먼저 시도
                 if (error.response.data && error.response.data.header && error.response.data.header.code) {
                     errorCodeFromBackend = error.response.data.header.code;
-                    backendMessage = error.response.data.message; // ApiResponse의 message 필드
+                    backendMessage = error.response.data.message;
                 }
                 // 2. LoginResponseDto와 같이 응답 DTO 자체가 code 필드를 가질 경우
                 else if (error.response.data && error.response.data.code) {
                     errorCodeFromBackend = error.response.data.code;
-                    backendMessage = error.response.data.message; // LoginResponseDto의 message 필드
+                    backendMessage = error.response.data.message;
                 }
                 // 3. 그 외 경우 (메시지만 있는 경우 등)
                 else if (error.response.data && error.response.data.message) {

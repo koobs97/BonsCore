@@ -1,3 +1,26 @@
+<script setup lang="ts">
+/**
+ * ========================================
+ * 파일명   : WithdrawConfirm.vue
+ * ----------------------------------------
+ * 설명     : 회원탈퇴 다이얼로그
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-10-05
+ * ========================================
+ */
+import { ref } from 'vue';
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+const confirmText = ref('');
+const emit = defineEmits(['update:text']);
+
+// 이벤트가 발생할 때마다 부모에게 값을 전달하는 함수
+const onInput = (value: string) => {
+  emit('update:text', value);
+}
+</script>
 <template>
   <div class="withdraw-container">
     <h3>{{ t('withdrawConfirm.title') }}</h3>
@@ -27,29 +50,20 @@
       </i18n-t>
     </p>
 
+    <!--
+      @paste.prevent : 복사 붙여넣기 방지
+      @drop.prevent : 드래그 앤 드롭 방지
+    -->
     <el-input
         v-model="confirmText"
         @input="onInput"
         :placeholder="t('withdrawConfirm.placeholder', { actionText: t('withdrawConfirm.finalConfirm.actionText') })"
         size="large"
+        @paste.prevent
+        @drop.prevent
     />
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue';
-import { useI18n } from "vue-i18n";
-
-const { t } = useI18n();
-const confirmText = ref('');
-const emit = defineEmits(['update:text']);
-
-// 이벤트가 발생할 때마다 부모에게 값을 전달하는 함수
-const onInput = (value: string) => {
-  emit('update:text', value);
-}
-</script>
-
 <style scoped>
 .withdraw-container {
   --withdraw-title-color: var(--el-text-color-primary, #2c3e50);

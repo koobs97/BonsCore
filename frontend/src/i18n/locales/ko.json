@@ -60,6 +60,33 @@
       }
     }
   },
+  "logout": {
+    "dialog": {
+      "title": "정말 로그아웃 하시겠습니까?",
+      "message": "저장하지 않은 데이터는 복구할 수 없습니다."
+    },
+    "button": {
+      "confirmButtonText": "로그아웃",
+      "cancelButtonText": "취소"
+    },
+    "successMessage": "성공적으로 로그아웃되었습니다."
+  },
+  "session": {
+    "expired": {
+      "title": "세션이 만료되었습니다.",
+      "message": "로그인 화면으로 이동합니다.",
+      "unit": "초",
+      "unitMessage": "초 후 자동 이동",
+      "confirmButtonText": "확인"
+    },
+    "duplicateLogin": {
+      "title": "중복 로그인 감지",
+      "message": "다른 기기에서 로그인하여 세션이 종료되었습니다.",
+      "securityWarning": "본인이 아니라면, 비밀번호를 변경하여 계정을 보호하세요.",
+      "buttonLogin": "로그인 페이지로",
+      "buttonChangePassword": "비밀번호 변경"
+    }
+  },
   "signup": {
     "title": "시작하기",
     "description": "가입 방법을 선택해주세요.",
@@ -474,7 +501,9 @@
       "limitText": "최대 5개"
     },
     "recommendations": {
-      "title": "이런 가게는 어때요?"
+      "title": "이런 가게는 어때요?",
+      "errorMessage1": "현재 추천 서비스를 이용할 수 없습니다.",
+      "errorMessage2": "현재 저장소 기능을 이용할 수 없습니다."
     },
     "archive": {
       "title": "저장소",
@@ -570,7 +599,13 @@
       "openingInfo": {
         "unavailable": "영업 정보 확인 불가",
         "todayUnavailable": "오늘의 영업 정보를 가져올 수 없습니다."
-      }
+      },
+      "recommendationTitle": "추천을 불러올 수 없어요",
+      "recommendationMessage": "서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      "archiveTitle": "저장소를 불러올 수 없어요",
+      "archiveMessage": "데이터를 가져오는 중 문제가 발생했습니다. 네트워크 연결을 확인하고 다시 시도해주세요.",
+      "showDefaultRecommendations": "기본 추천 보기",
+      "retry": "다시 시도"
     }
   },
   "errors": {
@@ -607,6 +642,8 @@
     "ER_121": "인증타입이 설정되지 않았습니다.",
     "ER_122": "인증 코드가 유효하지 않거나 만료되었습니다.",
     "ER_123": "답변이 올바르지 않습니다.",
-    "ER_124": "토큰이 유효하지 않거나 만료되었습니다."
+    "ER_124": "토큰이 유효하지 않거나 만료되었습니다.",
+    "ER_125": "세션이 만료되었습니다.",
+    "EX_001": "외부 서비스(카카오 지도) 연동에 실패하여 관련 기능을 사용할 수 없습니다. 잠시 후 다시 시도해주세요."
   }
 }

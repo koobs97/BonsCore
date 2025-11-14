@@ -1,7 +1,9 @@
 <script setup lang="ts">
-// <script> 부분은 이전과 동일하게 유지합니다.
 import { ref, computed, onMounted, onUnmounted, defineProps, toRefs } from 'vue';
 import { CircleClose } from '@element-plus/icons-vue';
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 export interface SessionExpiredAlertProps {
   initialSeconds?: number; // default 값이 있으므로 optional(?)로 지정
@@ -46,9 +48,9 @@ onUnmounted(() => {
         <el-icon :size="40" color="#F56C6C"><CircleClose /></el-icon>
       </div>
       <div class="text-wrapper">
-        <h3 class="custom-title">세션 만료</h3>
+        <h3 class="custom-title">{{ t('session.expired.title') }}</h3>
         <p class="custom-message">
-          {{ props.message }}
+          {{ t('session.expired.message') }}
         </p>
       </div>
     </div>
@@ -64,14 +66,14 @@ onUnmounted(() => {
         />
       </div>
       <div class="countdown-text">
-        <strong>{{ countdown }}</strong>초 후 자동 이동
+        <strong>{{ countdown }}</strong>
+        {{ t('session.expired.unitMessage') }}
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* 전체 컨테이너: 패딩을 줄이고 컴팩트하게 */
 .session-alert-container-compact {
   display: flex;
   flex-direction: column;

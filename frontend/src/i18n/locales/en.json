@@ -60,6 +60,33 @@
       }
     }
   },
+  "logout": {
+    "dialog": {
+      "title": "Are you sure you want to log out?",
+      "message": "Unsaved data cannot be recovered."
+    },
+    "button": {
+      "confirmButtonText": "logout",
+      "cancelButtonText": "cancel"
+    },
+    "successMessage": "You have been logged out successfully."
+  },
+  "session": {
+    "expired": {
+      "title": "Session Expired",
+      "message": "Redirecting to the login page.",
+      "unit": "sec",
+      "unitMessage": "sec after redirect",
+      "confirmButtonText": "Confirm"
+    },
+    "duplicateLogin": {
+      "title": "Session Expired",
+      "message": "Duplicate login detected. You have been logged out.",
+      "securityWarning": "If this wasn't you, change your password to protect your account.",
+      "buttonLogin": "Go to Login",
+      "buttonChangePassword": "Change Password"
+    }
+  },
   "signup": {
     "title": "Get Started",
     "description": "Please select a sign-up method.",
@@ -474,7 +501,9 @@
       "limitText": "5 items"
     },
     "recommendations": {
-      "title": "How about these places?"
+      "title": "How about these places?",
+      "errorMessage1": "The recommendation service is currently unavailable.",
+      "errorMessage2": "The storage feature is currently unavailable."
     },
     "archive": {
       "title": "My Archive",
@@ -570,7 +599,13 @@
       "openingInfo": {
         "unavailable": "Could not confirm business information",
         "todayUnavailable": "Could not retrieve today's business information."
-      }
+      },
+      "recommendationTitle": "Unable to load recommendations",
+      "recommendationMessage": "A temporary issue occurred. Please try again later.",
+      "archiveTitle": "Unable to load archive",
+      "archiveMessage": "There was a problem retrieving the data. Check your network and try again.",
+      "showDefaultRecommendations": "View default recommendations",
+      "retry": "Retry"
     }
   },
   "errors": {
@@ -607,6 +642,8 @@
     "ER_121": "Verification type is not set.",
     "ER_122": "The verification code is invalid or has expired.",
     "ER_123": "The answer is incorrect.",
-    "ER_124": "The token is invalid or has expired."
+    "ER_124": "The token is invalid or has expired.",
+    "ER_125": "Session has expired.",
+    "EX_001": "This feature is currently unavailable due to an external map service issue."
   }
 }

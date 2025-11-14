@@ -11,6 +11,9 @@
 import JSEncrypt from 'jsencrypt';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
+import { romanize } from "@romanize/korean";
+
+type CaseType = "none" | "capitalize" | "capitalizeEach" | "upper";
 
 export class Common {
 
@@ -48,6 +51,30 @@ export class Common {
         } catch (error) {
             console.error("Password encryption failed:", error);
             return ''; // 예외 발생 시 빈 문자열 반환
+        }
+    }
+
+    public static romanizeName(name: string, caseType: CaseType = "none"): string {
+        let result = romanize(name); // 기본: gubonsang
+
+        switch (caseType) {
+            case "capitalize":
+                // 첫 글자만 대문자 → Gubonsang
+                return result.charAt(0).toUpperCase() + result.slice(1);
+
+            case "capitalizeEach":
+                // 단어마다 대문자 → Gu Bonsang (띄어쓰기 필요함)
+                return result
+                    .split(" ")
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ");
+
+            case "upper":
+                // 전체 대문자 → GUBONSANG
+                return result.toUpperCase();
+
+            default:
+                return result; // 기본 소문자
         }
     }
 

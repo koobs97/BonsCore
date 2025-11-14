@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, defineProps, toRefs } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-// 부모로부터 초깃값과 콜백 함수를 받기 위한 props 정의
 const props = defineProps({
   initialSeconds: {
     type: Number,
@@ -13,8 +13,8 @@ const props = defineProps({
   }
 });
 
-// props를 반응성을 유지하며 구조분해
 const { initialSeconds, onComplete } = toRefs(props);
+const { t } = useI18n();
 
 const countdown = ref(initialSeconds.value);
 let timer = null as any;
@@ -35,21 +35,18 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(timer);
 });
-
 </script>
-
 <template>
   <div>
-    <p>세션이 만료되었습니다.</p>
-    <p>
-      로그인 화면으로 이동합니다. (
-      <!-- countdown 값이 바뀔 때마다 이 부분이 자동으로 업데이트됩니다 -->
-      <span style="color: #e6a23c; font-weight: bold;">{{ countdown }}</span>
-      초)
+    <!-- 제목: 세션이 만료되었습니다. -->
+    <p class="title">{{ t('session.expired.title') }}</p>
+    <!-- 내용: 로그인 화면으로 이동합니다. ( N 초 ) -->
+    <p class="desc">
+      {{ t('session.expired.message') }} (
+      <span class="countdown-number">{{ countdown }}</span>
+      {{ t('session.expired.unit') }})
     </p>
   </div>
 </template>
-
 <style scoped>
-
 </style>

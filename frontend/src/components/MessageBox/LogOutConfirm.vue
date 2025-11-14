@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// 기존과 동일하게 SwitchButton 아이콘을 사용합니다.
 import { SwitchButton } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 </script>
 
 <template>
@@ -14,8 +15,8 @@ import { SwitchButton } from '@element-plus/icons-vue';
 
     <!-- 오른쪽 텍스트 콘텐츠 영역 -->
     <div class="content-wrapper">
-      <h2 class="title">정말 로그아웃 하시겠습니까?</h2>
-      <p class="message">저장하지 않은 데이터는 복구할 수 없습니다.</p>
+      <h2 class="title">{{ t('logout.dialog.title') }}</h2>
+      <p class="message">{{ t('logout.dialog.message') }}</p>
     </div>
   </div>
 </template>

@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 export interface userState {
     userId          : string,
     userName        : string,
+    userNameEn      : string,
     email           : string,
     phoneNumber     : string,
     birthDate       : string,
@@ -17,6 +18,7 @@ export const userStore = defineStore('user', {
         userInfo: {
             userId          : '' as string,
             userName        : '' as string,
+            userNameEn      : '' as string,
             email           : '' as string,
             phoneNumber     : '' as string,
             birthDate       : '' as string,
@@ -28,19 +30,22 @@ export const userStore = defineStore('user', {
     }),
     getters: {
         isAuthenticated(): boolean {
-            return this.userInfo.userId != ''
+            return this.userInfo.userId != '';
         },
         isLoggedIn: (state) => {
-            return state.userInfo.userId !== ''
+            return state.userInfo.userId !== '';
         },
         getUserInfo: (state) => {
-            return state.userInfo
+            return state.userInfo;
         },
     },
     actions: {
         /* 유저 정보 세팅 */
         setUserInfo(userInfo: userState): void {
-            this.userInfo = userInfo
+            this.userInfo = userInfo;
+        },
+        setUserNameEn(userNameEn: string): void {
+            this.userInfo.userNameEn = userNameEn;
         },
         delUserInfo() {
             Object.keys(this.userInfo).forEach(key => {
