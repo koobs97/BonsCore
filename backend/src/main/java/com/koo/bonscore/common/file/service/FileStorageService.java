@@ -3,7 +3,6 @@ package com.koo.bonscore.common.file.service;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
-import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

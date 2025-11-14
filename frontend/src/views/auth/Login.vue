@@ -215,11 +215,7 @@ const onClickLogin = async (isForced: boolean) => {
       sessionStorage.setItem('accessToken', res.data.accessToken);
 
       // 유저정보 세팅
-      const response = await Api.post(ApiUrls.GET_USER, { userId : userId.value }, true);
-      let userInfo = response.data as userState
-      userInfo.userNameEn = Common.romanizeName(userInfo.userName, "upper");
-      sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
-      userStore().setUserInfo(userInfo);
+      await Common.setUser();
 
       // 아이디 기억하기
       if(rememberId.value) {

@@ -71,9 +71,9 @@ defineProps<{
   align-items: flex-start;
   gap: 20px;
   padding: 16px 12px 12px 12px;
-  background-color: var(--el-bg-color-overlay);
+  background-color: var(--el-border-color-extra-light);
   border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--el-border-color);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   animation: container-fade-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
@@ -86,6 +86,7 @@ defineProps<{
   height: 56px;
   border-radius: 50%;
   background-color: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-border-color);
   animation: icon-pop-in 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.1s backwards;
 }
 .icon-wrapper .el-icon {
@@ -121,11 +122,14 @@ defineProps<{
 </style>
 <style>
 .el-message-box.custom-message-box-ko {
-  width: 488px !important;
+  width: 490px !important;
   max-width: none;
 }
 .el-message-box.custom-message-box-en {
-  width: 531px !important;
+  width: 533px !important;
   max-width: none;
+}
+.el-message-box__header {
+  padding: 0 !important;
 }
 </style>

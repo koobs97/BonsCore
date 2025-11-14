@@ -77,9 +77,9 @@ defineProps({
   align-items: center;
   gap: 24px;
   padding: 24px;
-  background-color: var(--el-fill-color-lighter);
+  background-color: var(--el-border-color-extra-light);
   border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--el-border-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   animation: container-fade-in 0.4s ease-out forwards;
 }

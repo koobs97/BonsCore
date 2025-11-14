@@ -54,6 +54,9 @@ onMounted(async () => {
 })
 
 const genderIcon = computed(() => (state.User.genderCode === 'M' ? Male : Female));
+const genderClass = computed(() => {
+  return state.User.genderCode === 'M' ? 'gender-male' : 'gender-female';
+});
 
 const formattedPhoneNumber = computed(() => {
   const raw = state.User.phoneNumber?.replace(/\D/g, '') || ''
@@ -374,7 +377,11 @@ const copyEmail = (email: string) => {
                         </div>
                       </template>
                       <el-tag class="gender-tag">
-                        <el-icon><genderIcon /></el-icon>
+                        <el-icon
+                            type="info"
+                            :class="genderClass">
+                          <genderIcon />
+                        </el-icon>
                       </el-tag>
                     </el-descriptions-item>
 
@@ -546,6 +553,7 @@ const copyEmail = (email: string) => {
 }
 .gender-tag {
   width: 24px;
+  background-color: var(--el-bg-color-page);
 }
 .action-button {
   font-size: 12px;
@@ -566,6 +574,12 @@ const copyEmail = (email: string) => {
 }
 .last-login-time-tag {
   width: 136px;
+}
+.gender-male {
+  color: var(--blue);
+}
+.gender-female {
+  color: var(--el-color-danger);
 }
 </style>
 <style>

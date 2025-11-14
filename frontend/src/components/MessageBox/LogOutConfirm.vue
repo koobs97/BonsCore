@@ -65,9 +65,9 @@ const { t } = useI18n();
   align-items: center;
   gap: 24px; /* 아이콘과 텍스트 사이 간격 */
   padding: 24px; /* 내부 여백 증가로 여유 공간 확보 */
-  background-color: var(--el-fill-color-lighter);
+  background-color: var(--el-border-color-extra-light);
   border-radius: 8px; /* 부드러운 모서리 */
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--el-border-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 입체감을 위한 그림자 */
   animation: container-fade-in 0.4s ease-out forwards;
 }
@@ -84,6 +84,7 @@ const { t } = useI18n();
   /* 로그아웃 경고에 맞게 'danger' 색상 사용 */
   background-color: var(--el-color-danger-light-9);
   animation: icon-pop-in 0.5s ease-out 0.1s backwards;
+  border: 1px solid var(--el-color-danger-light-8);
 }
 
 /* 아이콘 색상 변경 */

@@ -62,6 +62,7 @@ const handleChangePasswordClick = () => {
   height: 56px;
   border-radius: 50%;
   background-color: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-border-color);
 }
 .icon-wrapper .el-icon {
   color: var(--el-color-warning);
@@ -108,5 +109,11 @@ const handleChangePasswordClick = () => {
 .duplicate-login-box-en {
   --el-messagebox-width: 472px !important;
   border-radius: 8px;
+}
+.duplicate-login-box-ko .el-message-box__btns {
+  padding: 0 !important;
+}
+.duplicate-login-box-en .el-message-box__btns {
+  padding: 0 !important;
 }
 </style>

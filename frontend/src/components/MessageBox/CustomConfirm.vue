@@ -76,9 +76,9 @@ defineProps({
   align-items: center;
   gap: 24px; /* 아이콘과 텍스트 사이 간격 증가 */
   padding: 24px; /* 내부 여백 증가 */
-  background-color: var(--el-fill-color-lighter);
+  background-color: var(--el-border-color-extra-light);
   border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--el-border-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 부드러운 그림자 효과 */
   animation: container-fade-in 0.4s ease-out forwards;
 }

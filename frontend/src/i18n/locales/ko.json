@@ -608,6 +608,77 @@
       "retry": "다시 시도"
     }
   },
+  "userEditForm": {
+    "sidebar": {
+      "userId": "사용자 ID: {userId}"
+    },
+    "form": {
+      "title": "기본 정보",
+      "buttonRestore": "원본 정보 다시 불러오기",
+      "sectionSecurity": "보안 설정",
+      "labels": {
+        "name": "이름",
+        "email": "이메일",
+        "phone": "연락처",
+        "birthDate": "생년월일",
+        "gender": "성별"
+      },
+      "placeholders": {
+        "name": "사용하실 이름을 입력하세요",
+        "email": "example@email.com",
+        "phone": "'-'를 제외하고 숫자만 입력하세요",
+        "birthDate": "예시: 19970729"
+      },
+      "gender": {
+        "male": "남자",
+        "female": "여자"
+      }
+    },
+    "security": {
+      "password": "비밀번호",
+      "passwordDesc": "주기적으로 변경하여 계정을 보호하세요.",
+      "securityQuestion": "보안 질문",
+      "securityQuestionDesc": "비밀번호 분실 시 본인 확인에 사용됩니다.",
+      "buttonChange": "변경",
+      "buttonSet": "설정"
+    },
+    "footer": {
+      "buttonCancel": "취소",
+      "buttonUpdate": "변경하기"
+    },
+    "dialogs": {
+      "confirmUpdateTitle": "회원정보 변경",
+      "confirmUpdateMessage": "입력하신 정보로 회원정보를 변경하시겠습니까?",
+      "confirmButton": "변경하기",
+      "cancelButton": "취소"
+    },
+    "messages": {
+      "emailUnavailable": "사용할 수 없는 이메일입니다.",
+      "emailAvailable": "사용 가능한 이메일입니다.",
+      "updateSuccess": "프로필 정보가 성공적으로 업데이트되었습니다.",
+      "updateCancelled": "정보 업데이트를 취소했습니다.",
+      "updateFailed": "정보 업데이트에 실패했습니다.",
+      "securityQuestionSet": "보안 질문이 성공적으로 설정되었습니다."
+    },
+    "rules": {
+      "userName": {
+        "required": "사용자 이름을 입력해주세요.",
+        "length": "2자에서 10자 사이로 입력해주세요."
+      },
+      "phoneNumber": {
+        "required": "전화번호를 입력해주세요.",
+        "pattern": "유효한 전화번호 형식이 아닙니다."
+      },
+      "email": {
+        "required": "이메일을 입력해주세요.",
+        "length": "5자에서 50자 사이로 입력해주세요."
+      },
+      "birthDate": {
+        "required": "생년월일을 입력해주세요.",
+        "length": "1자에서 8자 사이로 입력해주세요."
+      }
+    }
+  },
   "errors": {
     "ER_000": "서버 내부에서 에러가 발생했습니다.",
     "ER_001": "유효하지 않은 리프레시 토큰입니다.",

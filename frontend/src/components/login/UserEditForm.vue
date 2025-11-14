@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { ref, reactive, watch, defineProps, defineEmits, h } from 'vue';
+import { ref, reactive, watch, defineProps, defineEmits, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus'
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { User, Phone, Key, Message, Calendar, RefreshRight, QuestionFilled } from '@element-plus/icons-vue'
+import { Dialogs } from "@/common/dialogs";
 import ChangePasswordDialog from "@/components/login/ChangePasswordDialog.vue";
 import SecurityQuestionWizardDialog from "@/components/login/SecurityQuestionWizardDialog.vue";
-import { Dialogs } from "@/common/dialogs";
+import { useI18n } from "vue-i18n";
+import {userState, userStore} from "@/store/userStore";
+import {Common} from "@/common/common";
+
+const { t, locale } = useI18n();
+const userStoreObj = userStore();
 
 const changePasswordDialogVisible = ref(false);
 const securityQuestionDialogVisible = ref(false);
@@ -23,33 +29,38 @@ const emit = defineEmits(['update:visible', 'update-success']);
 const formRef = ref<FormInstance>();
 const isSubmitting = ref(false);
 
+// 현재 언어에 따라 사용자 이름을 반환
+const displayedUserName = computed(() => {
+  const User = userStoreObj.getUserInfo
+  return locale.value === 'en' ? User.userNameEn : User.userName;
+});
+
 const editForm = reactive({
   userName: '',
   phoneNumber: '',
   email: '',
   birthDate: '',
   genderCode: '',
-
   userEmailCheckStatus: '',
 });
 
 // --- 폼 유효성 검사 규칙 (기존과 동일) ---
 const rules = reactive<FormRules>({
   userName: [
-    { required: true, message: '사용자 이름을 입력해주세요.', trigger: 'blur' },
-    { min: 2, max: 10, message: '2자에서 10자 사이로 입력해주세요.', trigger: 'blur' },
+    { required: true, message: t('userEditForm.rules.userName.required'), trigger: 'blur' },
+    { min: 2, max: 10, message: t('userEditForm.rules.userName.length'), trigger: 'blur' },
   ],
   phoneNumber: [
-    { required: true, message: '전화번호를 입력해주세요.', trigger: 'blur' },
-    { pattern: /^\d{2,3}-?\d{3,4}-?\d{4}$/, message: '유효한 전화번호 형식이 아닙니다.', trigger: 'blur' }
+    { required: true, message: t('userEditForm.rules.phoneNumber.required'), trigger: 'blur' },
+    { pattern: /^\d{2,3}-?\d{3,4}-?\d{4}$/, message: t('userEditForm.rules.phoneNumber.pattern'), trigger: 'blur' }
   ],
   email: [
-    { required: true, message: '이메일을 입력해주세요.', trigger: 'blur' },
-    { min: 5, max: 50, message: '5자에서 50자 사이로 입력해주세요.', trigger: 'blur' },
+    { required: true, message: t('userEditForm.rules.email.required'), trigger: 'blur' },
+    { min: 5, max: 50, message: t('userEditForm.rules.email.length'), trigger: 'blur' },
   ],
   birthDate: [
-    { required: true, message: '생년월일을 입력해주세요.', trigger: 'blur' },
-    { min: 5, max: 50, message: '1자에서 8자 사이로 입력해주세요.', trigger: 'blur' },
+    { required: true, message: t('userEditForm.rules.birthDate.required'), trigger: 'blur' },
+    { min: 5, max: 50, message: t('userEditForm.rules.birthDate.length'), trigger: 'blur' },
   ],
 });
 
@@ -94,7 +105,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       else {
         const response2 = await Api.post(ApiUrls.CHECK_EMAIL, { email: editForm.email });
         if (response2.data) {
-          ElMessage({ message: '사용할 수 없는 이메일입니다.', grouping: true, type: 'error' })
+          ElMessage({ message: t('userEditForm.messages.emailUnavailable'), grouping: true, type: 'error' })
           editForm.userEmailCheckStatus = 'error';
           return;
         }
@@ -108,10 +119,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         try {
 
           await Dialogs.customConfirm(
-              '회원정보 변경',
-              '입력하신 정보로 회원정보를 변경하시겠습니까?',
-              '변경하기',
-              '취소',
+              t('userEditForm.dialogs.confirmUpdateTitle'),
+              t('userEditForm.dialogs.confirmUpdateMessage'),
+              t('userEditForm.dialogs.confirmButton'),
+              t('userEditForm.dialogs.cancelButton'),
               '485px',
           );
 
@@ -126,15 +137,17 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
           await Api.post(ApiUrls.UPDATE_USER_INFO, payload);
 
-          ElMessage.success('프로필 정보가 성공적으로 업데이트되었습니다.');
+          ElMessage.success(t('userEditForm.messages.updateSuccess'));
+          await Common.setUser();
+
           emit('update-success');
-          closeDialog();
+
+          window.location.reload();
         } catch (error) {
           if (error === 'cancel') {
-            ElMessage.info('정보 업데이트를 취소했습니다.');
-          }
-          else {
-            ElMessage.error('정보 업데이트에 실패했습니다.');
+            ElMessage.info(t('userEditForm.messages.updateCancelled'));
+          } else {
+            ElMessage.error(t('userEditForm.messages.updateFailed'));
           }
         } finally {
           isSubmitting.value = false;
@@ -162,10 +175,9 @@ const handleSetSecurityQuestion = () => {
   securityQuestionDialogVisible.value = true;
 }
 
-const handleSecurityQuestionSet = () => {
+const handleSecurityQuestionSet = async () => {
   securityQuestionDialogVisible.value = false; // 다이얼로그 닫기
-  ElMessage.success('보안 질문이 성공적으로 설정되었습니다.');
-  // 필요하다면 사용자 정보 다시 불러오는 로직 추가
+  ElMessage.success(t('userEditForm.messages.securityQuestionSet'));
 }
 
 /**
@@ -186,14 +198,10 @@ const handleFieldValidation = async (fieldName: any) => {
     }
     const response = await Api.post(ApiUrls.CHECK_EMAIL, param);
     if (response.data) {
-      ElMessage({
-        message: '사용할 수 없는 이메일입니다.',
-        grouping: true,
-        type: 'error',
-      })
+      ElMessage({ message: t('userEditForm.messages.emailUnavailable'), grouping: true, type: 'error' });
       editForm.userEmailCheckStatus = 'error';
     } else {
-      ElMessage.success('사용 가능한 이메일입니다.');
+      ElMessage.success(t('userEditForm.messages.emailAvailable'));
       editForm.userEmailCheckStatus = 'success';
     }
 
@@ -205,7 +213,7 @@ const handleFieldValidation = async (fieldName: any) => {
   <el-dialog
       :model-value="visible"
       :show-close="false"
-      width="700px"
+      :width="locale === 'en' ? '770px' : '700px'"
       :before-close="closeDialog"
       :close-on-click-modal="false"
       append-to-body
@@ -220,7 +228,7 @@ const handleFieldValidation = async (fieldName: any) => {
             src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
             style="border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
         />
-        <h3 class="user-name">{{ props.userData.userName }}</h3>
+        <h3 class="user-name">{{ displayedUserName }}</h3>
         <p class="user-email">{{ props.userData.email }}</p>
         <el-tag effect="light" type="info" size="small" round>
           User ID: {{ props.userData.userId }}
@@ -231,7 +239,7 @@ const handleFieldValidation = async (fieldName: any) => {
       <div class="form-content">
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
-          <h3 class="form-title">기본 정보</h3>
+          <h3 class="form-title">{{ t('userEditForm.form.title') }}</h3>
           <div style="margin: 0;">
             <el-button
                 type="info"
@@ -240,7 +248,7 @@ const handleFieldValidation = async (fieldName: any) => {
                 class="refresh-modern-btn"
                 @click="onClickRollBackInfo"
             >
-              원본 정보 다시 불러오기
+              {{ t('userEditForm.form.buttonRestore') }}
             </el-button>
           </div>
 
@@ -256,11 +264,18 @@ const handleFieldValidation = async (fieldName: any) => {
           <!-- Public Information Section -->
           <h4 class="section-title" />
 
-          <el-form-item label="이름" prop="userName">
-            <el-input v-model="editForm.userName" :prefix-icon="User" placeholder="사용하실 이름을 입력하세요" />
+          <el-form-item
+              :label="t('userEditForm.form.labels.name')"
+              prop="userName">
+            <el-input
+                v-model="editForm.userName"
+                :prefix-icon="User"
+                :placeholder="t('userEditForm.form.placeholders.name')" />
           </el-form-item>
 
-          <el-form-item label="이메일" prop="email">
+          <el-form-item
+              :label="t('userEditForm.form.labels.email')"
+              prop="email">
             <el-input
                 v-model="editForm.email"
                 :prefix-icon="Message"
@@ -269,38 +284,47 @@ const handleFieldValidation = async (fieldName: any) => {
             />
           </el-form-item>
 
-          <!-- Contact Information Section -->
-          <el-form-item label="연락처" prop="phoneNumber">
-            <el-input v-model="editForm.phoneNumber" :prefix-icon="Phone" placeholder="'-'를 제외하고 숫자만 입력하세요" />
+          <el-form-item
+              :label="t('userEditForm.form.labels.phone')"
+              prop="phoneNumber">
+            <el-input
+                v-model="editForm.phoneNumber"
+                :prefix-icon="Phone"
+                :placeholder="t('userEditForm.form.placeholders.phone')" />
           </el-form-item>
 
-          <el-form-item label="생년월일" prop="birthDate">
-            <el-input v-model="editForm.birthDate" :prefix-icon="Calendar" placeholder="예시: 19970729" />
+          <el-form-item
+              :label="t('userEditForm.form.labels.birthDate')"
+              prop="birthDate">
+            <el-input
+                v-model="editForm.birthDate"
+                :prefix-icon="Calendar"
+                :placeholder="t('userEditForm.form.placeholders.birthDate')" />
           </el-form-item>
 
-          <el-form-item label="성별" prop="phoneNumber">
+          <el-form-item
+              :label="t('userEditForm.form.labels.gender')"
+              prop="phoneNumber">
             <div class="my-radio-group">
-                <el-radio-group
-                    v-model="editForm.genderCode"
-                >
-                  <el-radio-button label="M">남자</el-radio-button>
-                  <el-radio-button label="F">여자</el-radio-button>
+                <el-radio-group v-model="editForm.genderCode">
+                  <el-radio-button label="M">{{ t('userEditForm.form.gender.male') }}</el-radio-button>
+                  <el-radio-button label="F">{{ t('userEditForm.form.gender.female') }}</el-radio-button>
                 </el-radio-group>
             </div>
           </el-form-item>
 
           <!-- Security Section -->
-          <h4 class="section-title-footer">보안 설정</h4>
+          <h4 class="section-title-footer">{{ t('userEditForm.form.sectionSecurity') }}</h4>
           <div class="security-card">
             <div class="security-menu-item">
               <div class="item-info">
                 <el-icon><Key /></el-icon>
                 <div class="item-text">
-                  <span class="item-title">비밀번호</span>
-                  <span class="item-desc">주기적으로 변경하여 계정을 보호하세요.</span>
+                  <span class="item-title">{{ t('userEditForm.security.password') }}</span>
+                  <span class="item-desc">{{ t('userEditForm.security.passwordDesc') }}</span>
                 </div>
               </div>
-              <el-button text bg @click="handleChangePassword">변경</el-button>
+              <el-button text bg @click="handleChangePassword">{{ t('userEditForm.security.buttonChange') }}</el-button>
             </div>
 
             <el-divider />
@@ -309,11 +333,17 @@ const handleFieldValidation = async (fieldName: any) => {
               <div class="item-info">
                 <el-icon><QuestionFilled /></el-icon>
                 <div class="item-text">
-                  <span class="item-title">보안 질문</span>
-                  <span class="item-desc">비밀번호 분실 시 본인 확인에 사용됩니다.</span>
+                  <span class="item-title">{{ t('userEditForm.security.securityQuestion') }}</span>
+                  <span class="item-desc">{{ t('userEditForm.security.securityQuestionDesc') }}</span>
                 </div>
               </div>
-              <el-button text bg @click="handleSetSecurityQuestion">설정</el-button>
+              <el-button
+                  text
+                  bg
+                  @click="handleSetSecurityQuestion"
+              >
+                {{ t('userEditForm.security.buttonSet') }}
+              </el-button>
             </div>
           </div>
           <ChangePasswordDialog
@@ -329,13 +359,13 @@ const handleFieldValidation = async (fieldName: any) => {
 
         <!-- Footer -->
         <div class="dialog-footer">
-          <el-button @click="closeDialog">취소</el-button>
+          <el-button @click="closeDialog">{{ t('userEditForm.footer.buttonCancel') }}</el-button>
           <el-button
               type="primary"
               @click="submitForm(formRef)"
               :loading="isSubmitting"
           >
-            변경하기
+            {{ t('userEditForm.footer.buttonUpdate') }}
           </el-button>
         </div>
       </div>

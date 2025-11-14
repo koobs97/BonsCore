@@ -329,7 +329,6 @@
       "buttonOk": "OK",
       "buttonCancel": "Cancel"
     },
-
     "emailHelp": {
       "title": "Didn't receive an email?",
       "description": "Delivery may be delayed up to 5 minutes depending on the mail server.\nIf you don't receive it after 5 minutes, please check the following:",
@@ -606,6 +605,77 @@
       "archiveMessage": "There was a problem retrieving the data. Check your network and try again.",
       "showDefaultRecommendations": "View default recommendations",
       "retry": "Retry"
+    }
+  },
+  "userEditForm": {
+    "sidebar": {
+      "userId": "User ID: {userId}"
+    },
+    "form": {
+      "title": "Basic Information",
+      "buttonRestore": "Restore Original Info",
+      "sectionSecurity": "Security Settings",
+      "labels": {
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "birthDate": "Birth Date",
+        "gender": "Gender"
+      },
+      "placeholders": {
+        "name": "Enter your name to use",
+        "email": "example@email.com",
+        "phone": "Enter numbers only, without '-'",
+        "birthDate": "e.g., 19970729"
+      },
+      "gender": {
+        "male": "Male",
+        "female": "Female"
+      }
+    },
+    "security": {
+      "password": "Password",
+      "passwordDesc": "Change periodically to protect your account.",
+      "securityQuestion": "Security Question",
+      "securityQuestionDesc": "Used for identity verification if you lose your password.",
+      "buttonChange": "Apply",
+      "buttonSet": "SetUp"
+    },
+    "footer": {
+      "buttonCancel": "Cancel",
+      "buttonUpdate": "Update"
+    },
+    "dialogs": {
+      "confirmUpdateTitle": "Confirm Profile Update",
+      "confirmUpdateMessage": "Are you sure you want to update your profile with the entered information?",
+      "confirmButton": "Update",
+      "cancelButton": "Cancel"
+    },
+    "messages": {
+      "emailUnavailable": "This email is unavailable.",
+      "emailAvailable": "This email is available.",
+      "updateSuccess": "Profile information updated successfully.",
+      "updateCancelled": "Profile update cancelled.",
+      "updateFailed": "Failed to update profile information.",
+      "securityQuestionSet": "Security question set successfully."
+    },
+    "rules": {
+      "userName": {
+        "required": "Please enter your username.",
+        "length": "Must be between 2 and 10 characters."
+      },
+      "phoneNumber": {
+        "required": "Please enter your phone number.",
+        "pattern": "Invalid phone number format."
+      },
+      "email": {
+        "required": "Please enter your email.",
+        "length": "Must be between 5 and 50 characters."
+      },
+      "birthDate": {
+        "required": "Please enter your birth date.",
+        "length": "Must be between 1 and 8 characters."
+      }
     }
   },
   "errors": {

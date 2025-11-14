@@ -12,6 +12,7 @@ import JSEncrypt from 'jsencrypt';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { romanize } from "@romanize/korean";
+import {userState, userStore} from "@/store/userStore";
 
 type CaseType = "none" | "capitalize" | "capitalizeEach" | "upper";
 
@@ -54,6 +55,22 @@ export class Common {
         }
     }
 
+    /**
+     * 로그인 성공 시 유저정보 세팅
+     */
+    public static async setUser(): Promise<void> {
+        const response = await Api.post(ApiUrls.GET_USER, {}, true);
+        let userInfo = response.data as userState
+        userInfo.userNameEn = Common.romanizeName(userInfo.userName, "upper");
+        sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
+        userStore().setUserInfo(userInfo);
+    }
+
+    /**
+     * 한글로 된 이름을 영문으로 변환
+     * @param name
+     * @param caseType
+     */
     public static romanizeName(name: string, caseType: CaseType = "none"): string {
         let result = romanize(name); // 기본: gubonsang
 
