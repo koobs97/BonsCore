@@ -572,8 +572,34 @@
         "surrounding": "Surrounding Area"
       },
       "conditions": {
+        "headcount": "{count} visitors",
+        "headcountGroup": "(Group)",
+        "reviewCount": "{count} reviews",
+        "holiday": "Holiday",
         "dayOfWeek": { "MONDAY": "Monday", "TUESDAY": "Tuesday", "WEDNESDAY": "Wednesday", "THURSDAY": "Thursday", "FRIDAY": "Friday", "SATURDAY": "Saturday", "SUNDAY": "Sunday" },
-        "timeOfDay": { "morning": "Morning", "lunchPeak": "Lunch Peak", "afternoon": "Afternoon", "dinnerPeak": "Dinner Peak", "lateNight": "Late Night" }
+        "timeOfDay": { "morning": "Morning", "lunchPeak": "Lunch Peak", "afternoon": "Afternoon", "dinnerPeak": "Dinner Peak", "lateNight": "Late Night" },
+        "weather": {
+          "heavyRain": "{precipitation}, {temp}°C",
+          "heatWave": "Heat wave {temp}°C",
+          "coldWave": "Cold wave {temp}°C",
+          "clear": "Clear, {temp}°C",
+          "cloudy": "Cloudy, {temp}°C",
+          "mostlyCloudy": "Mostly cloudy, {temp}°C"
+        },
+        "trend": {
+          "skyrocketing": "Recently skyrocketing searches",
+          "peakInterest": "Peak level of interest",
+          "rising": "Rising interest trend",
+          "declining": "Declining interest trend",
+          "steady": "Maintaining steady interest"
+        },
+        "surrounding": {
+          "hotspot": "Nearby hotspots ({count})",
+          "stationArea": "Near station",
+          "universityArea": "University area",
+          "officeArea": "Office district",
+          "normal": "Average commercial area"
+        }
       },
       "results": {
         "veryCrowded": { "index": "Very Crowded", "message": "A very long wait is expected. Consider other options.", "emoji": "🌋" },
@@ -584,8 +610,12 @@
       }
     },
     "api": {
-      "dataPortal": "DATA.GO.KR (Holiday Info)",
+      "dataPortal": "Public Data Portal (Holiday Info)",
+      "dataPortalHoliday": "Public Data Portal (Holiday Info)",
+      "dataPortalWeather": "Public Data Portal (KMA Short-term Forecast)",
       "naverDevelopers": "Naver Developers API",
+      "naverDataLab": "Naver DataLab",
+      "kakaoDevelopers": "Kakao Developers API",
       "googleCloud": "Google Cloud API"
     },
     "errors": {
@@ -596,8 +626,12 @@
       "openingInfoFetch": "Failed to fetch opening information:",
       "surroundingFetch": "Failed to fetch surrounding area data:",
       "openingInfo": {
+        "noInfo": "No opening hours information",
+        "notFound": "Could not find business information.",
+        "apiError": "Failed to retrieve business information.",
         "unavailable": "Could not confirm business information",
-        "todayUnavailable": "Could not retrieve today's business information."
+        "todayUnavailable": "Could not retrieve today's business information.",
+        "unknownTime": "Unable to parse business hours format."
       },
       "recommendationTitle": "Unable to load recommendations",
       "recommendationMessage": "A temporary issue occurred. Please try again later.",
@@ -677,6 +711,87 @@
         "length": "Must be between 1 and 8 characters."
       }
     }
+  },
+  "changePassword": {
+    "title": "Change Password",
+    "currentPassword": "Current Password",
+    "currentPasswordPlaceholder": "Enter your current password",
+    "forgotPassword": "Forgot your password?",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password (at least 6 characters)",
+    "confirmNewPassword": "Confirm New Password",
+    "confirmNewPasswordPlaceholder": "Re-enter new password",
+    "cancel": "Cancel",
+    "submit": "Change Password",
+    "validation": {
+      "enterNewPassword": "Please enter a new password.",
+      "reEnterNewPassword": "Please re-enter your new password.",
+      "passwordsDoNotMatch": "The new password does not match.",
+      "enterCurrentPassword": "Please enter your current password.",
+      "minLength": "The new password must be at least 6 characters long.",
+      "strongPassword": "Must include letters, numbers, and special characters."
+    },
+    "messages": {
+      "passwordMismatch": "The current password does not match.",
+      "passwordMatch": "Password matches.",
+      "confirmTitle": "Change Password",
+      "confirmMessage": "Are you sure you want to change your password?",
+      "confirmButton": "Confirm",
+      "cancelButton": "Cancel",
+      "success": "Password changed successfully!",
+      "changeCancelled": "Password change cancelled.",
+      "changeFailed": "Failed to change password."
+    }
+  },
+  "securityQuestionSetup": {
+    "title": "Set Security Question",
+    "steps": {
+      "step1": "Identity Verification",
+      "step2": "Set Question/Answer"
+    },
+    "step1": {
+      "guide": "For your account's security, please verify your identity by entering your current password.",
+      "label": "Confirm Current Password",
+      "placeholder": "Your current password"
+    },
+    "step2": {
+      "guide": "Set a question and answer to help you recover your account if you forget your password.\nPlease enter an answer that only you would know.",
+      "questionLabel": "Select Question",
+      "questionPlaceholder": "Please select a security question",
+      "answerLabel": "Enter Answer",
+      "answerPlaceholder": "Enter the answer to the selected question"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "next": "Next",
+      "complete": "Complete",
+      "save": "Save"
+    },
+    "validation": {
+      "selectQuestion": "Please select a security question.",
+      "enterAnswer": "Please enter an answer.",
+      "answerLength": "The answer must be between 2 and 20 characters.",
+      "enterCurrentPassword": "Please enter your current password."
+    },
+    "messages": {
+      "identityVerified": "Identity verification complete.",
+      "passwordMismatch": "Password does not match.",
+      "confirmTitle": "Set Question/Answer",
+      "confirmMessage": "Are you sure you want to save this question and answer?",
+      "notificationTitle": "Setup Complete",
+      "notificationMessage": "Your security question has been set successfully."
+    }
+  },
+  "securityQuestions": {
+    "Q1": "What is the name of your first love you remember for a long time?",
+    "Q2": "What was the name of your first pet?",
+    "Q3": "What is the name of the elementary school you graduated from?",
+    "Q4": "What is your most memorable travel destination?",
+    "Q5": "Where is your birthplace?",
+    "Q6": "What is the name of your best friend?",
+    "Q7": "What is the title of the most impressive book you have read?",
+    "Q8": "What is your motto or personal creed?",
+    "Q9": "Who is the person you admire the most?"
   },
   "errors": {
     "ER_000": "An internal server error has occurred.",

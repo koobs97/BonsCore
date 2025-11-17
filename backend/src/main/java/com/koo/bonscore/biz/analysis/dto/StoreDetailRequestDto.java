@@ -24,4 +24,5 @@ public class StoreDetailRequestDto {
     private String detailAddress;
 
     private String selectedTime;
+    private String lang;
 }

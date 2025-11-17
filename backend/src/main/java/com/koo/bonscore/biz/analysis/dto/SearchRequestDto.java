@@ -18,4 +18,5 @@ import lombok.Setter;
 public class SearchRequestDto {
     private String query;
     private int start = 1;
+    private String lang;
 }

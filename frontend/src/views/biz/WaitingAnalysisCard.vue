@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
@@ -32,7 +32,7 @@ const defaultRecommendedStores = [
   { name: '진저베어 파이샵', category: '카페, 디저트' },
 ];
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const userStoreObj = userStore();
 const step = ref('search');
 const searchQuery = ref('');
@@ -77,9 +77,12 @@ const handleShowDefaultRecommendations = () => {
 };
 
 // 추천 가게를 선택했을 때의 동작을 정의하는 함수
-const selectRecommendedStore = (storeName: string) => {
-  searchQuery.value = storeName; // 검색어에 가게 이름 채우기
-  searchStores(); // 기존 검색 함수 실행
+const selectRecommendedStore = (store: any) => {
+  searchQuery.value = store.name; // 검색어에 가게 이름 채우기
+
+  const searchNameForApi = store.nameKo || store.name;
+
+  searchStores(searchNameForApi); // 기존 검색 함수 실행
 };
 
 const myArchiveStores = ref<any[]>([]);
@@ -133,6 +136,11 @@ const fetchMyArchiveStores = async () => {
   }
 };
 
+watch(locale, () => {
+  fetchRecommendedStores();
+  fetchMyArchiveStores();
+});
+
 onMounted(() => {
   fetchRecommendedStores();
   fetchMyArchiveStores();
@@ -150,10 +158,18 @@ const timeSlots = ref([
   { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t20_22'), value: '20-22' },
 ]);
 
-const searchStores = async () => {
-  if (!searchQuery.value) return;
+const searchStores = async (query?: string) => {
+  const finalQuery = query || searchQuery.value;
+  if (!finalQuery) return;
 
-  const response = await Api.post(ApiUrls.NAVER_STORE_SEARCH, {query: searchQuery.value});
+  const payload = {
+    query: finalQuery,
+    lang: locale.value
+  };
+
+  console.log(payload);
+
+  const response = await Api.post(ApiUrls.NAVER_STORE_SEARCH, payload);
   console.log('가게정보: ', response)
 
   foundStores.value = response.data;
@@ -212,14 +228,32 @@ const notAvailableInfo = reactive({
   message: '',
 });
 
+const bestStoreName = computed(() => {
+  if (!selectedStore.value) return '';
+  // 한국어 이름(nameKo)이 있으면 그것을 최우선으로 사용하고, 없으면 기본 이름(name)을 사용합니다.
+  return selectedStore.value.nameKo || selectedStore.value.name;
+});
+
+const bestSimpleAddress = computed(() => {
+  if (!selectedStore.value) return '';
+  // 한국어 주소(simpleAddressKo)가 있으면 그것을 최우선으로 사용하고, 없으면 기본 주소(simpleAddress)를 사용합니다.
+  return selectedStore.value.simpleAddressKo || selectedStore.value.simpleAddress;
+});
+
+const bestDetailAddress = computed(() => {
+  if (!selectedStore.value) return '';
+  // 한국어 상세주소(detailAddressKo)가 있으면 그것을 최우선으로 사용하고, 없으면 기본 상세주소(detailAddress)를 사용합니다.
+  return selectedStore.value.detailAddressKo || selectedStore.value.detailAddress;
+});
+
 /**
  * 블로그 건수 조회
  */
 const countReviews = async () => {
   const payload = {
-    name: selectedStore.value.name,
-    simpleAddress: selectedStore.value.simpleAddress,
-    detailAddress: selectedStore.value.simpleAddress,
+    name: bestStoreName.value,
+    simpleAddress: bestSimpleAddress.value,
+    detailAddress: bestDetailAddress.value,
   }
 
   const response = await Api.post(ApiUrls.NAVER_BLOG_SEARCH, payload);
@@ -233,9 +267,9 @@ const countReviews = async () => {
  */
 const getWeatherInfo = async () => {
   const payload = {
-    name: selectedStore.value.name,
-    simpleAddress: selectedStore.value.simpleAddress,
-    detailAddress: selectedStore.value.simpleAddress,
+    name: bestStoreName.value,
+    simpleAddress: bestSimpleAddress.value,
+    detailAddress: bestDetailAddress.value,
   }
   try {
     const result = await Api.post(ApiUrls.WEATHER_SEARCH, payload);
@@ -274,7 +308,7 @@ const getHolidayInfo = async () => {
  */
 const getDataTrend = async () => {
   const payload = {
-    query: selectedStore.value.name
+    query: selectedStore.value.nameKo || selectedStore.value.name,
   }
   try {
     const response = await Api.post(ApiUrls.SEARCH_TREND, payload);
@@ -293,9 +327,10 @@ const getDataTrend = async () => {
  */
 const getOpeningInfo = async () => {
   const payload = {
-    name: selectedStore.value.name,
-    simpleAddress: selectedStore.value.simpleAddress,
-    detailAddress: selectedStore.value.simpleAddress,
+    name: bestStoreName.value,
+    simpleAddress: bestSimpleAddress.value,
+    detailAddress: bestDetailAddress.value,
+    lang: locale.value
   }
   try {
     const response = await Api.post(ApiUrls.OPENING_INFO, payload);
@@ -308,11 +343,26 @@ const getOpeningInfo = async () => {
 }
 
 /**
+ * 영업시간 텍스트를 번역하는 헬퍼 함수
+ * @param text 백엔드에서 받은 텍스트 또는 i18n 키
+ */
+const translateWeekdayText = (text: string) => {
+  // 텍스트가 'i18n.'으로 시작하면 번역 함수를 실행합니다.
+  if (text.startsWith('i18n.')) {
+    // 'i18n.openingInfo.noInfo' -> 'waitingAnalyzer.errors.openingInfo.noInfo' 와 같이 실제 경로에 맞게 변환
+    const i18nKey = text.replace('i18n.openingInfo.', 'waitingAnalyzer.errors.openingInfo.');
+    return t(i18nKey);
+  }
+  // 일반적인 영업시간 텍스트는 그대로 반환합니다.
+  return text;
+};
+
+/**
  * 영업시간 파싱 및 현재 상태 판별 헬퍼 함수
  */
 const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: string) => {
   if (!openingInfo || !openingInfo.weekdayText) {
-    return { status: 'UNKNOWN', message: '영업 정보 확인 불가' };
+    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.unavailable') };
   }
 
   const now = new Date();
@@ -324,14 +374,14 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
     return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.todayUnavailable') };
   }
 
-  if (todayHoursText.includes('휴무일')) {
+  if (todayHoursText.includes('휴무') || todayHoursText.toLowerCase().includes('closed')) {
     return { status: 'CLOSED_TODAY', message: t('waitingAnalyzer.steps.notAvailable.states.closed.message') };
   }
 
   const colonIndex = todayHoursText.indexOf(':'); // 콜론의 위치를 찾습니다.
 
-  if (colonIndex === -1 || todayHoursText.includes('정보 없음')) {
-    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.todayUnavailable') };
+  if (colonIndex === -1 || todayHoursText.startsWith('i18n.')) {
+    return { status: 'UNKNOWN', message: translateWeekdayText(todayHoursText) };
   }
 
   const timeInfoString = todayHoursText.substring(colonIndex + 1).trim();
@@ -343,7 +393,7 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
   const hourBlocks = timeInfoString.split(',').map(s => s.trim());
 
   const parseTimeWithContext = (timeStr: string, contextPrefix: string | null) => {
-    const timeRegex = /(오전|오후)?\s*(\d{1,2}):(\d{2})/;
+    const timeRegex = /(오전|오후|AM|PM)?\s*(\d{1,2}):(\d{2})/;
     const match = timeStr.match(timeRegex);
     if (!match) return null;
 
@@ -353,8 +403,8 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
 
     prefix = prefix || contextPrefix;
 
-    if (prefix === '오후' && hours !== 12) hours += 12;
-    else if (prefix === '오전' && hours === 12) hours = 0;
+    if ((prefix === '오후' || prefix === 'PM') && hours !== 12) hours += 12;
+    else if ((prefix === '오전' || prefix === 'AM') && hours === 12) hours = 0;
 
     return hours * 60 + minutes;
   };
@@ -366,8 +416,8 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
     if (parts.length !== 2) continue;
 
     const [startStr, endStr] = parts;
-    const startPrefixMatch = startStr.match(/(오전|오후)/);
-    const startContext = startPrefixMatch ? startPrefixMatch[0] : "오전";
+    const startPrefixMatch = startStr.match(/(오전|오후|AM|PM)/);
+    const startContext = startPrefixMatch ? startPrefixMatch[0] : (locale.value === 'ko' ? "오전" : "AM");
 
     const startTime = parseTimeWithContext(startStr, null);
     const endTime = parseTimeWithContext(endStr, startContext);
@@ -387,7 +437,7 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
   }
 
   if (operatingPeriods.length === 0) {
-    return { status: 'UNKNOWN', message: '영업 시간 형식을 분석할 수 없습니다.' };
+    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.unknownTime') };
   }
 
   let targetTimeInMinutes: number;
@@ -407,26 +457,26 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
   }
 
   if (adjustedTargetTime < firstOpeningTime) {
-    return { status: 'BEFORE_OPENING', message: `선택하신 시간은 영업 시작 전입니다. (${operatingPeriods[0].startText} 시작)` };
+    return { status: 'BEFORE_OPENING', message: t('waitingAnalyzer.steps.notAvailable.states.before_opening.messageTemplate', { startTime: operatingPeriods[0].startText }) };
   }
 
   if (adjustedTargetTime >= lastClosingTime) {
-    return { status: 'AFTER_CLOSING', message: '선택하신 시간에는 이미 영업이 종료됩니다.' };
+    return { status: 'AFTER_CLOSING', message: t('waitingAnalyzer.steps.notAvailable.states.after_closing.message') };
   }
 
   for (const period of operatingPeriods) {
     if (adjustedTargetTime >= period.start && adjustedTargetTime < period.end) {
-      return { status: 'OPERATIONAL', message: '영업 중' };
+      return { status: 'OPERATIONAL', message: t('waitingAnalyzer.steps.notAvailable.states.operational.message') };
     }
   }
 
   for (let i = 0; i < operatingPeriods.length - 1; i++) {
     if (adjustedTargetTime >= operatingPeriods[i].end && adjustedTargetTime < operatingPeriods[i + 1].start) {
-      return { status: 'BREAK_TIME', message: `선택하신 시간은 브레이크 타임입니다 (${operatingPeriods[i].endText} ~ ${operatingPeriods[i+1].startText})` };
+      return { status: 'BREAK_TIME', message: t('waitingAnalyzer.steps.notAvailable.states.break_time.messageTemplate', { startTime: operatingPeriods[i].endText, endTime: operatingPeriods[i+1].startText }) };
     }
   }
 
-  return { status: 'UNKNOWN', message: '선택하신 시간의 운영 상태를 확인할 수 없습니다.' };
+  return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.unknownStatus') };
 };
 
 /**
@@ -434,7 +484,7 @@ const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: 
  */
 const getSurroundingData = async () => {
   const payload = {
-    name: selectedStore.value.name,
+    name: selectedStore.value.nameKo || selectedStore.value.name,
     simpleAddress: selectedStore.value.simpleAddress,
   }
   try {
@@ -508,283 +558,163 @@ const calculateScore = () => {
 
   // 시간/요일 점수 계산 (사용자 선택 및 실제 데이터 기반)
   if (analysis.holidayInfo) {
-    // 영문 요일을 한글로 변환하기 위한 맵
-    const dayMap: { [key: string]: string } = {
-      MONDAY: '월요일', TUESDAY: '화요일', WEDNESDAY: '수요일',
-      THURSDAY: '목요일', FRIDAY: '금요일', SATURDAY: '토요일', SUNDAY: '일요일'
-    };
-
     const { holidayOrWeekend, todayDayOfWeek } = analysis.holidayInfo;
-    const dayInKorean = dayMap[todayDayOfWeek] || todayDayOfWeek;
+    const dayInKorean = t(`waitingAnalyzer.analysis.conditions.dayOfWeek.${todayDayOfWeek}`);
 
     let timeScore = 0;
     let timeDescription = '';
-    let targetHour: number;
+    let targetHour = selectedTime.value === 'now' ? new Date().getHours() : parseInt(selectedTime.value.split('-')[0], 10);
 
-    // 사용자가 '시간 미정'을 눌렀으면 현재 시간, 아니면 선택한 시간대의 시작 시간
-    if (selectedTime.value === 'now') {
-      targetHour = new Date().getHours();
-    } else {
-      targetHour = parseInt(selectedTime.value.split('-')[0], 10);
-    }
+    if (targetHour >= 10 && targetHour < 12) { timeDescription = t('waitingAnalyzer.analysis.conditions.timeOfDay.morning'); timeScore = 5; }
+    else if (targetHour >= 12 && targetHour < 14) { timeDescription = t('waitingAnalyzer.analysis.conditions.timeOfDay.lunchPeak'); timeScore = 15; }
+    else if (targetHour >= 14 && targetHour < 17) { timeDescription = t('waitingAnalyzer.analysis.conditions.timeOfDay.afternoon'); timeScore = -10; }
+    else if (targetHour >= 17 && targetHour < 21) { timeDescription = t('waitingAnalyzer.analysis.conditions.timeOfDay.dinnerPeak'); timeScore = 20; }
+    else { timeDescription = t('waitingAnalyzer.analysis.conditions.timeOfDay.lateNight'); timeScore = -10; }
 
-    // 시간대에 따른 기본 점수 및 설명 설정
-    if (targetHour >= 10 && targetHour < 12) { timeDescription = '오전'; timeScore = 5; }
-    else if (targetHour >= 12 && targetHour < 14) { timeDescription = '점심 피크'; timeScore = 15; }
-    else if (targetHour >= 14 && targetHour < 17) { timeDescription = '애매한 오후'; timeScore = -10; }
-    else if (targetHour >= 17 && targetHour < 21) { timeDescription = '저녁 피크'; timeScore = 20; }
-    else { timeDescription = '늦은 저녁'; timeScore = -10; }
-
-    // 주말/공휴일 가중치 적용
     if (holidayOrWeekend) {
-      // 피크 시간대에는 더 큰 가점 부여
-      if (timeDescription.includes('피크')) {
-        timeScore += 15;
-      } else {
-        timeScore += 10;
-      }
+      if (timeDescription.includes(t('waitingAnalyzer.terms.peak'))) timeScore += 15;
+      else timeScore += 10;
     }
-
-    // 금요일 저녁 특별 가중치 (공휴일이 아닌 평일 금요일)
-    if (!holidayOrWeekend && todayDayOfWeek === 'FRIDAY' && timeDescription === '저녁 피크') {
+    if (!holidayOrWeekend && todayDayOfWeek === 'FRIDAY' && timeDescription === t('waitingAnalyzer.analysis.conditions.timeOfDay.dinnerPeak')) {
       timeScore += 5;
     }
 
-    // 결과 화면에 표시될 최종 텍스트 생성
     let finalCondition = `${dayInKorean} ${timeDescription}`;
-    if (holidayOrWeekend && !['토요일', '일요일'].includes(dayInKorean)) {
-      finalCondition = `공휴일 ${timeDescription}`; // 평일인데 공휴일인 경우
+    if (holidayOrWeekend && !['SATURDAY', 'SUNDAY'].includes(todayDayOfWeek)) {
+      finalCondition = `${t('waitingAnalyzer.analysis.conditions.holiday')} ${timeDescription}`;
     }
-    // 사용자가 특정 시간대를 선택했다면 괄호로 표시
     if (selectedTime.value !== 'now') {
       const selectedSlot = timeSlots.value.find(slot => slot.value === selectedTime.value);
       if (selectedSlot) finalCondition += ` (${selectedSlot.label})`;
     }
 
     details.push({
-      factor: '시간/요일',
+      factor: t('waitingAnalyzer.analysis.scoreFactors.timeAndDay'),
       condition: finalCondition,
       score: timeScore,
-      apiInfo: {
-        name: '공공데이터포털 (특일 정보)',
-        logo: publicDataPortalLogo,
-      }
+      apiInfo: { name: t('waitingAnalyzer.api.dataPortalHoliday'), logo: publicDataPortalLogo }
     });
     totalScore += timeScore;
   }
 
-  // 방문 인원수 점수
-  if (numberOfPeople.value > 1) { // 3명 이상일 때만 점수 계산 및 표시
+  if (numberOfPeople.value > 1) {
     let peopleScore = 0;
-    let peopleCondition = `${numberOfPeople.value}명 방문`;
-
+    let peopleCondition = t('waitingAnalyzer.analysis.conditions.headcount', { count: numberOfPeople.value });
     if (numberOfPeople.value >= 5) {
       peopleScore = 15;
-      peopleCondition += ' (단체)';
-    } else { // 3-4명인 경우
+      peopleCondition += ` ${t('waitingAnalyzer.analysis.conditions.headcountGroup')}`;
+    } else {
       peopleScore = 5;
     }
-
-    details.push({
-      factor: '방문 인원',
-      condition: peopleCondition,
-      score: peopleScore
-    });
+    details.push({ factor: t('waitingAnalyzer.analysis.scoreFactors.headcount'), condition: peopleCondition, score: peopleScore });
     totalScore += peopleScore;
   }
 
-  // 인지도(리뷰 수) 점수
   if (analysis.reviewCount) {
     let reviewScore = 0;
     if (analysis.reviewCount > 1000) reviewScore = 15;
     else if (analysis.reviewCount > 500) reviewScore = 10;
     else if (analysis.reviewCount > 100) reviewScore = 5;
     if (reviewScore > 0) {
-      const formattedCount = new Intl.NumberFormat().format(analysis.reviewCount);
-
       details.push({
-        factor: '인지도(리뷰 수)',
-        condition: `리뷰 ${formattedCount}개`,
+        factor: t('waitingAnalyzer.analysis.scoreFactors.reviews'),
+        condition: t('waitingAnalyzer.analysis.conditions.reviewCount', { count: new Intl.NumberFormat().format(analysis.reviewCount) }),
         score: reviewScore,
-        apiInfo: {
-          name: '네이버 Developers API',
-          logo: naverApiLogo,
-        }
+        apiInfo: { name: t('waitingAnalyzer.api.naverDevelopers'), logo: naverApiLogo }
       });
-
       totalScore += reviewScore;
     }
   }
 
-  // 날씨 점수
   if (analysis.weatherInfo) {
     const weather = analysis.weatherInfo;
     const temp = parseInt(weather.temperature, 10);
     let weatherCondition = '';
     let weatherScore = 0;
 
-    // 우선 순위: 강수 > 기온(폭염/한파) > 하늘 상태
-    if (weather.precipitation && weather.precipitation !== '없음') {
-      weatherCondition = `${weather.precipitation}, ${temp}°C`;
-      if (weather.precipitation.includes('비') || weather.precipitation.includes('소나기')) {
-        weatherScore = -15; // 비가 오면 외출을 꺼리므로 큰 감점
-      } else if (weather.precipitation.includes('눈')) {
-        weatherScore = -10; // 눈도 감점 요인
-      }
-    } else if (temp >= 30) {
-      weatherCondition = `폭염 ${temp}°C`;
-      weatherScore = -15; // 매우 더운 날씨
-    } else if (temp <= 0) {
-      weatherCondition = `한파 ${temp}°C`;
-      weatherScore = -10; // 매우 추운 날씨
-    } else if (weather.sky === '맑음') {
-      weatherCondition = `맑음, ${temp}°C`;
-      weatherScore = 10;  // 맑고 쾌적한 날씨는 큰 가점
-    } else if (weather.sky === '흐림') {
-      weatherCondition = `흐림, ${temp}°C`;
-      weatherScore = -5;  // 흐린 날은 약간의 감점
-    } else if (weather.sky === '구름많음') {
-      weatherCondition = `구름많음, ${temp}°C`;
-      weatherScore = 0;   // 구름 많은 날은 중립
-    }
+    if (weather.precipitation && weather.precipitation !== '없음' && weather.precipitation !== 'No precipitation') {
+      weatherCondition = t('waitingAnalyzer.analysis.conditions.weather.heavyRain', { precipitation: weather.precipitation, temp });
+      if (weather.precipitation.includes('비') || weather.precipitation.includes('소나기') || weather.precipitation.toLowerCase().includes('rain')) weatherScore = -15;
+      else if (weather.precipitation.includes('눈') || weather.precipitation.toLowerCase().includes('snow')) weatherScore = -10;
+    } else if (temp >= 30) { weatherCondition = t('waitingAnalyzer.analysis.conditions.weather.heatWave', { temp }); weatherScore = -15; }
+    else if (temp <= 0) { weatherCondition = t('waitingAnalyzer.analysis.conditions.weather.coldWave', { temp }); weatherScore = -10; }
+    else if (weather.sky === '맑음' || weather.sky.toLowerCase() === 'clear') { weatherCondition = t('waitingAnalyzer.analysis.conditions.weather.clear', { temp }); weatherScore = 10; }
+    else if (weather.sky === '흐림' || weather.sky.toLowerCase() === 'cloudy') { weatherCondition = t('waitingAnalyzer.analysis.conditions.weather.cloudy', { temp }); weatherScore = -5; }
+    else if (weather.sky === '구름많음' || weather.sky.toLowerCase().includes('cloudy')) { weatherCondition = t('waitingAnalyzer.analysis.conditions.weather.mostlyCloudy', { temp }); weatherScore = 0; }
 
-    // 점수에 영향이 있는 경우에만 상세 내역에 추가
     if (weatherScore !== 0) {
       details.push({
-        factor: '현재 날씨',
+        factor: t('waitingAnalyzer.analysis.scoreFactors.weather'),
         condition: weatherCondition,
         score: weatherScore,
-        apiInfo: {
-          name: '공공데이터포털 (기상청_단기예보)',
-          logo: publicDataPortalLogo,
-        }
+        apiInfo: { name: t('waitingAnalyzer.api.dataPortalWeather'), logo: publicDataPortalLogo }
       });
       totalScore += weatherScore;
     }
   }
 
-  // 검색 트렌드 점수
   if (analysis.trendInfo && analysis.trendInfo.length >= 2) {
-    const trendData = [...analysis.trendInfo]; // 원본 수정을 피하기 위해 배열 복사
+    const trendData = [...analysis.trendInfo];
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // getMonth()는 0부터 시작
-    const currentDate = now.getDate();
-
-    // 마지막 데이터가 현재 진행 중인 달인지 확인
     const latestData = trendData[trendData.length - 1];
     const [latestYear, latestMonth] = latestData.period.split('-').map(Number);
-
     let latestRatio = latestData.ratio;
 
-    // 현재 진행 중인 달의 데이터라면 월말 기준으로 예측하여 보정
-    if (latestYear === currentYear && latestMonth === currentMonth && currentDate > 1) {
-      // 해당 월의 총 일수 구하기
-      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-      // 일일 평균 ratio 계산
-      const dailyAverageRatio = latestData.ratio / currentDate;
-      // 월말 예측 ratio 계산
-      const projectedRatio = dailyAverageRatio * daysInMonth;
-
-      // 보정된 값으로 업데이트 (최대값은 100을 넘지 않도록)
-      latestRatio = Math.min(projectedRatio, 100);
-      console.log(`데이터랩 보정: ${latestData.ratio.toFixed(2)} -> ${latestRatio.toFixed(2)} (예측)`);
+    if (latestYear === now.getFullYear() && latestMonth === now.getMonth() + 1 && now.getDate() > 1) {
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      latestRatio = Math.min((latestData.ratio / now.getDate()) * daysInMonth, 100);
     }
 
-    const previousRatio = trendData[trendData.length - 2].ratio;
-    const change = latestRatio - previousRatio;
-
+    const change = latestRatio - trendData[trendData.length - 2].ratio;
     let trendCondition = '';
     let trendScore = 0;
 
-    // 보정된 값을 기준으로 점수 계산
-    if (change > 20) {
-      trendScore = 15;
-      trendCondition = '최근 검색량 급상승';
-    } else if (latestRatio > 85) {
-      trendScore = 10;
-      trendCondition = '최고 수준의 관심도';
-    } else if (change > 5) {
-      trendScore = 8;
-      trendCondition = '관심도 상승 추세';
-    } else if (change < -10) {
-      trendScore = -5;
-      trendCondition = '관심도 하락 추세';
-    } else {
-      trendScore = 5;
-      trendCondition = '꾸준한 관심도 유지';
-    }
+    if (change > 20) { trendScore = 15; trendCondition = t('waitingAnalyzer.analysis.conditions.trend.skyrocketing'); }
+    else if (latestRatio > 85) { trendScore = 10; trendCondition = t('waitingAnalyzer.analysis.conditions.trend.peakInterest'); }
+    else if (change > 5) { trendScore = 8; trendCondition = t('waitingAnalyzer.analysis.conditions.trend.rising'); }
+    else if (change < -10) { trendScore = -5; trendCondition = t('waitingAnalyzer.analysis.conditions.trend.declining'); }
+    else { trendScore = 5; trendCondition = t('waitingAnalyzer.analysis.conditions.trend.steady'); }
 
     if (trendScore !== 0) {
-      details.push({ factor: '검색 트렌드', condition: trendCondition, score: trendScore,
-        apiInfo: {
-          name: '네이버 DataLab',
-          logo: naverDataLabLogo,
-        }
+      details.push({
+        factor: t('waitingAnalyzer.analysis.scoreFactors.trend'),
+        condition: trendCondition,
+        score: trendScore,
+        apiInfo: { name: t('waitingAnalyzer.api.naverDataLab'), logo: naverDataLabLogo }
       });
       totalScore += trendScore;
     }
   }
 
-  // 주변 상권 점수 계산
   if (analysis.surroundingInfo) {
-    const { hotPlaceCount, competitorCount, subwayStationCount, universityCount, officeBuildingCount } = analysis.surroundingInfo;
-
+    const { hotPlaceCount, subwayStationCount, universityCount, officeBuildingCount } = analysis.surroundingInfo;
     let surroundingScore = 0;
     const conditions = [];
 
-    // 1. 핫플레이스 가산점
-    if (hotPlaceCount > 50) {
-      surroundingScore += 15;
-    } else if (hotPlaceCount > 20) {
-      surroundingScore += 10;
-    } else if (hotPlaceCount > 5) {
-      surroundingScore += 5;
+    if (hotPlaceCount > 5) {
+      if (hotPlaceCount > 50) surroundingScore += 15;
+      else if (hotPlaceCount > 20) surroundingScore += 10;
+      else surroundingScore += 5;
+      conditions.push(t('waitingAnalyzer.analysis.conditions.surrounding.hotspot', { count: hotPlaceCount }));
     }
-    if (hotPlaceCount > 5) conditions.push(`주변 핫플레이스(${hotPlaceCount}곳)`);
 
-
-    // 2. 경쟁 가게 감점
-    if (competitorCount > 10) {
-      surroundingScore -= 10;
-    } else if (competitorCount > 5) {
-      surroundingScore -= 5;
-    }
-    // 감점 요인은 상세 내역에 굳이 표시하지 않을 수 있음 (사용자 경험 고려)
-    // 혹은 '선택지가 다양함' 과 같이 긍정적으로 표현할 수 있음
-
-    // 3. 상권 특성 가산점 (가장 큰 점수 하나만 적용)
     let areaTypeScore = 0;
     let areaType = '';
-
-    if (subwayStationCount > 0) {
-      areaTypeScore = 15;
-      areaType = '역세권';
-    }
-    if (universityCount > 0 && areaTypeScore < 10) {
-      areaTypeScore = 10;
-      areaType = '대학가';
-    }
-    if (officeBuildingCount > 5 && areaTypeScore < 10) {
-      areaTypeScore = 10;
-      areaType = '오피스 상권';
-    }
+    if (subwayStationCount > 0) { areaTypeScore = 15; areaType = t('waitingAnalyzer.analysis.conditions.surrounding.stationArea'); }
+    if (universityCount > 0 && areaTypeScore < 10) { areaTypeScore = 10; areaType = t('waitingAnalyzer.analysis.conditions.surrounding.universityArea'); }
+    if (officeBuildingCount > 5 && areaTypeScore < 10) { areaTypeScore = 10; areaType = t('waitingAnalyzer.analysis.conditions.surrounding.officeArea'); }
 
     if (areaType) {
       surroundingScore += areaTypeScore;
-      conditions.unshift(areaType); // 상권 타입을 가장 앞에 추가
+      conditions.unshift(areaType);
     }
 
-    // 점수 변동이 있을 경우에만 상세 내역에 추가
     if (surroundingScore !== 0) {
       details.push({
-        factor: '주변 상권',
-        condition: conditions.join(', ') || '보통 수준의 상권',
+        factor: t('waitingAnalyzer.analysis.scoreFactors.surrounding'),
+        condition: conditions.join(', ') || t('waitingAnalyzer.analysis.conditions.surrounding.normal'),
         score: surroundingScore,
-        apiInfo: {
-          name: '카카오 Developers API',
-          logo: kakaoApiLogo, // 카카오 로고 이미지 변수 필요
-        }
+        apiInfo: { name: t('waitingAnalyzer.api.kakaoDevelopers'), logo: kakaoApiLogo }
       });
       totalScore += surroundingScore;
     }
@@ -795,33 +725,19 @@ const calculateScore = () => {
 };
 
 const generateFinalResult = (totalScore: any) => {
-  let waitingIndex = '';
-  let message = '';
-  let emoji = '';
+  let resultKey = '';
+  if (totalScore >= 70) resultKey = 'veryCrowded';
+  else if (totalScore >= 50) resultKey = 'crowded';
+  else if (totalScore >= 30) resultKey = 'moderate';
+  else if (totalScore >= 10) resultKey = 'calm';
+  else resultKey = 'quiet';
 
-  if (totalScore >= 70) { // 점수 구간 조정
-    waitingIndex = '매우 혼잡';
-    emoji = '🌋';
-    message = '웨이팅이 매우 길 것으로 예상돼요. 원격 줄서기나 다른 가게를 추천해요.';
-  } else if (totalScore >= 50) {
-    waitingIndex = '혼잡';
-    emoji = '🔴';
-    message = '웨이팅이 있을 가능성이 높아요. 방문에 참고하세요.';
-  } else if (totalScore >= 30) {
-    waitingIndex = '보통';
-    emoji = '🟡';
-    message = '약간의 대기가 있을 수 있어요.';
-  } else if (totalScore >= 10) {
-    waitingIndex = '여유';
-    emoji = '🟢';
-    message = '아직은 여유로운 편이에요. 지금 방문하면 좋을 것 같아요.';
-  } else {
-    waitingIndex = '한산';
-    emoji = '🔵';
-    message = '매우 한산해요! 기다림 없이 바로 즐길 수 있어요.';
-  }
-
-  result.value = { totalScore, waitingIndex, message, emoji };
+  result.value = {
+    totalScore,
+    waitingIndex: t(`waitingAnalyzer.analysis.results.${resultKey}.index`),
+    message: t(`waitingAnalyzer.analysis.results.${resultKey}.message`),
+    emoji: t(`waitingAnalyzer.analysis.results.${resultKey}.emoji`)
+  };
   step.value = 'result';
 };
 
@@ -895,7 +811,7 @@ const reset = () => {
             <el-input
                 v-model="searchQuery"
                 :placeholder="t('waitingAnalyzer.search.placeholder')"
-                @keyup.enter="searchStores"
+                @keyup.enter="searchStores(searchQuery)"
                 size="large"
                 clearable
             >
@@ -928,14 +844,14 @@ const reset = () => {
               </template>
             </el-input>
 
-            <button
-                @click="searchStores"
+            <el-button
+                @click="searchStores(searchQuery)"
                 :disabled="!searchQuery"
                 :class="{ 'is-disabled': !searchQuery }"
                 class="search-button"
             >
               {{ t('waitingAnalyzer.search.button') }}
-            </button>
+            </el-button>
           </div>
         </div>
 
@@ -976,7 +892,7 @@ const reset = () => {
               <li
                   v-for="store in recommendedStores"
                   :key="store.name"
-                  @click="selectRecommendedStore(store.name)"
+                  @click="selectRecommendedStore(store)"
               >
                 <span class="store-name">{{ store.name }}</span>
                 <span class="store-category">{{ store.category.split(' > ').pop() }}</span>
@@ -1021,7 +937,7 @@ const reset = () => {
                       :icon="Search"
                       circle
                       plain
-                      @click="selectRecommendedStore(store.name)"
+                      @click="selectRecommendedStore(store)"
                       class="action-btn"
                   />
                 </el-tooltip>
@@ -1059,7 +975,11 @@ const reset = () => {
       <div v-if="step === 'selectStore'" class="card-body">
         <h2 class="step-title">{{ t('waitingAnalyzer.steps.selectStore.title') }}</h2>
         <ul class="store-list">
-          <li v-for="store in foundStores" :key="store.id" @click="selectStore(store)">
+          <li
+              v-for="store in foundStores"
+              :key="store.id"
+              @click="selectStore(store)"
+          >
             <el-text>{{ store.name }}</el-text>
             <span>{{ store.simpleAddress }}</span>
           </li>
@@ -1218,7 +1138,7 @@ const reset = () => {
                 :key="index"
                 :class="{ 'is-today': (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) === index }"
             >
-              {{ text }}
+              {{ translateWeekdayText(text) }}
             </li>
           </ul>
         </div>
@@ -1295,6 +1215,7 @@ html.dark .title-icon {
 }
 .card {
   width: calc(100% - 2px);
+  max-width: 818px;
   height: 100%;
   padding: 0;
   background: var(--el-bg-color);
@@ -1320,7 +1241,9 @@ html.dark .title-icon {
   min-height: 0;
 }
 .card-body.search-step-body {
-  justify-content: space-between; /* 검색창은 위로, 정보 섹션은 아래 근처로 */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   padding: 25px 20px;
   background-color: var(--el-bg-color);
 }
@@ -1383,14 +1306,19 @@ input[type="text"]:focus {
 }
 
 .info-section {
+  border-top: none;
+  margin-top: 0;
+  flex-grow: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border-color);
-  margin-top: 20px;
 }
 .info-block {
   margin-top: 24px;
   text-align: center;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .info-title-wrapper {
   display: flex;
@@ -1448,11 +1376,17 @@ input[type="text"]:focus {
 }
 .recommend-list {
   list-style: none;
-  padding: 0;
+  padding: 4px 0 0 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 2열 그리드 */
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+  height: 165px;
+  overflow-y: auto;
+}
+.recommend-list.skeleton {
+  height: 165px;
+  overflow: hidden;
 }
 .recommend-list li {
   background-color: var(--el-fill-color-light);
@@ -1468,6 +1402,7 @@ input[type="text"]:focus {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
 }
 .recommend-list li:hover {
   transform: translateY(-2px);
@@ -1476,14 +1411,22 @@ input[type="text"]:focus {
 }
 .store-name {
   font-weight: 600;
-  white-space: nowrap;
+  font-size: 0.85rem;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 .store-category {
   font-size: 0.75rem;
   color: var(--el-text-color-secondary);
   margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* 로딩 스켈레톤 스타일 */
 .recommend-list.skeleton {
@@ -1518,8 +1461,16 @@ input[type="text"]:focus {
   border-radius: 6px;
   padding: 2px 4px;
 }
-.archive-list::-webkit-scrollbar { width: 4px; }
-.archive-list::-webkit-scrollbar-thumb { background-color: var(--el-border-color-lighter); border-radius: 2px; }
+.archive-list::-webkit-scrollbar,
+.recommend-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.archive-list::-webkit-scrollbar-thumb,
+.recommend-list::-webkit-scrollbar-thumb {
+  background-color: var(--el-border-color-lighter);
+  border-radius: 2px;
+}
 
 .archive-list-item {
   display: flex;
@@ -1545,6 +1496,7 @@ input[type="text"]:focus {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
   overflow: hidden;
 }
 .item-name {

@@ -445,7 +445,7 @@ const copyEmail = (email: string) => {
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
   overflow: hidden;
-  transition: var(--el-transition-duration);
+  transition: var(--el-transition-duration);   
 }
 
 /* 새로 추가된 스타일 */

@@ -28,7 +28,7 @@ public class GooglePlacesService {
     }
 
     // Mono<String> -> String
-    private String findPlaceId(String storeName, String address) {
+    private String findPlaceId(String storeName, String address, String lang) {
         String query = storeName + " " + address;
         log.info("Google Find Place API 호출 (동기): query=[{}]", query);
 
@@ -37,7 +37,7 @@ public class GooglePlacesService {
                 .queryParam("inputtype", "textquery")
                 .queryParam("fields", "place_id")
                 .queryParam("key", apiKey)
-                .queryParam("language", "ko")
+                .queryParam("language", lang)
                 .build().toUri();
 
         try {
@@ -57,14 +57,14 @@ public class GooglePlacesService {
     }
 
     // Mono<GooglePlaceDetailsResponseDto> -> GooglePlaceDetailsResponseDto
-    private GooglePlaceDetailsResponseDto getPlaceDetails(String placeId) {
+    private GooglePlaceDetailsResponseDto getPlaceDetails(String placeId, String lang) {
         log.info("Google Place Details API 호출 (동기): placeId=[{}]", placeId);
 
         URI uri = UriComponentsBuilder.fromHttpUrl(baseUrl + "/details/json")
                 .queryParam("place_id", placeId)
                 .queryParam("fields", "business_status,opening_hours")
                 .queryParam("key", apiKey)
-                .queryParam("language", "ko")
+                .queryParam("language", lang)
                 .build().toUri();
 
         try {
@@ -76,9 +76,11 @@ public class GooglePlacesService {
     }
 
     // Mono<StoreHoursResponseDto> -> StoreHoursResponseDto
-    public StoreHoursResponseDto getStoreOpeningHours(String storeName, String address) {
+    public StoreHoursResponseDto getStoreOpeningHours(String storeName, String address, String lang) {
+        String language = (lang == null || lang.trim().isEmpty()) ? "ko" : lang;
+
         // 1. placeId를 동기적으로 조회
-        String placeId = findPlaceId(storeName, address);
+        String placeId = findPlaceId(storeName, address, language);
 
         // 2. placeId가 없으면 NOT_FOUND 응답 반환
         if (placeId == null) {
@@ -86,7 +88,7 @@ public class GooglePlacesService {
         }
 
         // 3. placeDetails를 동기적으로 조회
-        GooglePlaceDetailsResponseDto detailsResponse = getPlaceDetails(placeId);
+        GooglePlaceDetailsResponseDto detailsResponse = getPlaceDetails(placeId, language);
 
         // 4. details 조회가 실패(null)하면 ERROR 응답 반환
         if (detailsResponse == null) {
@@ -110,7 +112,7 @@ public class GooglePlacesService {
                     .businessStatus(result.getBusinessStatus())
                     .weekdayText(Optional.ofNullable(result.getOpeningHours())
                             .map(GooglePlaceDetailsResponseDto.OpeningHours::getWeekdayText)
-                            .orElse(Collections.singletonList("영업 시간 정보 없음")))
+                            .orElse(Collections.singletonList("i18n.openingInfo.noInfo")))
                     .build();
         }
         return createErrorResponse(); // OK가 아니거나 result가 null일 때
@@ -121,7 +123,7 @@ public class GooglePlacesService {
         return StoreHoursResponseDto.builder()
                 .open(true)
                 .businessStatus("NOT_FOUND")
-                .weekdayText(Collections.singletonList("영업 정보를 찾을 수 없습니다."))
+                .weekdayText(Collections.singletonList("i18n.openingInfo.notFound"))
                 .build();
     }
 
@@ -129,7 +131,7 @@ public class GooglePlacesService {
         return StoreHoursResponseDto.builder()
                 .open(true)
                 .businessStatus("DETAILS_API_ERROR")
-                .weekdayText(Collections.singletonList("영업 정보를 가져오는데 실패했습니다."))
+                .weekdayText(Collections.singletonList("i18n.openingInfo.apiError"))
                 .build();
     }
 }

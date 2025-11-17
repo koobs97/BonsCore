@@ -60,18 +60,18 @@ const onLanguageChange = (newLang: 'ko' | 'en') => {
 };
 
 // 메뉴 트리 변환 함수 (기존과 동일)
-const buildMenuTree = (flatMenus, parentId) => {
+const buildMenuTree = (flatMenus: any, parentId: any) => {
   const isRootCall = parentId === undefined;
 
   return flatMenus
-      .filter(menu => {
+      .filter((menu: any) => {
         if (isRootCall) {
           return menu.parentMenuId === null || menu.parentMenuId === '';
         }
         return menu.parentMenuId === parentId;
       })
-      .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
-      .map(menu => {
+      .sort((a: any, b: any) => Number(a.sortOrder) - Number(b.sortOrder))
+      .map((menu: any) => {
         const children = buildMenuTree(flatMenus, menu.menuId);
         return {
           id: menu.menuId,
@@ -89,12 +89,12 @@ const buildMenuTree = (flatMenus, parentId) => {
 };
 
 // 관리자 컴포넌트 맵 생성 (기존과 동일)
-const adminComponentFiles = import.meta.glob('@/views/admin/*.vue');
+const adminComponentFiles = import.meta.glob('@/views/admin/*.vue') as any;
 const adminComponentMap = Object.keys(adminComponentFiles).reduce((map, path) => {
   const componentName = path.split('/').pop().replace('.vue', '');
-  map[componentName] = defineAsyncComponent(adminComponentFiles[path]);
+  map[componentName] = defineAsyncComponent(adminComponentFiles[path]) as any;
   return map;
-}, {});
+}, {}) as any;
 
 // 사용자 서비스 컴포넌트 맵 생성 (기존과 동일)
 const userComponentFiles = import.meta.glob('@/views/biz/*.vue');
@@ -102,7 +102,7 @@ const userComponentMap = Object.keys(userComponentFiles).reduce((map, path) => {
   const componentName = path.split('/').pop().replace('.vue', '');
   map[componentName] = defineAsyncComponent(userComponentFiles[path]);
   return map;
-}, {});
+}, {}) as any;
 
 // 현재 활성화된 컴포넌트를 결정하는 로직
 const currentUserComponent = computed(() => {

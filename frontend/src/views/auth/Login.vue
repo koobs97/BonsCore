@@ -9,19 +9,19 @@
  * 작성일자 : 2025-01-30
  * ========================================
  */
-import {Hide, QuestionFilled, View} from "@element-plus/icons-vue";
-import {computed, nextTick, onMounted, onUnmounted, reactive, ref} from 'vue';
-import {Api} from "@/api/axiosInstance";
-import {ApiUrls} from "@/api/apiUrls";
-import {ElIcon, ElMessage, ElMessageBox} from 'element-plus';
-import {Common} from '@/common/common';
-import {useRoute, useRouter} from 'vue-router';
-import {userState, userStore} from '@/store/userStore';
-import {Dialogs} from "@/common/dialogs";
+import { Hide, QuestionFilled, View } from "@element-plus/icons-vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { Api } from "@/api/axiosInstance";
+import { ApiUrls } from "@/api/apiUrls";
+import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
+import { Common } from '@/common/common';
+import { useRoute, useRouter } from 'vue-router';
+import { userStore } from '@/store/userStore';
+import { Dialogs } from "@/common/dialogs";
 import SocialLoginButtons from '@/components/login/SocialLoginButtons.vue';
 import Setting from '@/assets/images/setting_icon.png';
-import {useTheme} from '@/composables/useTheme';
-import {useI18n} from 'vue-i18n';
+import { useTheme } from '@/composables/useTheme';
+import { useI18n } from 'vue-i18n';
 
 // 커스텀 아이콘 이미지 임포트
 import SunnyIcon from '@/assets/images/Sunny_icon.png';
@@ -911,6 +911,7 @@ html.dark .el-checkbox__input .el-checkbox__inner {
 .resolution-info-box .el-message-box__title {
   font-size: 18px;
   font-weight: 600;
+  padding: 10px;
 }
 .resolution-info-content {
   display: flex;

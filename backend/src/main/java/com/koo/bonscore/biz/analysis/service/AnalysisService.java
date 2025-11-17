@@ -1,7 +1,9 @@
 package com.koo.bonscore.biz.analysis.service;
 
+import com.koo.bonscore.biz.analysis.dto.SearchRequestDto;
 import com.koo.bonscore.biz.analysis.dto.StoreAnalysisResultDto;
 import com.koo.bonscore.biz.analysis.dto.StoreDetailRequestDto;
+import com.koo.bonscore.common.api.google.service.GoogleTranslateService;
 import com.koo.bonscore.common.api.kakao.surround.dto.KakaoMapResponse;
 import com.koo.bonscore.common.api.kakao.surround.dto.SurroundingDataDto;
 import com.koo.bonscore.common.api.kakao.surround.service.KakaoMapService;
@@ -22,8 +24,10 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.koo.bonscore.common.api.naver.dto.NaverItemDto;
+import org.springframework.web.util.HtmlUtils;
 
 /**
  * <pre>
@@ -42,16 +46,22 @@ public class AnalysisService {
 
     private final NaverApiClient naverApiClient;
     private final KakaoMapService kakaoMapService;
+    private final GoogleTranslateService googleTranslateService;
 
     // HTML 태그 제거용 정규표현식
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]*>");
+    private static final String TRANSLATION_SEPARATOR = " ||| ";
 
     /**
      * Naver 지역 검색 API를 통해 가게를 검색
      * @param query 사용자 검색어
      * @return 가게 리스트 (최대 5건)
      */
-    public List<SimpleStoreInfoDto> searchStoresAndAnalyze(String query) {
+    public List<SimpleStoreInfoDto> searchStoresAndAnalyze(SearchRequestDto request) {
+
+        String query = request.getQuery();
+        String lang = request.getLang();
+
         log.info("가게 분석 서비스 시작: query={}", query);
 
         NaverApiResponseDto naverResponse = naverApiClient.searchLocal(query);
@@ -60,7 +70,114 @@ public class AnalysisService {
             return Collections.emptyList();
         }
 
-        return transformToStoreResult(naverResponse.getItems());
+        List<NaverItemDto> items = naverResponse.getItems();
+
+        if ("en".equalsIgnoreCase(lang)) {
+            // 번역할 한글 가게 이름만 리스트로 추출
+            List<String> textsToTranslate = items.stream()
+                    .map(item -> {
+                        // ★★★ HTML 태그를 먼저 제거하고, 그 다음에 unescape 처리 ★★★
+                        String cleanTitle = HTML_TAG_PATTERN.matcher(item.getTitle()).replaceAll("");
+                        String originalName = HtmlUtils.htmlUnescape(cleanTitle);
+
+                        String fullAddress = getFullAddress(item);
+                        return originalName + TRANSLATION_SEPARATOR + fullAddress;
+                    })
+                    .collect(Collectors.toList());
+
+            // 2. 구글 번역 API를 통해 리스트 전체를 한번에 번역
+            List<String> translatedTexts = googleTranslateService.translateTexts(textsToTranslate, "ko", "en");
+
+            // 3. 번역 실패 시, 원본 한글 데이터로 대체하여 반환 (Fallback)
+            if (translatedTexts == null || translatedTexts.size() != items.size()) {
+                log.warn("가게 정보 번역에 실패했습니다. 원본 데이터로 대체합니다.");
+                return transformToStoreResult(items, false);
+            }
+
+            // 4. (성공 시) 원본 데이터와 번역된 데이터를 조합하여 최종 DTO 리스트 생성
+            AtomicLong idCounter = new AtomicLong(1);
+            return IntStream.range(0, items.size())
+                    .mapToObj(i -> {
+                        NaverItemDto item = items.get(i);
+                        String cleanOriginalTitle = HTML_TAG_PATTERN.matcher(item.getTitle()).replaceAll("");
+                        String originalName = HtmlUtils.htmlUnescape(cleanOriginalTitle);
+                        String[] originalAddresses = processAddressString(getFullAddress(item)); // 한글 주소 분리
+
+                        // --- 번역된 영문 데이터 추출 및 분리 ---
+                        String translatedCombinedText = HtmlUtils.htmlUnescape(translatedTexts.get(i));
+                        String[] parts = translatedCombinedText.split(Pattern.quote("|||"));
+                        String translatedName = (parts.length > 0) ? parts[0].trim() : originalName;
+                        String translatedAddress = (parts.length > 1) ? parts[1].trim() : getFullAddress(item);
+                        String[] translatedAddresses = processAddressString(translatedAddress); // 영문 주소 분리
+
+                        // --- 최종 DTO 생성 ---
+                        return new SimpleStoreInfoDto(
+                                idCounter.getAndIncrement(),
+                                translatedName,                 // name (영문)
+                                originalName,                   // nameKo (한글)
+                                translatedAddresses[0],         // simpleAddress (영문)
+                                translatedAddresses[1],         // detailAddress (영문)
+                                originalAddresses[0],           // simpleAddressKo (한글)
+                                originalAddresses[1]            // detailAddressKo (한글)
+                        );
+                    })
+                    .collect(Collectors.toList());
+        }
+        else {
+            return transformToStoreResult(items, true);
+        }
+    }
+
+    /**
+     * NaverItemDto에서 전체 주소 문자열을 가져오는 헬퍼 메서드
+     */
+    private String getFullAddress(NaverItemDto item) {
+        return (item.getRoadAddress() != null && !item.getRoadAddress().isEmpty())
+                ? item.getRoadAddress()
+                : item.getAddress();
+    }
+
+    /**
+     * 전체 주소 문자열을 simpleAddress와 detailAddress로 분리하는 헬퍼 메서드
+     * @param fullAddress 전체 주소 문자열 (한글 또는 영문)
+     * @return String 배열: [0] = simpleAddress, [1] = detailAddress
+     */
+    private String[] processAddressString(String fullAddress) {
+        String simpleAddress = fullAddress;
+        String detailAddress = "";
+
+        if (fullAddress != null && !fullAddress.isEmpty()) {
+            String[] addressParts = fullAddress.split(" ");
+            if (addressParts.length > 2) {
+                // 예: "Seoul Jongno-gu" 또는 "서울 종로구"
+                simpleAddress = addressParts[0] + " " + addressParts[1];
+                detailAddress = String.join(" ", Arrays.copyOfRange(addressParts, 2, addressParts.length));
+            }
+        }
+        return new String[]{simpleAddress, detailAddress};
+    }
+
+    /**
+     * 주소 문자열을 simpleAddress와 detailAddress로 분리하는 헬퍼 메서드
+     * @param item NaverItemDto
+     * @return String 배열: [0] = simpleAddress, [1] = detailAddress
+     */
+    private String[] processAddress(NaverItemDto item) {
+        String fullAddress = (item.getRoadAddress() != null && !item.getRoadAddress().isEmpty())
+                ? item.getRoadAddress()
+                : item.getAddress();
+
+        String simpleAddress = fullAddress;
+        String detailAddress = "";
+
+        if (fullAddress != null && !fullAddress.isEmpty()) {
+            String[] addressParts = fullAddress.split(" ");
+            if (addressParts.length > 2) {
+                simpleAddress = addressParts[0] + " " + addressParts[1];
+                detailAddress = String.join(" ", Arrays.copyOfRange(addressParts, 2, addressParts.length));
+            }
+        }
+        return new String[]{simpleAddress, detailAddress};
     }
 
     /**
@@ -70,39 +187,24 @@ public class AnalysisService {
      * @param items Naver 지역 검색 API 결과 아이템 ({@link NaverItemDto}) 리스트
      * @return 변환된 가게 정보 DTO ({@link SimpleStoreInfoDto}) 리스트
      */
-    private List<SimpleStoreInfoDto> transformToStoreResult(List<NaverItemDto> items) {
+    private List<SimpleStoreInfoDto> transformToStoreResult(List<NaverItemDto> items, boolean isKoreanMode) {
         AtomicLong idCounter = new AtomicLong(1);
-
         return items.stream()
                 .filter(Objects::nonNull)
                 .map(item -> {
                     String cleanTitle = HTML_TAG_PATTERN.matcher(item.getTitle()).replaceAll("");
+                    String originalName = HtmlUtils.htmlUnescape(cleanTitle);
+                    String[] addresses = processAddressString(getFullAddress(item));
 
-                    // 주소 가공 로직
-                    String fullAddress = (item.getRoadAddress() != null && !item.getRoadAddress().isEmpty())
-                            ? item.getRoadAddress()
-                            : item.getAddress();
-
-                    String simpleAddress = fullAddress;
-                    String detailAddress = "";
-
-                    if (fullAddress != null && !fullAddress.isEmpty()) {
-                        String[] addressParts = fullAddress.split(" ");
-                        if (addressParts.length > 2) {
-                            simpleAddress = addressParts[0] + " " + addressParts[1];
-                            detailAddress = String.join(" ", Arrays.copyOfRange(addressParts, 2, addressParts.length));
-                        }
-                    }
-
-                    // 향후 이 부분에서 추가 분석 로직 수행 가능
-                    // 예: naverItem.getTitle()로 블로그 개수 조회 후 점수 매기기
-                    // int blogScore = countBlogs(naverItem.getTitle());
-
+                    // isKoreanMode가 true이면 모든 필드에 한글 데이터를 채웁니다.
                     return new SimpleStoreInfoDto(
                             idCounter.getAndIncrement(),
-                            cleanTitle,
-                            simpleAddress,
-                            detailAddress
+                            originalName,
+                            originalName,
+                            addresses[0],
+                            addresses[1],
+                            addresses[0],
+                            addresses[1]
                     );
                 })
                 .collect(Collectors.toList());

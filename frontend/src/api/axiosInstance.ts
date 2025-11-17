@@ -10,17 +10,17 @@
  */
 
 import axios from 'axios';
-import { ApiUrls } from './apiUrls';
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
+import {ApiUrls} from './apiUrls';
+import {ElLoading, ElMessage, ElMessageBox} from 'element-plus';
 import router from '../../router';
-import { h } from "vue";
-import type { Router } from 'vue-router';
+import {h} from "vue";
+import type {Router} from 'vue-router';
 import SessionExpiredAlert from "@/components/MessageBox/SessionExpiredAlert.vue";
-import { Dialogs } from "@/common/dialogs";
+import {Dialogs} from "@/common/dialogs";
 import i18n from '@/i18n';
-import DuplicationLoginConfirm from "@/components/MessageBox/DuplicationLoginConfirm.vue";
 import DuplicateLoginDialog from "@/components/MessageBox/DuplicateLoginDialog.vue";
 import {userStore} from "@/store/userStore";
+
 let routerInstance: Router | null = null;
 
 // 라우터 인스턴스를 주입하는 함수
@@ -54,6 +54,10 @@ axiosInstance.interceptors.request.use(
                 config.headers.Authorization = `Bearer ${accessToken}`;
             }
         }
+
+        // 헤더에 언어설정 추가
+        config.headers['Accept-Language'] = i18n.global.locale.value;
+
         return config;
     },
     (error) => Promise.reject(error)
@@ -139,10 +143,15 @@ axiosInstance.interceptors.response.use(
             // 로그인 페이지로 이동하는 함수
             const redirectToLogin = async () => {
                 if(router.currentRoute.value.path !== '/login') {
+                    try {
+                        await Api.post(ApiUrls.LOGOUT, {}, false);
+                    } catch (error) {}
+
                     userStore().delUserInfo();
                     sessionStorage.clear();
+
+                    // window.location.reload();
                     await router.push("/login");
-                    window.location.reload();
                 }
             };
 

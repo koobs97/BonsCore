@@ -19,10 +19,7 @@ import com.koo.bonscore.common.api.naver.dto.datalab.DataLabResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -51,8 +48,10 @@ public class AnalysisController {
 
     @PostMapping("/random-recommendations")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public List<RecommendedStoreDto> getRandomRecommendations() {
-        return storeRecommendationService.getRecommendedStores();
+    public List<RecommendedStoreDto> getRandomRecommendations(
+            @RequestHeader(value = "Accept-Language", required = false, defaultValue = "ko") String lang
+    ) {
+        return storeRecommendationService.getRecommendedStores(lang);
     }
 
     /**
@@ -63,7 +62,7 @@ public class AnalysisController {
     @PostMapping("/stores")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public List<SimpleStoreInfoDto> searchInitialStores(@RequestBody SearchRequestDto request) {
-        return analysisService.searchStoresAndAnalyze(request.getQuery());
+        return analysisService.searchStoresAndAnalyze(request);
     }
 
     /**
@@ -117,7 +116,7 @@ public class AnalysisController {
     @PostMapping("/openingInfo")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public StoreHoursResponseDto getStoreOpeningHours(@RequestBody StoreDetailRequestDto request) {
-        return googlePlacesService.getStoreOpeningHours(request.getName(), request.getSimpleAddress());
+        return googlePlacesService.getStoreOpeningHours(request.getName(), request.getSimpleAddress(), request.getLang());
     }
 
     /**

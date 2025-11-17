@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import type { FormInstance, FormRules } from 'element-plus';
@@ -8,6 +8,9 @@ import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { Common } from "@/common/common";
 import { Dialogs } from "@/common/dialogs";
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const router = useRouter();
 
@@ -27,41 +30,42 @@ const passwordForm = reactive({
   confirmNewPassword: '',
 });
 
-const validatePass = (rule: any, value: string, callback: any) => {
-  if (value === '') {
-    callback(new Error('새 비밀번호를 입력해주세요.'));
-  } else {
-    if (passwordForm.confirmNewPassword !== '') {
-      if (!formRef.value) return;
-      formRef.value.validateField('confirmNewPassword');
+const rules = computed<FormRules>(() => {
+  const validatePass = (rule: any, value: string, callback: any) => {
+    if (value === '') {
+      callback(new Error(t('changePassword.validation.enterNewPassword')));
+    } else {
+      if (passwordForm.confirmNewPassword !== '') {
+        if (!formRef.value) return;
+        formRef.value.validateField('confirmNewPassword');
+      }
+      callback();
     }
-    callback();
-  }
-};
+  };
 
-const validatePass2 = (rule: any, value: string, callback: any) => {
-  if (value === '') {
-    callback(new Error('새 비밀번호를 다시 입력해주세요.'));
-  } else if (value !== passwordForm.newPassword) {
-    callback(new Error('새 비밀번호와 일치하지 않습니다.'));
-  } else {
-    callback();
-  }
-};
+  const validatePass2 = (rule: any, value: string, callback: any) => {
+    if (value === '') {
+      callback(new Error(t('changePassword.validation.reEnterNewPassword')));
+    } else if (value !== passwordForm.newPassword) {
+      callback(new Error(t('changePassword.validation.passwordsDoNotMatch')));
+    } else {
+      callback();
+    }
+  };
 
-const rules = reactive<FormRules>({
-  currentPassword: [
-    { required: true, message: '현재 비밀번호를 입력해주세요.', trigger: 'blur' },
-    // { min: 6, message: '비밀번호는 최소 6자 이상이어야 합니다.', trigger: 'blur' }, // 실제 요구사항에 따라 수정
-  ],
-  newPassword: [
-    { required: true, validator: validatePass, trigger: 'blur' },
-    { min: 6, message: '새 비밀번호는 최소 6자 이상이어야 합니다.', trigger: 'blur' },
-    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()])[a-zA-Z\d!@#$%^&*()]{6,}$/, message: '영문, 숫자, 특수문자를 포함해야 합니다.', trigger: 'blur' }, // 강력한 비밀번호 규칙
-  ],
-  confirmNewPassword: [
-    { required: true, validator: validatePass2, trigger: 'blur' },
-  ],
+  return {
+    currentPassword: [
+      { required: true, message: t('changePassword.validation.enterCurrentPassword'), trigger: 'blur' },
+    ],
+    newPassword: [
+      { required: true, validator: validatePass, trigger: 'blur' },
+      { min: 6, message: t('changePassword.validation.minLength'), trigger: 'blur' },
+      { pattern: /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()])[a-zA-Z\d!@#$%^&*()]{6,}$/, message: t('changePassword.validation.strongPassword'), trigger: 'blur' },
+    ],
+    confirmNewPassword: [
+      { required: true, validator: validatePass2, trigger: 'blur' },
+    ],
+  };
 });
 
 /**
@@ -79,13 +83,13 @@ const handleFieldValidation = async (fieldName: any) => {
     const response = await Api.post(ApiUrls.VALIDATE_PASSWORD, param);
     if (!response.data) {
       ElMessage({
-        message: '현재 비밀번호가 일치하지 않습니다.',
+        message: t('changePassword.messages.passwordMismatch'),
         grouping: true,
         type: 'error',
       })
       passwordForm.confirmCurrentPassword = 'error';
     } else {
-      ElMessage.success('비밀번호가 일치합니다.');
+      ElMessage.success(t('changePassword.messages.passwordMatch'));
       passwordForm.confirmCurrentPassword = 'success';
     }
 
@@ -107,10 +111,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         }
 
         await Dialogs.customConfirm(
-              '비밀번호 변경'
-            , '비밀번호를 변경하시겠습니까?'
-            , '확인'
-            , '취소')
+            t('changePassword.messages.confirmTitle'),
+            t('changePassword.messages.confirmMessage'),
+            t('changePassword.messages.confirmButton'),
+            t('changePassword.messages.cancelButton')
+        );
 
         // 실제 비밀번호 변경 API 호출
         await Api.post(ApiUrls.UPDATE_PASSWORD_AF_LOGIN, {
@@ -118,16 +123,16 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           password: await Common.encryptPassword(passwordForm.currentPassword),
         });
 
-        ElMessage.success('비밀번호가 성공적으로 변경되었습니다!');
+        ElMessage.success(t('changePassword.messages.success'));
         emit('password-changed'); // 비밀번호 변경 성공 이벤트 발생
         closeDialog();
 
       } catch (error) {
         if (error === 'cancel') {
-          ElMessage.info('비밀번호 변경을 취소했습니다.');
+          ElMessage.info(t('changePassword.messages.changeCancelled'));
         }
         else {
-          ElMessage.error('비밀번호 변경에 실패했습니다.');
+          ElMessage.error(t('changePassword.messages.changeFailed'));
         }
       } finally {
         isSubmitting.value = false;
@@ -160,7 +165,7 @@ const goToFindPassword = () => {
   >
     <el-card shadow="never" class="custom-el-card">
       <div class="dialog-header">
-        <el-text class="dialog-title">비밀번호 변경</el-text>
+        <el-text class="dialog-title">{{ t('changePassword.title') }}</el-text>
         <el-button :icon="CircleClose" text @click="closeDialog" class="close-btn" />
       </div>
     </el-card>
@@ -174,13 +179,13 @@ const goToFindPassword = () => {
           label-position="top"
           class="password-form"
       >
-        <el-form-item label="현재 비밀번호" prop="currentPassword">
+        <el-form-item :label="t('changePassword.currentPassword')" prop="currentPassword">
           <el-input
               v-model="passwordForm.currentPassword"
               type="password"
               show-password
               :prefix-icon="Lock"
-              placeholder="현재 비밀번호를 입력하세요"
+              :placeholder="t('changePassword.currentPasswordPlaceholder')"
               @blur="() => handleFieldValidation('password')"
           />
         </el-form-item>
@@ -192,30 +197,30 @@ const goToFindPassword = () => {
               class="forgot-password-btn"
               @click="goToFindPassword"
           >
-            비밀번호가 기억나지 않으신다면?
+            {{ t('changePassword.forgotPassword') }}
             <el-button size="small" style="width: 8px; height: 24px; margin-left: 4px;" :icon="TopRight">
 
             </el-button>
           </el-button>
         </div>
 
-        <el-form-item label="새 비밀번호" prop="newPassword">
+        <el-form-item :label="t('changePassword.newPassword')" prop="newPassword">
           <el-input
               v-model="passwordForm.newPassword"
               type="password"
               show-password
               :prefix-icon="Lock"
-              placeholder="새 비밀번호를 입력하세요 (6자 이상)"
+              :placeholder="t('changePassword.newPasswordPlaceholder')"
           />
         </el-form-item>
 
-        <el-form-item label="새 비밀번호 확인" prop="confirmNewPassword">
+        <el-form-item :label="t('changePassword.confirmNewPassword')" prop="confirmNewPassword">
           <el-input
               v-model="passwordForm.confirmNewPassword"
               type="password"
               show-password
               :prefix-icon="Lock"
-              placeholder="새 비밀번호를 다시 입력하세요"
+              :placeholder="t('changePassword.confirmNewPasswordPlaceholder')"
           />
         </el-form-item>
       </el-form>
@@ -223,13 +228,13 @@ const goToFindPassword = () => {
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="closeDialog">취소</el-button>
+        <el-button @click="closeDialog">{{ t('changePassword.cancel') }}</el-button>
         <el-button
             type="primary"
             @click="submitForm(formRef)"
             :loading="isSubmitting"
         >
-          비밀번호 변경
+          {{ t('changePassword.submit') }}
         </el-button>
       </div>
     </template>

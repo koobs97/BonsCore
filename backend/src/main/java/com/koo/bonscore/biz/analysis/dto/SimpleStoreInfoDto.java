@@ -21,6 +21,9 @@ import lombok.*;
 public class SimpleStoreInfoDto {
     private long id;
     private String name;
+    private String nameKo;
     private String simpleAddress;
     private String detailAddress;
+    private String simpleAddressKo;
+    private String detailAddressKo;
 }

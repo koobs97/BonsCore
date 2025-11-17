@@ -20,6 +20,7 @@ import com.koo.bonscore.core.exception.response.ErrorResponse;
 import com.koo.bonscore.log.annotaion.UserActivityLog;
 import com.maxmind.geoip2.exception.AddressNotFoundException;
 import com.maxmind.geoip2.model.CityResponse;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -298,9 +299,34 @@ public class AuthController {
         }
 
         // 2. Access Token에서 사용자 ID 추출
-        String userId = jwtTokenProvider.getUserId(accessToken);
+        String userId;
+        try {
+            // 일반적인 경우: 유효한 토큰에서 userId 추출
+            userId = jwtTokenProvider.getUserId(accessToken);
+        } catch (ExpiredJwtException e) {
+            // 토큰이 만료된 경우: 만료 예외를 무시하고 userId를 강제로 추출
+            userId = e.getClaims().getSubject();
+            log.info("Logging out with an expired access token for user: {}", userId);
+        } catch (Exception e) {
+            // 그 외 다른 이유로 토큰이 유효하지 않은 경우 (예: 서명 오류)
+            log.warn("Invalid access token presented for logout.", e);
+            // 이 경우에도 쿠키 삭제 시도를 위해 응답은 정상적으로 보낼 수 있음
+            // 다만 서버측 세션은 무효화할 수 없으므로 여기서 로직을 중단하거나,
+            // 쿠키만 삭제하는 응답을 보낼 수 있습니다.
+            // 아래는 쿠키만 삭제하고 응답하는 예시입니다.
+            ResponseCookie deleteCookie = ResponseCookie.from("refresh_token", "")
+                    .maxAge(0)
+                    .path("/")
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Strict")
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+            return ResponseEntity.ok(ApiResponse.success("Logout processed for invalid token.", null));
+        }
 
-        // 3. 쿠키에서 Refresh Token 값 찾기 (HttpOnly 쿠키이므로 서버에서 직접 읽기)
+
+        // 3. 쿠키에서 Refresh Token 값 찾기
         String refreshToken = null;
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
@@ -313,7 +339,10 @@ public class AuthController {
         }
 
         // 4. LoginSessionManager를 통해 서버 측 세션 정보 및 토큰 무효화
-        loginSessionManager.logoutSession(userId, accessToken, refreshToken);
+        // userId가 정상적으로 추출되었을 때만 실행
+        if (userId != null && !userId.isEmpty()) {
+            loginSessionManager.logoutSession(userId, accessToken, refreshToken);
+        }
 
         // 5. 클라이언트(브라우저)의 Refresh Token 쿠키를 삭제하라는 응답 생성
         ResponseCookie deleteCookie = ResponseCookie.from("refresh_token", "")
