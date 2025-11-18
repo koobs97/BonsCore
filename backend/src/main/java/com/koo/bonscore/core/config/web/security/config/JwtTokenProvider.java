@@ -167,4 +167,14 @@ public class JwtTokenProvider {
             return e.getClaims();
         }
     }
+
+    public boolean isTokenExpired(String token) {
+        try {
+            final Date expiration = getClaimsFromToken(token).getExpiration();
+            return expiration.before(new Date());
+        } catch (Exception e) {
+            // 파싱 자체가 실패하면 (예: 형식이 다른 토큰, 이미 만료되어 파싱 에러 발생) 만료된 것으로 간주
+            return true;
+        }
+    }
 }

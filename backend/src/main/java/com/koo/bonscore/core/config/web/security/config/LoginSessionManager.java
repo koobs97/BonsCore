@@ -2,6 +2,7 @@ package com.koo.bonscore.core.config.web.security.config;
 
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -9,9 +10,11 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class LoginSessionManager {
@@ -36,7 +39,7 @@ public class LoginSessionManager {
         redisTemplate.opsForSet().add(ACTIVE_TOKENS_KEY_PREFIX + userId, token);
         // Set 자체에 대한 만료 시간을 넉넉하게 설정 (예: 7일)
         // 개별 토큰의 만료는 JWT 자체의 만료 시간으로 검증됩니다.
-        redisTemplate.expire(ACTIVE_TOKENS_KEY_PREFIX + userId, Duration.ofDays(7));
+        // redisTemplate.expire(ACTIVE_TOKENS_KEY_PREFIX + userId, Duration.ofDays(7));
     }
 
     /**
@@ -120,5 +123,46 @@ public class LoginSessionManager {
         if (refreshToken != null) {
             addTokenToBlacklist(refreshToken);
         }
+    }
+
+    /**
+     * 주기적으로 만료된 JWT 토큰을 활성 세션 목록에서 정리합니다.
+     * 매 시간 정각에 실행됩니다. (cron = "0 0 * * * *")
+     */
+    @Scheduled(cron = "0 0 * * * *") // 매 시간 실행 (테스트 시에는 @Scheduled(fixedRate = 60000) // 1분마다 실행 등으로 변경)
+    public void cleanupExpiredTokens() {
+        log.info("만료된 활성 세션 정리를 시작합니다...");
+        try {
+            // "jwt:active:tokens:*" 패턴을 가진 모든 키를 조회합니다.
+            Set<String> keys = redisTemplate.keys(ACTIVE_TOKENS_KEY_PREFIX + "*");
+            if (keys.isEmpty()) {
+                log.info("정리할 활성 세션이 없습니다.");
+                return;
+            }
+
+            for (String key : keys) {
+                // 각 사용자의 활성 토큰 Set을 가져옵니다.
+                Set<String> tokens = redisTemplate.opsForSet().members(key);
+                if (tokens != null) {
+                    for (String token : tokens) {
+                        // 각 토큰이 만료되었는지 확인합니다.
+                        if (jwtTokenProvider.isTokenExpired(token)) {
+                            // 만료되었다면 Set에서 제거합니다.
+                            redisTemplate.opsForSet().remove(key, token);
+                            log.debug("만료된 토큰 제거: {}", token);
+                        }
+                    }
+                }
+
+                // 만약 Set에 토큰이 하나도 남지 않았다면 Set 키 자체를 삭제하여 메모리를 절약합니다.
+                if (Objects.requireNonNull(redisTemplate.opsForSet().size(key)) == 0) {
+                    redisTemplate.delete(key);
+                    log.debug("빈 활성 세션 Set 제거: {}", key);
+                }
+            }
+        } catch (Exception e) {
+            log.error("만료된 토큰 정리 중 오류 발생", e);
+        }
+        log.info("만료된 활성 세션 정리를 완료했습니다.");
     }
 }

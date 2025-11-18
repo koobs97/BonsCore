@@ -101,14 +101,14 @@ public class AnalysisService {
                         NaverItemDto item = items.get(i);
                         String cleanOriginalTitle = HTML_TAG_PATTERN.matcher(item.getTitle()).replaceAll("");
                         String originalName = HtmlUtils.htmlUnescape(cleanOriginalTitle);
-                        String[] originalAddresses = processAddressString(getFullAddress(item)); // 한글 주소 분리
+                        String[] originalAddresses = processKoreanAddressString(getFullAddress(item)); // 한글 주소 분리
 
                         // --- 번역된 영문 데이터 추출 및 분리 ---
                         String translatedCombinedText = HtmlUtils.htmlUnescape(translatedTexts.get(i));
                         String[] parts = translatedCombinedText.split(Pattern.quote("|||"));
                         String translatedName = (parts.length > 0) ? parts[0].trim() : originalName;
                         String translatedAddress = (parts.length > 1) ? parts[1].trim() : getFullAddress(item);
-                        String[] translatedAddresses = processAddressString(translatedAddress); // 영문 주소 분리
+                        String[] translatedAddresses = processTranslatedAddressString(translatedAddress);
 
                         // --- 최종 DTO 생성 ---
                         return new SimpleStoreInfoDto(
@@ -142,19 +142,47 @@ public class AnalysisService {
      * @param fullAddress 전체 주소 문자열 (한글 또는 영문)
      * @return String 배열: [0] = simpleAddress, [1] = detailAddress
      */
-    private String[] processAddressString(String fullAddress) {
+    private String[] processKoreanAddressString(String fullAddress) {
         String simpleAddress = fullAddress;
         String detailAddress = "";
 
         if (fullAddress != null && !fullAddress.isEmpty()) {
             String[] addressParts = fullAddress.split(" ");
             if (addressParts.length > 2) {
-                // 예: "Seoul Jongno-gu" 또는 "서울 종로구"
+                // 예: "서울 종로구" 또는 "서울특별시 종로구"
                 simpleAddress = addressParts[0] + " " + addressParts[1];
                 detailAddress = String.join(" ", Arrays.copyOfRange(addressParts, 2, addressParts.length));
             }
         }
         return new String[]{simpleAddress, detailAddress};
+    }
+
+    /**
+     * 번역된 영어 주소 문자열을 simpleAddress와 detailAddress로 분리합니다.
+     * 영어 주소는 보통 쉼표(,)로 구분되며, 뒤에서부터 City, District 순서로 나타납니다.
+     * @param translatedFullAddress 번역된 전체 주소 (예: "8 Dongsomun-ro 6-gil, Seongbuk-gu, Seoul")
+     * @return String 배열: [0] = simpleAddress (예: "Seongbuk-gu, Seoul"), [1] = detailAddress (예: "8 Dongsomun-ro 6-gil")
+     */
+    private String[] processTranslatedAddressString(String translatedFullAddress) {
+        if (translatedFullAddress == null || translatedFullAddress.isEmpty()) {
+            return new String[]{"", ""};
+        }
+
+        // 쉼표를 기준으로 주소 구성요소를 분리합니다.
+        String[] parts = translatedFullAddress.split(",\\s*"); // ", " 또는 "," 로 분리
+
+        if (parts.length >= 2) {
+            // 뒤에서 두 개의 요소를 simpleAddress로 조합합니다 (예: "District, City").
+            String simpleAddress = parts[parts.length - 2] + ", " + parts[parts.length - 1];
+            // 나머지 앞부분을 detailAddress로 조합합니다.
+            String detailAddress = String.join(", ", Arrays.copyOfRange(parts, 0, parts.length - 2));
+            return new String[]{simpleAddress, detailAddress};
+        } else if (parts.length == 1) {
+            // 쉼표가 없는 짧은 주소의 경우, 전체를 simpleAddress로 처리합니다.
+            return new String[]{translatedFullAddress, ""};
+        } else {
+            return new String[]{translatedFullAddress, ""};
+        }
     }
 
     /**
@@ -194,7 +222,7 @@ public class AnalysisService {
                 .map(item -> {
                     String cleanTitle = HTML_TAG_PATTERN.matcher(item.getTitle()).replaceAll("");
                     String originalName = HtmlUtils.htmlUnescape(cleanTitle);
-                    String[] addresses = processAddressString(getFullAddress(item));
+                    String[] addresses = processKoreanAddressString(getFullAddress(item));
 
                     // isKoreanMode가 true이면 모든 필드에 한글 데이터를 채웁니다.
                     return new SimpleStoreInfoDto(
