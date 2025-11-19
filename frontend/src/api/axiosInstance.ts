@@ -150,8 +150,7 @@ axiosInstance.interceptors.response.use(
                     userStore().delUserInfo();
                     sessionStorage.clear();
 
-                    // window.location.reload();
-                    await router.push("/login");
+                    window.location.href = "/login";
                 }
             };
 

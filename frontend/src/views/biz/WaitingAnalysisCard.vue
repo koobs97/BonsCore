@@ -1,10 +1,10 @@
 <script setup lang="ts">
 
-import { reactive, ref, onMounted, watch, computed } from 'vue';
+import { reactive, ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import { QuestionFilled, InfoFilled, Refresh, Search, MoreFilled, WarningFilled } from "@element-plus/icons-vue";
+import { QuestionFilled, InfoFilled, Refresh, Search, MoreFilled, WarningFilled, Clock } from "@element-plus/icons-vue";
 import { userStore } from "@/store/userStore";
 import ServiceErrorState from '@/components/biz/ServiceErrorState.vue';
 
@@ -23,16 +23,23 @@ const isRecommendationUnavailable = ref(false);
 const isArchiveUnavailable = ref(false);
 
 // 기본 추천 가게 데이터 정의
-const defaultRecommendedStores = [
-  { name: '런던 베이글 뮤지엄', category: '카페, 디저트' },
-  { name: '다운타우너 안국', category: '햄버거' },
-  { name: '카멜커피 5호점', category: '카페, 디저트' },
-  { name: '온천집 익선', category: '일식' },
-  { name: '소금집 델리 안국', category: '샌드위치' },
-  { name: '진저베어 파이샵', category: '카페, 디저트' },
+const defaultRecommendedStoresData = [
+  { ko: { name: '런던 베이글 뮤지엄', category: '카페, 디저트' }, en: { name: 'London Bagel Museum', category: 'Cafe, Dessert' } },
+  { ko: { name: '다운타우너 안국', category: '햄버거' }, en: { name: 'Downtowner Anguk', category: 'Hamburger' } },
+  { ko: { name: '카멜커피 5호점', category: '카페, 디저트' }, en: { name: 'Camel Coffee Branch 5', category: 'Cafe, Dessert' } },
+  { ko: { name: '온천집 익선', category: '일식' }, en: { name: 'Oncheonjip Ikseon', category: 'Japanese Food' } },
+  { ko: { name: '소금집 델리 안국', category: '샌드위치' }, en: { name: 'Sogeumjip Deli Anguk', category: 'Sandwich' } },
+  { ko: { name: '진저베어 파이샵', category: '카페, 디저트' }, en: { name: 'Ginger Bear Pie Shop', category: 'Cafe, Dessert' } },
 ];
 
+const defaultRecommendedStores = computed(() => {
+  const lang = locale.value === 'en' ? 'en' : 'ko';
+  return defaultRecommendedStoresData.map(store => store[lang]);
+});
+
 const { t, locale } = useI18n();
+const businessHoursDialogVisible = ref(false); // 다이얼로그의 열림/닫힘 상태
+const showSparkleBadge = ref(false);
 const userStoreObj = userStore();
 const step = ref('search');
 const searchQuery = ref('');
@@ -48,6 +55,16 @@ const progress = ref({
   sns: false,
   surround: false,
 }) as any;
+
+const weekdays = computed(() => ([
+  t('waitingAnalyzer.analysis.conditions.dayOfWeek.MONDAY'),
+  t('waitingAnalyzer.analysis.conditions.dayOfWeek.TUESDAY'),
+  t('waitingAnalyzer.analysis.conditions.dayOfWeek.WEDNESDAY'),
+  t('waitingAnalyzer.analysis.conditions.dayOfWeek.THURSDAY'),
+  t('waitingAnalyzer.analysis.conditions.dayOfWeek.FRIDAY'),
+  t('waitingAnalyzer.analysis.conditions.dayOfWeek.SATURDAY'),
+  t('waitingAnalyzer.analysis.conditions.dayOfWeek.SUNDAY'),
+]));
 
 // 추천 가게 관련 상태 변수
 const recommendedStores = ref([]) as any;
@@ -71,7 +88,7 @@ const fetchRecommendedStores = async () => {
 
 // "기본 추천 보기" 버튼을 눌렀을 때 실행될 함수
 const handleShowDefaultRecommendations = () => {
-  recommendedStores.value = defaultRecommendedStores;
+  recommendedStores.value = defaultRecommendedStores.value;
   // 기본 데이터를 보여줬으므로, 더 이상 '장애' 상태가 아님. UI를 목록으로 되돌리기 위해 상태 변경
   isRecommendationUnavailable.value = false;
 };
@@ -136,9 +153,46 @@ const fetchMyArchiveStores = async () => {
   }
 };
 
-watch(locale, () => {
-  fetchRecommendedStores();
-  fetchMyArchiveStores();
+watch(locale, async () => {
+  if (step.value === 'result' && selectedStore.value) {
+    try {
+      // 3. 현재 선택된 가게의 정보를 새로운 언어로 다시 요청
+      const payload = {
+        // 백엔드가 어떤 언어로 검색하든 잘 찾도록 name과 nameKo를 모두 활용
+        query: selectedStore.value.nameKo || selectedStore.value.name,
+        lang: locale.value
+      };
+      const response = await Api.post(ApiUrls.NAVER_STORE_SEARCH, payload);
+
+      // 4. 응답 받은 목록에서 현재 가게와 ID가 동일한 가게 정보를 찾음
+      const updatedStore = response.data.find(store => store.id === selectedStore.value.id);
+
+      // 5. 찾았다면, selectedStore 자체를 새로운 정보로 교체
+      if (updatedStore) {
+        selectedStore.value = updatedStore;
+      }
+    } catch (error) {
+      console.error("가게 정보 언어 업데이트 실패:", error);
+      // 에러가 발생해도 분석 결과는 유지하도록 별도 처리는 안 함
+    } finally {
+      // 6. 가게 정보 업데이트 후, 상세 점수 분석 내용을 다시 계산하여 화면 갱신
+      calculateScore();
+    }
+  }
+  else {
+    await fetchRecommendedStores();
+    await fetchMyArchiveStores();
+  }
+});
+
+watch(step, (newStep) => {
+  if (newStep === 'result') {
+    // DOM이 완전히 업데이트된 후에 실행되도록 nextTick으로 감싸줍니다.
+    nextTick(() => {
+      // 뱃지 활성화
+      showSparkleBadge.value = true;
+    });
+  }
 });
 
 onMounted(() => {
@@ -149,7 +203,7 @@ onMounted(() => {
 const numberOfPeople = ref(1);
 
 const selectedTime = ref() as any;
-const timeSlots = ref([
+const timeSlots = computed(() => [
   { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t10_12'), value: '10-12' },
   { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t12_14'), value: '12-14' },
   { label: t('waitingAnalyzer.steps.selectTime.timeSlots.t14_16'), value: '14-16' },
@@ -335,10 +389,14 @@ const getOpeningInfo = async () => {
   try {
     const response = await Api.post(ApiUrls.OPENING_INFO, payload);
     console.log('영업 정보 조회:', response.data)
-    return response.data; // API 응답 데이터를 반환
+    analysis.openingInfo = response.data;
   } catch (error) {
     console.error("영업 정보 조회 실패:", error);
-    return null; // 실패 시 null 반환
+    analysis.openingInfo = {
+      open: false,
+      businessStatus: 'API_ERROR', // Enum 이름과 동일한 문자열로 상태 전달
+      weekdayText: ['i18n.openingInfo.apiError']
+    };
   }
 }
 
@@ -349,7 +407,6 @@ const getOpeningInfo = async () => {
 const translateWeekdayText = (text: string) => {
   // 텍스트가 'i18n.'으로 시작하면 번역 함수를 실행합니다.
   if (text.startsWith('i18n.')) {
-    // 'i18n.openingInfo.noInfo' -> 'waitingAnalyzer.errors.openingInfo.noInfo' 와 같이 실제 경로에 맞게 변환
     const i18nKey = text.replace('i18n.openingInfo.', 'waitingAnalyzer.errors.openingInfo.');
     return t(i18nKey);
   }
@@ -358,127 +415,135 @@ const translateWeekdayText = (text: string) => {
 };
 
 /**
- * 영업시간 파싱 및 현재 상태 판별 헬퍼 함수
+ * 영업시간 정보를 바탕으로, 사용자가 선택한 시간대의 가게 상태를 판별합니다.
+ * 다국어(ko, en) 및 다양한 시간 형식을 지원합니다.
+ * @param openingInfo - 백엔드로부터 받은 가게 영업 정보 객체
+ * @param selectedTimeValue - 사용자가 선택한 시간 슬롯 (예: '12-14') 또는 'now'
+ * @returns { status: '상태코드', message: '사용자에게 보여줄 메시지' } 형태의 객체
  */
 const checkBusinessStateForSelectedTime = (openingInfo: any, selectedTimeValue: string) => {
+  // 1. 기본 유효성 검사
   if (!openingInfo || !openingInfo.weekdayText) {
+    // 이 경우는 보통 백엔드에서 'NO_INFO' 등으로 처리되지만, 안전장치로 남겨둡니다.
     return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.unavailable') };
   }
 
+  // 2. 오늘의 영업 정보 추출
   const now = new Date();
-  const dayIndex = now.getDay();
-  const todayIndex = (dayIndex === 0) ? 6 : dayIndex - 1;
-  const todayHoursText = openingInfo.weekdayText[todayIndex];
+  const dayIndex = now.getDay(); // 0(일요일) ~ 6(토요일)
+  // Google API는 월요일부터 시작하므로 인덱스를 맞춰줍니다. (월:0, ..., 일:6)
+  const todayGoogleIndex = (dayIndex === 0) ? 6 : dayIndex - 1;
+  const todayHoursText = openingInfo.weekdayText[todayGoogleIndex];
 
   if (!todayHoursText || typeof todayHoursText !== 'string') {
     return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.todayUnavailable') };
   }
 
-  if (todayHoursText.includes('휴무') || todayHoursText.toLowerCase().includes('closed')) {
-    return { status: 'CLOSED_TODAY', message: t('waitingAnalyzer.steps.notAvailable.states.closed.message') };
+  // 3. 오늘의 휴무 여부 확인 (다국어 지원)
+  // i18n 파일에 '휴무', 'Closed' 등의 키워드를 정의해 사용합니다.
+  const closedKeywords = t('waitingAnalyzer.terms.closed').split(','); // 예: "휴무,Closed"
+  if (closedKeywords.some(keyword => todayHoursText.includes(keyword.trim()))) {
+    return { status: 'CLOSED_TODAY', message: t('waitingAnalyzer.steps.notAvailable.states.closed_today.message') };
   }
 
-  const colonIndex = todayHoursText.indexOf(':'); // 콜론의 위치를 찾습니다.
+  // 4. 시간 정보 파싱 (정규식 기반)
+  const timeRegex = /(?:(오전|오후|AM|PM)\s*)?(\d{1,2}):(\d{2})/g;
+  const matches = [...todayHoursText.matchAll(timeRegex)];
 
-  if (colonIndex === -1 || todayHoursText.startsWith('i18n.')) {
-    return { status: 'UNKNOWN', message: translateWeekdayText(todayHoursText) };
-  }
-
-  const timeInfoString = todayHoursText.substring(colonIndex + 1).trim();
-
-  if (!timeInfoString) {
-    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.todayUnavailable') };
-  }
-
-  const hourBlocks = timeInfoString.split(',').map(s => s.trim());
-
-  const parseTimeWithContext = (timeStr: string, contextPrefix: string | null) => {
-    const timeRegex = /(오전|오후|AM|PM)?\s*(\d{1,2}):(\d{2})/;
-    const match = timeStr.match(timeRegex);
-    if (!match) return null;
-
-    let [, prefix, hourStr, minuteStr] = match;
-    let hours = parseInt(hourStr, 10);
-    const minutes = parseInt(minuteStr, 10);
-
-    prefix = prefix || contextPrefix;
-
-    if ((prefix === '오후' || prefix === 'PM') && hours !== 12) hours += 12;
-    else if ((prefix === '오전' || prefix === 'AM') && hours === 12) hours = 0;
-
-    return hours * 60 + minutes;
-  };
-
-  const operatingPeriods: { start: number; end: number; startText: string; endText: string }[] = [];
-
-  for (const block of hourBlocks) {
-    const parts = block.split('~').map(p => p.trim());
-    if (parts.length !== 2) continue;
-
-    const [startStr, endStr] = parts;
-    const startPrefixMatch = startStr.match(/(오전|오후|AM|PM)/);
-    const startContext = startPrefixMatch ? startPrefixMatch[0] : (locale.value === 'ko' ? "오전" : "AM");
-
-    const startTime = parseTimeWithContext(startStr, null);
-    const endTime = parseTimeWithContext(endStr, startContext);
-
-    if (startTime !== null && endTime !== null) {
-      let correctedEndTime = endTime;
-      if (endTime < startTime) {
-        correctedEndTime += 24 * 60;
-      }
-      operatingPeriods.push({
-        start: startTime,
-        end: correctedEndTime,
-        startText: startStr,
-        endText: endStr,
-      });
+  if (matches.length === 0 || matches.length % 2 !== 0) {
+    // 시간 정보를 찾을 수 없거나, 시작-종료 쌍이 맞지 않는 경우
+    // 백엔드에서 받은 i18n 키가 있다면 그대로 사용합니다.
+    if (todayHoursText.startsWith('i18n.')) {
+      return { status: 'UNKNOWN', message: translateWeekdayText(todayHoursText) };
     }
+    return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.unknownTime') };
+  }
+
+  // 5. 파싱된 시간을 분(minutes) 단위로 변환하여 배열로 저장
+  const operatingPeriods: { start: number; end: number; startText: string; endText: string }[] = [];
+  for (let i = 0; i < matches.length; i += 2) {
+    const startMatch = matches[i];
+    const endMatch = matches[i+1];
+
+    const startTime = parseTimeToMinutes(startMatch);
+    let endTime = parseTimeToMinutes(endMatch);
+
+    // 심야 영업 처리: 종료 시간이 시작 시간보다 이르면, 다음 날로 간주하여 24시간(1440분)을 더함
+    if (endTime < startTime) {
+      endTime += 24 * 60;
+    }
+
+    operatingPeriods.push({
+      start: startTime,
+      end: endTime,
+      startText: startMatch[0].trim(),
+      endText: endMatch[0].trim()
+    });
   }
 
   if (operatingPeriods.length === 0) {
     return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.unknownTime') };
   }
 
-  let targetTimeInMinutes: number;
-  if (selectedTimeValue === 'now') {
-    targetTimeInMinutes = now.getHours() * 60 + now.getMinutes();
-  } else {
-    const startHour = parseInt(selectedTimeValue.split('-')[0], 10);
-    targetTimeInMinutes = startHour * 60;
-  }
+  // 6. 사용자가 선택한 시간을 분(minutes)으로 변환
+  const targetTimeInMinutes = selectedTimeValue === 'now'
+      ? now.getHours() * 60 + now.getMinutes()
+      : parseInt(selectedTimeValue.split('-')[0], 10) * 60;
 
+  // 7. 상태 판별
   const firstOpeningTime = operatingPeriods[0].start;
   const lastClosingTime = operatingPeriods[operatingPeriods.length - 1].end;
 
-  let adjustedTargetTime = targetTimeInMinutes;
-  if (lastClosingTime >= 24 * 60 && targetTimeInMinutes < firstOpeningTime) {
-    adjustedTargetTime += 24 * 60;
-  }
-
-  if (adjustedTargetTime < firstOpeningTime) {
+  // 영업 시작 전
+  if (targetTimeInMinutes < firstOpeningTime) {
     return { status: 'BEFORE_OPENING', message: t('waitingAnalyzer.steps.notAvailable.states.before_opening.messageTemplate', { startTime: operatingPeriods[0].startText }) };
   }
 
-  if (adjustedTargetTime >= lastClosingTime) {
+  // 영업 종료 후
+  if (targetTimeInMinutes >= lastClosingTime) {
     return { status: 'AFTER_CLOSING', message: t('waitingAnalyzer.steps.notAvailable.states.after_closing.message') };
   }
 
-  for (const period of operatingPeriods) {
-    if (adjustedTargetTime >= period.start && adjustedTargetTime < period.end) {
+  // 영업 중 또는 브레이크 타임 확인
+  for (let i = 0; i < operatingPeriods.length; i++) {
+    const period = operatingPeriods[i];
+    // 현재 시간이 특정 영업 구간에 포함되는 경우
+    if (targetTimeInMinutes >= period.start && targetTimeInMinutes < period.end) {
       return { status: 'OPERATIONAL', message: t('waitingAnalyzer.steps.notAvailable.states.operational.message') };
     }
-  }
-
-  for (let i = 0; i < operatingPeriods.length - 1; i++) {
-    if (adjustedTargetTime >= operatingPeriods[i].end && adjustedTargetTime < operatingPeriods[i + 1].start) {
-      return { status: 'BREAK_TIME', message: t('waitingAnalyzer.steps.notAvailable.states.break_time.messageTemplate', { startTime: operatingPeriods[i].endText, endTime: operatingPeriods[i+1].startText }) };
+    // 현재 시간이 영업 구간 사이(브레이크 타임)에 있는 경우
+    if (i < operatingPeriods.length - 1 && targetTimeInMinutes >= period.end && targetTimeInMinutes < operatingPeriods[i + 1].start) {
+      return { status: 'BREAK_TIME', message: t('waitingAnalyzer.steps.notAvailable.states.break_time.messageTemplate', { startTime: period.endText, endTime: operatingPeriods[i + 1].startText }) };
     }
   }
 
+  // 모든 조건에 해당하지 않는 예외적인 경우
   return { status: 'UNKNOWN', message: t('waitingAnalyzer.errors.openingInfo.unknownStatus') };
 };
 
+
+/**
+ * [새로운 헬퍼 함수]
+ * 정규식으로 찾은 시간 매치 결과를 24시간 기준의 분(minutes)으로 변환합니다.
+ * @param match 정규식 matchAll의 결과 배열 (예: ["오후 9:30", "오후", "9", "30"])
+ * @returns 분으로 변환된 시간 (예: 1290)
+ */
+const parseTimeToMinutes = (match: RegExpMatchArray): number => {
+  let [, prefix, hourStr, minuteStr] = match;
+  let hours = parseInt(hourStr, 10);
+  const minutes = parseInt(minuteStr, 10);
+
+  // AM/PM, 오전/오후 처리
+  if ((prefix === '오후' || prefix === 'PM') && hours !== 12) {
+    hours += 12;
+  }
+  // 자정(12 AM) 처리
+  if ((prefix === '오전' || prefix === 'AM') && hours === 12) {
+    hours = 0;
+  }
+
+  return hours * 60 + minutes;
+};
 /**
  * 주변 상권 정보 조회
  */
@@ -506,10 +571,26 @@ const startAnalysis = async () => {
 
   const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-  const openingInfo = await getOpeningInfo();
-  analysis.openingInfo = openingInfo;
+  await getOpeningInfo();
   await delay(300);
   progress.value.opening = true;
+
+  const openingInfo = analysis.openingInfo;
+
+  // 2. 백엔드에서 받은 businessStatus로 분석을 계속할지 결정
+  // 'OPERATIONAL' 상태가 아니면, 분석을 즉시 중단하고 상태에 맞는 메시지를 표시
+  if (openingInfo.businessStatus !== 'OPERATIONAL') {
+    const statusKey = openingInfo.businessStatus.toLowerCase(); // 'NOT_FOUND' -> 'notfound'
+
+    // notAvailableInfo 객체 채우기
+    notAvailableInfo.emoji = t(`waitingAnalyzer.steps.notAvailable.states.${statusKey}.emoji`);
+    notAvailableInfo.title = t(`waitingAnalyzer.steps.notAvailable.states.${statusKey}.title`);
+    // weekdayText의 첫 번째 값을 메시지로 사용 (i18n 키가 들어있음)
+    notAvailableInfo.message = translateWeekdayText(openingInfo.weekdayText[0]);
+
+    step.value = 'notAvailable'; // 예외 처리 화면으로 이동
+    return; // 분석 중단
+  }
 
   // 헬퍼 함수를 호출하여 현재의 정확한 상태를 파악
   const currentState = checkBusinessStateForSelectedTime(openingInfo, selectedTime.value);
@@ -734,12 +815,24 @@ const generateFinalResult = (totalScore: any) => {
 
   result.value = {
     totalScore,
-    waitingIndex: t(`waitingAnalyzer.analysis.results.${resultKey}.index`),
-    message: t(`waitingAnalyzer.analysis.results.${resultKey}.message`),
-    emoji: t(`waitingAnalyzer.analysis.results.${resultKey}.emoji`)
+    resultKey, // 'veryCrowded'와 같은 키를 저장
   };
   step.value = 'result';
 };
+
+const finalResult = computed(() => {
+  if (!result.value || !result.value.resultKey) {
+    return null;
+  }
+  const { totalScore, resultKey } = result.value;
+
+  return {
+    totalScore,
+    waitingIndex: t(`waitingAnalyzer.analysis.results.${resultKey}.index`),
+    message: t(`waitingAnalyzer.analysis.results.${resultKey}.message`),
+    emoji: t(`waitingAnalyzer.analysis.results.${resultKey}.emoji`),
+  };
+});
 
 const calculatePopoverWidth = (apiInfo: any): number => {
   // apiInfo 객체나 name 속성이 없으면 기본 너비 200을 반환합니다.
@@ -1040,25 +1133,45 @@ const reset = () => {
         </div>
       </div>
 
-      <!-- 4. 결과 표시 단계 (대대적 개선) -->
-      <div v-if="step === 'result'" class="card-body result-state">
+      <!-- 4. 결과 표시 단계 -->
+      <div v-if="step === 'result' && finalResult" class="card-body result-state">
         <!-- 상단 요약 결과 -->
         <div class="result-summary">
-          <span class="result-emoji">{{ result.emoji }}</span>
+          <span class="result-emoji">{{ finalResult.emoji }}</span>
           <div class="result-text">
             <h2 class="result-index">
               <i18n-t keypath="waitingAnalyzer.steps.result.summary" tag="span">
                 <template #storeName>{{ selectedStore.name }}</template>
-                <template #status><span :class="result.waitingIndex">{{ result.waitingIndex }}</span></template>
+                <template #status>
+                  <!-- 클래스는 키로, 내용은 번역된 텍스트로 바인딩 -->
+                  <span :class="result.resultKey">{{ finalResult.waitingIndex }}</span>
+                </template>
               </i18n-t>
             </h2>
-            <p class="result-message">{{ result.message }}</p>
+            <p class="result-message">{{ finalResult.message }}</p>
           </div>
         </div>
 
         <!-- 상세 점수 분석 (스크롤 영역) -->
         <div class="score-details">
-          <h3 class="details-title">{{ t('waitingAnalyzer.steps.result.detailsTitle') }}</h3>
+          <div class="details-title-wrapper">
+            <h3 class="details-title">{{ t('waitingAnalyzer.steps.result.detailsTitle') }}</h3>
+            <div class="info-button-container">
+              <el-button
+                  plain
+                  link
+                  size="small"
+                  class="info-btn"
+                  @click="businessHoursDialogVisible = true"
+              >
+                {{ t('waitingAnalyzer.steps.result.businessInfoButton') }}
+              </el-button>
+              <span v-if="showSparkleBadge" class="sparkle-badge">
+                {{ t('waitingAnalyzer.steps.result.checkBadge') }}
+            </span>
+            </div>
+          </div>
+
           <ul class="details-list">
             <li v-for="(detail, index) in scoreDetails" :key="index">
               <!-- 요인 이름과 정보 아이콘을 함께 묶음 -->
@@ -1100,11 +1213,46 @@ const reset = () => {
         <div class="result-footer">
           <div class="total-score">
             <span class="factor">{{ t('waitingAnalyzer.steps.result.totalScoreLabel') }}</span>
-            <span class="score">{{ result.totalScore }}</span>
+            <span class="score">{{ finalResult.totalScore }}</span>
           </div>
           <el-button type="primary" class="reset-button" @click="reset">{{ t('waitingAnalyzer.steps.result.reset') }}</el-button>
         </div>
       </div>
+
+      <el-dialog
+          v-model="businessHoursDialogVisible"
+          width="400px"
+          center
+          append-to-body
+          class="business-hours-dialog"
+          @close="showSparkleBadge = false"
+      >
+        <!-- 다이얼로그 헤더 -->
+        <template #header>
+          <div class="dialog-header">
+            <el-icon><Clock /></el-icon>
+            <h4 class="dialog-title">{{ t('waitingAnalyzer.steps.notAvailable.storeInfoTitle') }}</h4>
+          </div>
+        </template>
+
+        <!-- 다이얼로그 본문 (기존 팝오버 내용을 그대로 사용) -->
+        <div v-if="analysis.openingInfo && analysis.openingInfo.weekdayText" class="hours-grid">
+          <div
+              v-for="(text, index) in analysis.openingInfo.weekdayText"
+              :key="index"
+              class="hour-row"
+              :class="{ 'is-today': (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) === index }"
+          >
+            <span class="day-label">
+                {{ weekdays[index] }}
+                <span v-if="(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) === index" class="today-badge">
+                    {{ t('waitingAnalyzer.analysis.conditions.today') }}
+                </span>
+            </span>
+            <span class="day-hours">{{ translateWeekdayText(text) }}</span>
+          </div>
+        </div>
+      </el-dialog>
 
       <!-- 휴무일 예외 처리 -->
       <div v-if="step === 'notAvailable'" class="card-body not-available-state">
@@ -1742,11 +1890,161 @@ button.is-disabled:hover {
   color: var(--el-color-primary);
 }
 /* 혼잡도 텍스트에 색상 부여 */
-.result-index .매우.혼잡, .result-index .혼잡 { color: var(--red); }
-.result-index .보통 { color: var(--orange); }
-.result-index .여유 { color: var(--green); }
-.result-index .한산 { color: var(--blue); }
+.result-index .veryCrowded, .result-index .crowded { color: var(--el-color-danger); }
+.result-index .moderate { color: var(--el-color-warning); }
+.result-index .calm { color: var(--el-color-success); }
+.result-index .quiet { color: var(--el-color-primary); }
 
+.details-title-wrapper.details-title-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.details-title {
+  margin-bottom: 0;
+}
+
+/* --- [교체] 고급스러운 팝오버 디자인을 위한 스타일 --- */
+/* 팝오버 자체의 스타일 (전역) */
+:global(.el-popper.business-hours-popover) {
+  padding: 0 !important; /* 내부에서 패딩을 제어하므로 초기화 */
+  border-radius: 12px !important;
+  border: 1px solid var(--el-border-color-light) !important;
+  box-shadow: var(--el-box-shadow-dark) !important;
+  background: var(--el-bg-color-page) !important;
+}
+
+.info-button-container {
+  position: relative;
+  margin-top: 12px;
+}
+
+.info-btn {
+  height: auto;
+  font-size: 0.7rem;
+  outline: none;
+}
+
+/* --- 반짝이는 뱃지 스타일 --- */
+.sparkle-badge {
+  position: absolute;
+  top: -19px; /* 기울기가 없어져서 위치 미세 조정 */
+  right: -4px;
+  /* transform: rotate(15deg);  <-- 기울기 제거 */
+  padding: 2px 7px; /* 패딩 살짝 조정 */
+  border-radius: 8px; /* 둥근 사각형 모양으로 변경 */
+  background: var(--el-color-primary);
+  color: var(--el-bg-color);
+  font-size: 8px; /* 폰트 크기 살짝 키움 */
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(245, 108, 108, 0.5);
+  animation: sparkle 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.sparkle-badge::after {
+  content: '';
+  position: absolute;
+  left: 13px; /* 화살표 좌측 위치 */
+  bottom: -7px; /* 뱃지 아래에 붙도록 설정 */
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  /* 화살표 색상은 그라디언트 시작 색상과 동일하게 설정 */
+  border-top: 6px solid var(--el-color-primary);
+}
+
+
+/* 반짝이는 애니메이션 효과 (기울기만 제거) */
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1); /* rotate 제거 */
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05); /* rotate 제거 */
+    opacity: 0.9;
+  }
+}
+
+/* --- 모던한 다이얼로그 스타일 --- */
+/* 다이얼로그 컴포넌트 자체 스타일 (전역) */
+.business-hours-dialog .el-dialog {
+  border-radius: 16px !important;
+  background: var(--el-bg-color-page) !important;
+  box-shadow: var(--el-box-shadow-dark) !important;
+}
+.business-hours-dialog .el-dialog__header {
+  padding: 0;
+  margin-right: 0;
+}
+.business-hours-dialog .el-dialog__body {
+  padding: 8px !important;
+}
+
+/* 다이얼로그 헤더 */
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dialog-header .el-icon {
+  color: var(--el-color-primary);
+  font-size: 16px;
+}
+.dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--el-text-color-primary);
+}
+
+/* 영업시간 그리드 (기존과 동일하게 사용) */
+.hours-grid {
+  padding: 8px;
+}
+.hour-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: 6px;
+}
+.day-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  display: flex;
+  align-items: center;
+}
+.day-hours {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  text-align: right;
+  letter-spacing: -0.5px;
+}
+.hour-row.is-today {
+  background-color: var(--el-color-primary-light-9);
+}
+.hour-row.is-today .day-label,
+.hour-row.is-today .day-hours {
+  color: var(--el-color-primary);
+  font-weight: 700;
+}
+.today-badge {
+  margin-left: 6px;
+  padding: 2px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  background-color: var(--el-color-primary);
+  color: var(--el-bg-color);
+}
 .result-message {
   font-size: 0.8rem;
   margin: 4px 0 0;
@@ -1765,7 +2063,6 @@ button.is-disabled:hover {
 .details-title {
   font-weight: 700;
   font-size: 0.9rem;
-  margin-bottom: 8px;
   color: var(--el-color-primary);
   flex-shrink: 0; /* 높이 고정 */
 }

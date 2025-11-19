@@ -4,16 +4,21 @@ import com.koo.bonscore.biz.store.dto.req.GourmetImageDto;
 import com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest;
 import com.koo.bonscore.biz.store.dto.res.GourmetRecordDto;
 import com.koo.bonscore.biz.store.mapper.GourmetRecordMapper;
+import com.koo.bonscore.common.api.google.service.GoogleTranslateService;
 import com.koo.bonscore.common.file.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.HtmlUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 /**
@@ -32,6 +37,9 @@ public class GourmetRecordService {
 
     private final GourmetRecordMapper gourmetRecordMapper;
     private final FileStorageService fileStorageService;
+    private final GoogleTranslateService googleTranslateService;
+
+    private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]*>");
 
     /**
      * 저장소 레코드 저장
@@ -105,26 +113,74 @@ public class GourmetRecordService {
 
     /**
      * 조회
-     * @param request GourmetRecordCreateRequest
      * @return List<GourmetRecordDto>
      */
     @Transactional(readOnly = true)
-    public List<GourmetRecordDto> getGourmetRecords(String userId) {
+    public List<GourmetRecordDto> getGourmetRecords(String userId, String lang) {
 
         List<GourmetRecordDto> records = gourmetRecordMapper.selectGourmetRecordsByUserId(userId);
 
-        // 2. 조회된 데이터의 이미지 URL을 완성된 형태로 가공합니다.
+        if (!"ko".equalsIgnoreCase(lang) && records != null && !records.isEmpty()) {
+            // 2-1. 번역할 텍스트들을 하나의 리스트로 모읍니다. (API 호출 1번으로 처리하기 위함)
+            List<String> textsToTranslate = new ArrayList<>();
+            for (GourmetRecordDto record : records) {
+                textsToTranslate.add(cleanAndUnescape(record.getName()));
+                textsToTranslate.add(cleanAndUnescape(record.getCategory()));
+                textsToTranslate.add(StringUtils.hasText(record.getMemo()) ? cleanAndUnescape(record.getMemo()) : "");
+            }
+
+            // 2-2. Google 번역 API를 호출합니다.
+            List<String> translatedTexts = googleTranslateService.translateTexts(textsToTranslate, "ko", lang);
+
+            // 2-3. 번역된 텍스트를 다시 DTO에 매핑합니다.
+            // 번역 결과의 크기가 일치하는지 확인하여 안정성 확보
+            if (translatedTexts.size() == textsToTranslate.size()) {
+                int translatedIndex = 0;
+                for (GourmetRecordDto record : records) {
+                    String translatedName = HtmlUtils.htmlUnescape(translatedTexts.get(translatedIndex++));
+                    String translatedCategory = HtmlUtils.htmlUnescape(translatedTexts.get(translatedIndex++));
+
+                    record.setName(translatedName);
+                    record.setCategory(translatedCategory);
+                    // 원본 메모가 있었을 경우에만 번역된 텍스트로 덮어쓰기
+                    if (StringUtils.hasText(record.getMemo())) {
+                        String translatedMemo = HtmlUtils.htmlUnescape(translatedTexts.get(translatedIndex++));
+                        record.setMemo(translatedMemo);
+                    } else {
+                        translatedIndex++; // 인덱스는 증가시켜 다음 순서를 맞춤
+                    }
+                }
+            }
+        }
+
+        // 3. 조회된 데이터의 이미지 URL을 완성된 형태로 가공합니다.
+        assert records != null;
         records.forEach(record -> {
             if (record.getImages() != null) {
                 record.getImages().forEach(image -> {
-                    // storedFileName (상대 경로)을 기반으로 완전한 영구 URL을 생성
                     String fullUrl = fileStorageService.getFileDownloadUri(image.getStoredFileName());
                     image.setImageUrl(fullUrl);
                 });
             }
         });
 
-        // 3. 완전한 URL이 포함된 DTO 목록을 반환합니다.
+        // 4. 가공이 완료된 DTO 목록을 반환합니다.
         return records;
+    }
+
+    /**
+     * ★ 3. 제공된 AnalysisService 스타일의 텍스트 정리 헬퍼 메소드
+     * HTML 태그를 제거하고, HTML 엔티티(e.g., &amp;)를 원래 문자로 디코딩합니다.
+     * @param text 정리할 원본 텍스트
+     * @return 정리된 순수 텍스트
+     */
+    private String cleanAndUnescape(String text) {
+        if (!StringUtils.hasText(text)) {
+            return text;
+        }
+        // 1. 정규표현식을 사용하여 HTML 태그 제거
+        String noHtml = HTML_TAG_PATTERN.matcher(text).replaceAll("");
+        // 2. HtmlUtils를 사용하여 HTML 엔티티 디코딩
+        return HtmlUtils.htmlUnescape(noHtml);
     }
 }

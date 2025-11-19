@@ -1,4 +1,3 @@
-<!-- src/components/StoreFormDialog.vue -->
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
 import { ElMessage, FormInstance, FormRules } from 'element-plus';
@@ -8,6 +7,9 @@ import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
 import { userStore } from "@/store/userStore";
 import { Dialogs } from "@/common/dialogs";
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 // FileUpload.vue에서 반환하는 파일 정보 타입 (FileResponse와 동일)
 interface UploadedFileResponse {
@@ -73,16 +75,18 @@ watch(() => props.visible, (isVisible) => {
 }, { deep: true, immediate: true });
 
 const rules: FormRules = {
-  name: [{ required: true, message: '가게 이름을 입력해주세요.', trigger: 'blur' }],
-  category: [{ required: true, message: '카테고리를 입력해주세요.', trigger: 'blur' }],
-  visitDate: [{ required: true, message: '방문 날짜를 선택해주세요.', trigger: 'change' }],
-  rating: [{ required: true, message: '별점은 최소 1점 이상이어야 합니다.', trigger: 'change', type: 'number', min: 1 }],
-  referenceUrl: [{ type: 'url', message: '올바른 URL 형식으로 입력해주세요.', trigger: 'blur' }],
+  name: [{ required: true, message: t('storeFormDialog.validation.nameRequired'), trigger: 'blur' }],
+  category: [{ required: true, message: t('storeFormDialog.validation.categoryRequired'), trigger: 'blur' }],
+  visitDate: [{ required: true, message: t('storeFormDialog.validation.visitDateRequired'), trigger: 'change' }],
+  rating: [{ required: true, message: t('storeFormDialog.validation.ratingRequired'), trigger: 'change', type: 'number', min: 1 }],
+  referenceUrl: [{ type: 'url', message: t('storeFormDialog.validation.urlInvalid'), trigger: 'blur' }],
 };
 
 const handleClose = () => { emit('update:visible', false); };
 
-const uploadUrl = 'http://localhost:8080/api/files/upload';
+// import.meta.env.VITE_API_BASE_URL
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+const uploadUrl = baseUrl + '/api/files/upload';
 const maxFiles = 10;
 
 const handleFileSelect = async (event: Event) => {
@@ -96,11 +100,11 @@ const handleFileSelect = async (event: Event) => {
   try {
     for (const file of filesToUpload) {
       if (formData.value.images.length >= maxFiles) {
-        ElMessage.warning(`이미지는 최대 ${maxFiles}개까지만 추가할 수 있습니다.`);
+        ElMessage.warning(t('storeFormDialog.messages.maxImagesWarning', { max: maxFiles }));
         break;
       }
       if (file.size > 10 * 1024 * 1024) {
-        ElMessage.warning(`'${file.name}' 파일의 크기가 10MB를 초과하여 업로드할 수 없습니다.`);
+        ElMessage.warning(t('storeFormDialog.messages.fileSizeExceeded', { fileName: file.name }));
         continue;
       }
       await uploadFile(file);
@@ -150,10 +154,10 @@ const handleSubmit = async () => {
       try {
 
         await Dialogs.customConfirm(
-            '저장소 기록',
-            '기록을 등록하시겠습니까?',
-            '등록하기',
-            '취소',
+            t('storeFormDialog.confirm.title'),
+            t('storeFormDialog.confirm.message'),
+            t('storeFormDialog.confirm.confirmButton'),
+            t('storeFormDialog.confirm.cancelButton'),
             '420px',
         );
 
@@ -176,19 +180,19 @@ const handleSubmit = async () => {
           })),
         };
         await Api.post(ApiUrls.CREATE_GOURMET_RECORD, finalPayload);
-        ElMessage.success('맛집 기록이 성공적으로 저장되었습니다!');
+        ElMessage.success(t('storeFormDialog.messages.saveSuccess'));
         emit('submit', finalPayload);
         handleClose();
       } catch (error) {
         if (error !== 'cancel') {
           console.error("Submission failed:", error);
-          ElMessage.error('저장에 실패했습니다. 다시 시도해주세요.');
+          ElMessage.error(t('storeFormDialog.messages.saveFailed'));
         }
       } finally {
         isSubmitting.value = false;
       }
     } else {
-      ElMessage.warning('입력 항목을 모두 올바르게 채워주세요.');
+      ElMessage.warning(t('storeFormDialog.messages.validationFailed'));
     }
   });
 };
@@ -210,10 +214,17 @@ const handleSubmit = async () => {
       <template #header="{ close }">
         <div class="dialog-header-custom">
           <div class="header-main-content">
-            <div class="header-icon"><el-icon v-if="isEditMode" :size="24"><EditPen /></el-icon><el-icon v-else :size="24"><Shop /></el-icon></div>
+            <div class="header-icon">
+              <el-icon v-if="isEditMode" :size="24"><EditPen /></el-icon>
+              <el-icon v-else :size="24"><Shop /></el-icon>
+            </div>
             <div class="header-title-group">
-              <h2 class="header-title">{{ isEditMode ? '맛집 기록 수정' : '새로운 맛집 기록' }}</h2>
-              <p class="header-subtitle">소중한 미식 경험을 기록하고 공유해보세요.</p>
+              <h2 class="header-title">
+                {{ isEditMode ? t('storeFormDialog.header.titleEdit') : t('storeFormDialog.header.titleNew') }}
+              </h2>
+              <p class="header-subtitle">
+                {{ t('storeFormDialog.header.subtitle') }}
+              </p>
             </div>
           </div>
           <el-button text circle class="close-btn" @click="close">✕</el-button>
@@ -221,24 +232,93 @@ const handleSubmit = async () => {
       </template>
 
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top" class="store-form">
-        <el-form-item prop="name"><el-input v-model="formData.name" placeholder="가게 이름" :prefix-icon="Shop" size="large" autofocus maxlength="30" show-word-limit/></el-form-item>
-        <el-form-item prop="referenceUrl"><el-input v-model="formData.referenceUrl" placeholder="참조 URL (예: 네이버 지도, 블로그 등)" :prefix-icon="Link" size="large" clearable/></el-form-item>
+        <el-form-item prop="name">
+          <el-input
+              v-model="formData.name"
+              :placeholder="t('storeFormDialog.form.placeholder.name')"
+              :prefix-icon="Shop"
+              size="large"
+              autofocus
+              maxlength="30"
+              show-word-limit
+          />
+        </el-form-item>
+        <el-form-item prop="referenceUrl">
+          <el-input
+              v-model="formData.referenceUrl"
+              :placeholder="t('storeFormDialog.form.placeholder.referenceUrl')"
+              :prefix-icon="Link"
+              size="large"
+              clearable
+          />
+        </el-form-item>
         <el-row :gutter="24">
-          <el-col :span="6"><el-form-item prop="visitDate"><el-date-picker v-model="formData.visitDate" type="date" placeholder="방문일" format="YYYY-MM-DD" value-format="YYYY-MM-DD" :prefix-icon="Calendar" size="large" style="width: 100%;"/></el-form-item></el-col>
-          <el-col :span="9"><el-form-item prop="category"><el-input v-model="formData.category" placeholder="카테고리" :prefix-icon="CollectionTag" size="large" maxlength="40" show-word-limit/></el-form-item></el-col>
-          <el-col :span="9"><el-form-item prop="rating"><div class="rating-wrapper"><el-icon class="prefix-icon"><StarFilled /></el-icon><el-rate v-model="formData.rating" :max="5" class="custom-rate"/><span class="rating-text">{{ formData.rating }} / 5</span></div></el-form-item></el-col>
+          <el-col :span="6">
+            <el-form-item prop="visitDate">
+              <el-date-picker
+                  v-model="formData.visitDate"
+                  type="date"
+                  :placeholder="t('storeFormDialog.form.placeholder.visitDate')"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  :prefix-icon="Calendar"
+                  size="large" style="width: 100%;"/>
+            </el-form-item>
+          </el-col>
+          <el-col :span="9">
+            <el-form-item prop="category">
+              <el-input
+                  v-model="formData.category"
+                  :placeholder="t('storeFormDialog.form.placeholder.category')"
+                  :prefix-icon="CollectionTag"
+                  size="large"
+                  maxlength="40"
+                  show-word-limit/>
+            </el-form-item>
+          </el-col>
+          <el-col :span="9">
+            <el-form-item prop="rating">
+              <div class="rating-wrapper">
+                <el-icon class="prefix-icon">
+                  <StarFilled />
+                </el-icon>
+                <el-rate
+                    v-model="formData.rating"
+                    :max="5"
+                    class="custom-rate"
+                />
+                <span class="rating-text">
+                  {{ formData.rating }} / 5
+                </span>
+              </div>
+            </el-form-item>
+          </el-col>
         </el-row>
 
         <el-form-item prop="files">
           <div class="image-uploader-container">
             <div class="uploader-header">
-              <span class="uploader-title">사진</span>
+              <span class="uploader-title">{{ t('storeFormDialog.form.imageUploader.title') }}</span>
               <span class="image-counter">{{ formData.images.length }} / {{ maxFiles }}</span>
             </div>
             <div class="scroll-wrapper">
               <label for="file-upload-input" class="upload-box" v-if="formData.images.length < maxFiles">
-                <div v-if="isUploading" class="upload-loading"><el-icon class="is-loading" :size="24"><Upload /></el-icon><span>업로드 중..</span></div>
-                <div v-else class="upload-content"><el-icon :size="24"><Upload /></el-icon><span>이미지 추가</span></div>
+                <div v-if="isUploading"
+                    class="upload-loading">
+                  <el-icon
+                      class="is-loading"
+                      :size="24">
+                    <Upload />
+                  </el-icon>
+                  <span>{{ t('storeFormDialog.form.imageUploader.uploading') }}</span>
+                </div>
+                <div v-else
+                     class="upload-content">
+                  <el-icon :size="24">
+                    <Upload />
+                  </el-icon>
+                  <span>{{ t('storeFormDialog.form.imageUploader.add') }}</span>
+                </div>
               </label>
               <draggable
                   v-model="formData.images"
@@ -261,13 +341,28 @@ const handleSubmit = async () => {
           </div>
         </el-form-item>
 
-        <el-form-item prop="memo"><el-input v-model="formData.memo" type="textarea" :rows="4" placeholder="메모 (선택 사항)" resize="none" maxlength="500" show-word-limit/></el-form-item>
+        <el-form-item prop="memo">
+          <el-input
+              v-model="formData.memo"
+              type="textarea"
+              :rows="4"
+              :placeholder="t('storeFormDialog.form.placeholder.memo')"
+              resize="none"
+              maxlength="500"
+              show-word-limit/>
+        </el-form-item>
       </el-form>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleClose">취소</el-button>
-          <el-button type="primary" @click="handleSubmit" :icon="Check" :loading="isSubmitting">{{ isEditMode ? '수정 완료' : '기록 저장' }}</el-button>
+          <el-button @click="handleClose">{{ t('storeFormDialog.buttons.cancel') }}</el-button>
+          <el-button
+              type="primary"
+              @click="handleSubmit"
+              :icon="Check"
+              :loading="isSubmitting">
+            {{ isEditMode ? t('storeFormDialog.buttons.edit') : t('storeFormDialog.buttons.save') }}
+          </el-button>
         </div>
       </template>
     </el-dialog>

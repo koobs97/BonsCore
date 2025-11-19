@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
-// FIXED: 템플릿에서 사용하는 모든 아이콘을 import 합니다.
-import { Plus, Edit, Delete, Search, Link, Calendar, StarFilled, Picture } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue';
+import { Plus, Edit, Delete, Search, Link, Calendar, StarFilled, Picture, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import StoreFormDialog from '@/components/biz/StoreFormDialog.vue';
 import { Api } from '@/api/axiosInstance';
 import { ApiUrls } from '@/api/apiUrls';
 import { userStore } from "@/store/userStore";
-import {Dialogs} from "@/common/dialogs";
+import { Dialogs } from "@/common/dialogs";
+import { useI18n } from 'vue-i18n';
+
+// --- i18n 설정 ---
+const { t, locale } = useI18n();
 
 // --- 상태 (State) ---
 const userStoreObj = userStore();
@@ -21,7 +24,10 @@ const dialogState = ref({
   initialData: {},
 });
 
-// --- ★블로그 스타일을 위한 새로운 상태 추가★ ---
+// Tooltip을 위한 참조(ref)
+const storeNameRef = ref<HTMLElement | null>(null); // 템플릿에서 h1 태그를 가리킬 변수
+const isTitleOverflowing = ref(false); // 이름이 잘렸는지 여부를 저장할 변수 (기본값: false)
+
 /** 현재 메인에 보여줄 이미지의 인덱스 */
 const currentImageIndex = ref(0);
 
@@ -41,8 +47,13 @@ const formatDateToMonthDay = (date: any): string => {
 const fetchStores = async () => {
   isLoading.value = true;
   try {
-    const payload = { userId: userStoreObj.getUserInfo.userId };
-    const response = await Api.post(ApiUrls.GET_GOURMET_RECORDS, payload);
+    const payload = {};
+    const config = {
+      headers: {
+        'Accept-Language': locale.value
+      }
+    };
+    const response = await Api.post(ApiUrls.GET_GOURMET_RECORDS, payload, true, config);
 
     // 서버에서 받은 데이터를 클라이언트에서 사용하기 좋은 형태로 가공합니다.
     const formattedStores = response.data.map((store: any) => {
@@ -75,19 +86,40 @@ const fetchStores = async () => {
 const handleDelete = async (storeId: number) => {
 
   await Dialogs.customConfirm(
-      '삭제 확인',
-      '이 기록을 정말로 삭제하시겠습니까?',
-      '삭제',
-      '취소',
+      t('archive.dialog.deleteConfirmTitle'),
+      t('archive.dialog.deleteConfirmText'),
+      t('archive.dialog.deleteButton'),
+      t('archive.dialog.cancelButton'),
       '460px',
   )
 
-  ElMessage.success('기록이 삭제되었습니다.');
+  ElMessage.success(t('archive.messages.deleteSuccess'));
   await fetchStores();
 
 };
 
-onMounted(fetchStores);
+// Tooltip을 위한 함수
+const checkTitleOverflow = () => {
+  // nextTick: 화면이 완전히 그려진 후 코드를 실행하도록 보장
+  nextTick(() => {
+    const element = storeNameRef.value; // h1 태그를 가져옵니다.
+    if (element) {
+      // 요소의 실제 전체 너비(scrollWidth)가 화면에 보이는 너비(clientWidth)보다 크면 잘린 것으로 판단
+      isTitleOverflowing.value = element.scrollWidth > element.clientWidth;
+    }
+  });
+};
+
+onMounted(() => {
+  fetchStores();
+  // 창 크기가 변경될 때마다 제목 잘림 여부를 다시 확인
+  window.addEventListener('resize', checkTitleOverflow);
+});
+
+onUnmounted(() => {
+  // 컴포넌트가 사라질 때 이벤트 리스너를 제거하여 메모리 누수 방지
+  window.removeEventListener('resize', checkTitleOverflow);
+});
 
 const filteredStores = computed(() => {
   if (!searchQuery.value) return stores.value;
@@ -122,10 +154,17 @@ const selectImage = (index: number) => {
   currentImageIndex.value = index;
 };
 
+watch(locale, () => {
+  fetchStores();
+});
+
 // --- Watchers 및 Dialog 함수 (수정 없음) ---
 watch(selectedStore, () => {
   // 가게 선택이 바뀌면, 이미지 인덱스를 첫 번째로 초기화
   currentImageIndex.value = 0;
+
+  // 가게가 변경될 때마다 제목이 잘렸는지 새로 확인합니다.
+  checkTitleOverflow();
 });
 
 watch(filteredStores, (newVal) => {
@@ -181,23 +220,38 @@ const nextImage = () => {
   <div class="archive-container">
     <div class="list-panel">
       <div class="list-header">
-        <h2 class="list-title">저장소</h2>
-        <el-button :icon="Plus" circle @click="openAddDialog" />
+        <h2 class="list-title">{{ t('archive.title') }}</h2>
+        <el-button
+            :icon="Plus"
+            circle
+            @click="openAddDialog" />
       </div>
       <div class="search-wrapper">
-        <el-input v-model="searchQuery" placeholder="이름 또는 카테고리 검색" :prefix-icon="Search" clearable />
+        <el-input
+            v-model="searchQuery"
+            :placeholder="t('archive.searchPlaceholder')"
+            :prefix-icon="Search"
+            clearable />
       </div>
       <div class="store-list">
         <el-skeleton :rows="6" animated v-if="isLoading" />
         <template v-else>
-          <div v-for="store in filteredStores" :key="store.id" class="list-item" :class="{ active: activeStoreId === store.id }" @click="activeStoreId = store.id">
+          <div
+              v-for="store in filteredStores"
+              :key="store.id"
+              class="list-item"
+              :class="{ active: activeStoreId === store.id }"
+              @click="activeStoreId = store.id">
             <div class="item-info">
               <span class="item-name">{{ store.name }}</span>
               <span class="item-category">{{ store.category }}</span>
             </div>
             <span class="item-date">{{ formatDateToMonthDay(store.visitDate) }}</span>
           </div>
-          <el-empty v-if="!filteredStores.length" description="결과가 없습니다" :image-size="60" />
+          <el-empty
+              v-if="!filteredStores.length"
+              :description="t('archive.noResults')"
+              :image-size="60" />
         </template>
       </div>
     </div>
@@ -207,12 +261,31 @@ const nextImage = () => {
         <header class="detail-header">
           <el-tag type="info" round effect="plain" size="small">{{ selectedStore.category }}</el-tag>
           <div class="title-group">
-
-            <h1 class="store-name">{{ selectedStore.name }}</h1>
+            <el-tooltip
+                effect="dark"
+                :content="selectedStore.name"
+                placement="top"
+                :disabled="!isTitleOverflowing"
+                :teleported="true"
+                popper-class="custom-title-tooltip"
+            >
+              <h1 class="store-name" ref="storeNameRef">{{ selectedStore.name }}</h1>
+            </el-tooltip>
           </div>
           <div class="actions-group">
-            <el-button :icon="Edit" text circle @click="openEditDialog(selectedStore)" title="수정" />
-            <el-button type="danger" :icon="Delete" text circle @click="handleDelete(selectedStore.id)" title="삭제" />
+            <el-button
+                :icon="Edit"
+                text
+                circle
+                @click="openEditDialog(selectedStore)"
+                :title="t('archive.details.edit')" />
+            <el-button
+                type="danger"
+                :icon="Delete"
+                text
+                circle
+                @click="handleDelete(selectedStore.id)"
+                :title="t('archive.details.delete')" />
           </div>
         </header>
 
@@ -273,13 +346,12 @@ const nextImage = () => {
           </section>
 
           <section class="details-section">
-<!--            <h3 class="section-title">Details</h3>-->
             <div class="details-grid">
               <div class="detail-item">
 
                 <div class="item-text">
                   <div class="label-with-icon">
-                    <span class="label">방문일</span>
+                    <span class="label">{{ t('archive.details.visitDate') }}</span>
                     <el-icon class="item-icon"><Calendar /></el-icon>
                   </div>
                   <span class="value">{{ new Date(selectedStore.visitDate).toLocaleDateString('ko-KR') }}</span>
@@ -288,7 +360,7 @@ const nextImage = () => {
               <div class="detail-item">
                 <div class="item-text">
                   <div class="label-with-icon">
-                    <span class="label">별점</span>
+                    <span class="label">{{ t('archive.details.rating') }}</span>
                     <el-icon class="item-icon"><StarFilled /></el-icon>
                   </div>
                   <div>
@@ -300,10 +372,15 @@ const nextImage = () => {
 
                 <div class="item-text">
                   <div class="label-with-icon">
-                    <span class="label">참조 링크</span>
+                    <span class="label">{{ t('archive.details.referenceLink') }}</span>
                     <el-icon class="item-icon"><Link /></el-icon>
                   </div>
-                  <a :href="selectedStore.referenceUrl" target="_blank" class="value-link">바로가기</a>
+                  <a :href="selectedStore.referenceUrl"
+                      target="_blank"
+                      class="value-link"
+                  >
+                    {{ t('archive.details.link') }}
+                  </a>
                 </div>
               </div>
             </div>
@@ -409,24 +486,52 @@ const nextImage = () => {
 }
 
 .detail-header {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px; /* (추가) 자식 요소들 사이의 간격 */
   padding: 18px 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
   margin-bottom: 12px;
 }
 .title-group {
   display: flex;
-  gap: 8px;
+  flex-direction: column; /* (변경) 제목과 태그를 수직으로 정렬할 수도 있습니다. 여기서는 수평을 유지합니다. */
+  gap: 4px;
+  /* (추가) 남는 공간을 모두 차지하도록 설정 */
+  flex-grow: 1;
+  /* (추가/중요) 자식 요소의 text-overflow가 작동하도록 하기 위한 필수 속성 */
+  min-width: 0;
 }
+
 .store-name {
-  font-size: 1.8rem;
+  font-size: 1.6rem; /* (조정) 약간 줄여서 공간 확보 */
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.3;
   margin: 0;
   color: var(--el-text-color-primary);
   font-family: 'Poppins', sans-serif;
+
+  /* (추가) 이름이 길어질 경우 줄임표(...) 처리 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.actions-group .el-button { font-size: 18px; color: var(--el-text-color-secondary); }
+
+.actions-group {
+  /* (추가) 이 그룹이 절대 줄어들지 않도록 설정 */
+  flex-shrink: 0;
+  /* (추가) 버튼들이 항상 오른쪽에 붙도록 자동 마진 설정 */
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.actions-group .el-button {
+  font-size: 18px;
+  color: var(--el-text-color-secondary);
+  outline: none;
+}
 
 .detail-body section {
   margin-bottom: 12px;
@@ -634,4 +739,62 @@ const nextImage = () => {
   margin: auto; color: var(--el-text-color-placeholder);
 }
 
+</style>
+<style>
+.custom-title-tooltip {
+  /* 메인 색상을 배경으로 사용 */
+  background: var(--el-color-primary, #001233) !important;
+  /* 텍스트는 밝은 배경색 계열을 사용하여 가독성 확보 */
+  color: var(--el-bg-color, #FFFAF0) !important;
+
+  padding: 8px 12px;
+  border-radius: 6px;
+  /* 테두리는 배경보다 살짝 어두운 색으로 설정하여 입체감 부여 */
+  border: 1px solid var(--el-color-primary-dark-2, #002855);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  /* 디자인 시스템의 그림자 스타일 적용 */
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.custom-title-tooltip .el-popper__arrow {
+  /*
+    화살표 자체의 너비와 높이를 테두리 두께만큼 늘려줍니다.
+    기본 크기(8px) + 테두리(1px*2) = 10px
+  */
+  width: 10px;
+  height: 10px;
+}
+.custom-title-tooltip .el-popper__arrow::before {
+
+
+  /* 배경색과 테두리색은 테마 변수를 그대로 사용합니다. */
+  background: var(--el-color-primary, #001233) !important;
+  border-color: var(--el-color-primary-dark-2, #002855) !important;
+
+  /* 테두리 스타일을 명확히 정의해 주어야 clip-path가 잘 적용됩니다. */
+  border-style: solid;
+  border-width: 1px;
+}
+
+
+/*
+  다크 모드 툴팁 스타일
+  html.dark 선택자를 사용하여 다크 모드 시 스타일을 덮어씁니다.
+*/
+html.dark .custom-title-tooltip {
+  /* 다크 모드에서는 primary 색상이 밝은 색이므로 그대로 사용 */
+  background: var(--el-color-primary, #F2F2F2) !important;
+  /* 텍스트는 다크 모드의 어두운 primary 계열 색상 사용 */
+  color: var(--el-color-primary-dark-2, #002855) !important;
+
+  border-color: var(--el-border-color-darker, #cdd0d6);
+  box-shadow: var(--el-box-shadow-dark);
+}
+
+html.dark .custom-title-tooltip .el-popper__arrow::before {
+  background: var(--el-color-primary, #F2F2F2) !important;
+  border-color: var(--el-color-primary, #F2F2F2) !important;
+}
 </style>
