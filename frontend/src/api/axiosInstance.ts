@@ -87,21 +87,6 @@ axiosInstance.interceptors.response.use(
                 );
             }
 
-            // ACCOUNT_LOCKED-메소드 접근제어
-            if(error.response.data.data.code === 'ER_106') {
-                // 메시지 박스 호출
-                await Dialogs.customConfirm(
-                    '계정잠김',
-                    error.response.data.message || '로그인 시도 횟수 초과로 계정이 잠겼습니다.',
-                    '확인',
-                    '취소',
-                    '493px',
-                    'warning'
-                );
-
-                return false;
-            }
-
             originalRequest._retry = true;
 
             // 현재 경로가 publicPaths에 포함되면 토큰 갱신 시도 자체를 건너뜀 =====
@@ -133,7 +118,7 @@ axiosInstance.interceptors.response.use(
 
         }
         // 401 - UNAUTHORIZED
-        else if(error.response && error.response.status === 401 && !publicPaths.includes(router.currentRoute.value.path)) {
+        else if(error.response && error.response.status === 401) {
 
             // ElMessageBox 인스턴스를 닫는 함수
             const closeMessageBox = () => {
@@ -190,6 +175,20 @@ axiosInstance.interceptors.response.use(
                 });
 
                 return Promise.reject(error);
+            }
+            // ACCOUNT_LOCKED-메소드 접근제어
+            else if(error.response.data.data.code === 'ER_106') {
+                // 메시지 박스 호출
+                await Dialogs.customConfirm(
+                    '계정잠김',
+                    error.response.data.message || '로그인 시도 횟수 초과로 계정이 잠겼습니다.',
+                    '확인',
+                    '취소',
+                    '493px',
+                    'warning'
+                );
+
+                return false;
             }
             else {
                 // 2-2. props 객체를 타입과 함께 별도의 변수로 선언합니다.

@@ -8,7 +8,7 @@
  * 작성일자 : 2025-10-22
  * ========================================
  */
-import { ElMessageBox, ElIcon, ElMessage } from "element-plus";
+import { ElMessageBox, ElIcon, ElMessage, ElLoading } from "element-plus";
 import { h, nextTick } from "vue";
 import { Monitor, ZoomIn } from '@element-plus/icons-vue';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
@@ -247,71 +247,134 @@ export class Dialogs {
             const { t } = i18n.global;
             const recaptchaContainerId = 'recaptcha-dialog-widget';
 
+            // 1. h() 함수에서 style 속성을 사용하여 미리 영역의 높이(78px)를 잡아줍니다.
+            // 이렇게 해야 로딩 스피너가 표시될 공간이 생기고, 위젯이 뜰 때 레이아웃이 튀는 현상을 방지합니다.
             const vnodeContent = h('div', { class: 'modern-recaptcha-content' }, [
                 h('img', {
                     src: shieldIcon,
                     class: 'dialog-icon',
-                    alt: t('login.dialogs.recaptcha.altIcon') // alt 텍스트
+                    alt: t('login.dialogs.recaptcha.altIcon')
                 }),
                 h('h3', { class: 'dialog-title' }, t('login.dialogs.recaptcha.title')),
                 h('p', { class: 'dialog-description' }, t('login.dialogs.recaptcha.description1')),
                 h('p', { class: 'dialog-description' }, t('login.dialogs.recaptcha.description2')),
-                h('div', { id: recaptchaContainerId, class: 'recaptcha-widget-container' })
+                h('div', {
+                    id: recaptchaContainerId,
+                    class: 'recaptcha-widget-container',
+                    style: {
+                        minHeight: '78px',     // reCAPTCHA 기본 높이 확보
+                        minWidth: '304px',     // reCAPTCHA 기본 너비 확보
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    }
+                })
             ]);
 
-            // await 넣지 말 것
+            // 다이얼로그 표시
             ElMessageBox.alert(
                 vnodeContent, '', {
-                showConfirmButton: false,
-                showClose: false,
-                center: true,
-                customClass: 'modern-recaptcha-dialog',
-                callback: (action: any) => {
-                    if (action === 'cancel' || action === 'close') {
-                        ElMessage.info(t('login.dialogs.recaptcha.cancelMessage'));
-                        reject('cancelled');
+                    showConfirmButton: false,
+                    showClose: false,
+                    center: true,
+                    customClass: 'modern-recaptcha-dialog',
+                    callback: (action: any) => {
+                        if (action === 'cancel' || action === 'close') {
+                            ElMessage.info(t('login.dialogs.recaptcha.cancelMessage'));
+                            reject('cancelled');
+                        }
                     }
-                }
-            });
+                });
+
+            // 2. DOM 요소가 실제로 렌더링될 때까지 안전하게 기다리는 헬퍼 함수
+            const waitForElement = (selector: string): Promise<HTMLElement> => {
+                return new Promise((resolveEl) => {
+                    const check = () => {
+                        const el = document.querySelector(selector) as HTMLElement;
+                        if (el) {
+                            resolveEl(el);
+                        } else {
+                            // 요소가 없으면 약간의 딜레이 후 재시도 (재귀 호출 대신 RAF 사용 권장이나 간단히 setTimeout)
+                            requestAnimationFrame(check);
+                        }
+                    };
+                    check();
+                });
+            };
+
+            let loadingInstance: any = null;
 
             try {
-                await loadRecaptchaScript();
-                await nextTick();
-                if (window.grecaptcha && window.grecaptcha.render) {
-                    const isDarkMode = document.documentElement.classList.contains('dark');
-                    const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+                // DOM 요소 찾기 (nextTick 만으로는 부족할 수 있어 확실히 대기)
+                const containerEl = await waitForElement(`#${recaptchaContainerId}`);
 
-                    window.grecaptcha.render(recaptchaContainerId, {
-                        'sitekey': siteKey,
-                        'theme': isDarkMode ? 'dark' : 'light',
-                        'callback': (token: string) => {
-                            ElMessageBox.close();
-                            ElMessage.success(t('login.dialogs.recaptcha.successMessage'));
-                            resolve(token);
-                        },
-                        'expired-callback': () => {
-                            ElMessage.warning(t('login.dialogs.recaptcha.expiredMessage'));
-                            ElMessageBox.close();
-                            reject('expired');
-                        },
-                        'error-callback': () => {
+                // 로딩 시작 (타겟 영역에만 표시)
+                loadingInstance = ElLoading.service({
+                    target: containerEl,
+                    lock: true,
+                    text: '',
+                    background: 'transparent', // 배경을 투명하게 하여 자연스럽게
+                });
+
+                // 스크립트 로드 시작
+                await loadRecaptchaScript();
+
+                const grecaptcha = (window as any).grecaptcha;
+
+
+                // 3. 불안정성 해결: grecaptcha 객체가 있고 'ready' 상태일 때 렌더링 수행
+                if (grecaptcha) {
+                    grecaptcha.ready(() => {
+                        // 로딩 종료
+                        if (loadingInstance) loadingInstance.close();
+
+                        if (containerEl) {
+                            containerEl.innerHTML = '';
+                        }
+
+                        // 렌더링
+                        try {
+                            const isDarkMode = document.documentElement.classList.contains('dark');
+                            const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+
+                            window.grecaptcha.render(recaptchaContainerId, {
+                                'sitekey': siteKey,
+                                'theme': isDarkMode ? 'dark' : 'light',
+                                'callback': (token: string) => {
+                                    ElMessageBox.close();
+                                    ElMessage.success(t('login.dialogs.recaptcha.successMessage'));
+                                    resolve(token);
+                                },
+                                'expired-callback': () => {
+                                    ElMessage.warning(t('login.dialogs.recaptcha.expiredMessage'));
+                                    ElMessageBox.close();
+                                    reject('expired');
+                                },
+                                'error-callback': () => {
+                                    ElMessage.error(t('login.dialogs.recaptcha.errorMessage'));
+                                    ElMessageBox.close();
+                                    reject('error');
+                                }
+                            });
+
+                            if (initialMessage) {
+                                ElMessage.warning(initialMessage);
+                            }
+                        } catch (renderErr) {
+                            // 렌더링 실패 시 처리
+                            console.error('reCAPTCHA render error:', renderErr);
                             ElMessage.error(t('login.dialogs.recaptcha.errorMessage'));
                             ElMessageBox.close();
-                            reject('error');
+                            reject('render-error');
                         }
-                    } as any);
-
-                    if (initialMessage) {
-                        ElMessage.warning(initialMessage);
-                    }
+                    });
                 } else {
-                    // 이 경우는 거의 발생하지 않아야 하지만, 만약을 위한 방어 코드
-                    ElMessage.error(t('login.dialogs.recaptcha.loadFailedMessage'));
-                    ElMessageBox.close();
-                    reject('load-failed');
+                    throw new Error("reCAPTCHA script loaded but window.grecaptcha is missing.");
                 }
 
             } catch (error) {
+                if (loadingInstance) loadingInstance.close();
+                console.error('reCAPTCHA load failed:', error);
                 ElMessage.error(t('login.dialogs.recaptcha.loadFailedMessage'));
                 ElMessageBox.close();
                 reject('load-failed');
