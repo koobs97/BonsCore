@@ -6,7 +6,6 @@ import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
-import com.koo.bonscore.biz.auth.mapper.AuthMapper;
 import com.koo.bonscore.biz.auth.service.*;
 import com.koo.bonscore.common.util.web.WebUtils;
 import com.koo.bonscore.core.annotaion.PreventDoubleClick;
@@ -15,7 +14,6 @@ import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
-import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import com.koo.bonscore.core.exception.response.ErrorResponse;
 import com.koo.bonscore.log.annotaion.UserActivityLog;
 import com.maxmind.geoip2.exception.AddressNotFoundException;
@@ -37,8 +35,6 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static com.koo.bonscore.core.exception.enumType.ErrorCode.INVALID_CREDENTIALS;
-
 /**
  * <pre>
  * AuthController.java
@@ -54,8 +50,6 @@ import static com.koo.bonscore.core.exception.enumType.ErrorCode.INVALID_CREDENT
 @RequestMapping("api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-
-    private final AuthMapper authMapper;
 
     private final RSAController rsaController;
     private final AuthService authService;
@@ -270,7 +264,7 @@ public class AuthController {
         String userId = jwtTokenProvider.getUserId(refreshToken);
 
         // 유저 권한 조회
-        List<String> roles = authMapper.findRoleByUserId(userId);
+        List<String> roles = authService.getRoles(userId);
 
         // 새로운 Access Token 생성
         String newAccessToken = jwtTokenProvider.createToken(userId, roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);

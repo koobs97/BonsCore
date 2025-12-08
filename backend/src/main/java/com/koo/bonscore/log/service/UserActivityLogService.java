@@ -1,7 +1,8 @@
 package com.koo.bonscore.log.service;
 
+import com.koo.bonscore.log.repository.UserActivityLogRepository;
 import com.koo.bonscore.log.dto.UserActivityLogDto;
-import com.koo.bonscore.log.mapper.UserActivityLogMapper;
+import com.koo.bonscore.log.entity.UserActivityLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class UserActivityLogService {
 
-    private final UserActivityLogMapper userActivityLogMapper;
+    private final UserActivityLogRepository userActivityLogRepository;
 
     /**
      * 사용자 활동 로그를 DB에 저장합니다.
@@ -40,7 +41,11 @@ public class UserActivityLogService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveLog(UserActivityLogDto logDto) {
         try {
-            userActivityLogMapper.insertUserActivityLog(logDto);
+            // 1. DTO를 Entity로 변환
+            UserActivityLog logEntity = logDto.toEntity();
+
+            // 2. JPA Repository를 통해 저장 (save = insert/update)
+            userActivityLogRepository.save(logEntity);
         } catch (Exception e) {
             log.error("사용자 활동 로그 저장 실패. Log DTO: {}", logDto, e);
         }

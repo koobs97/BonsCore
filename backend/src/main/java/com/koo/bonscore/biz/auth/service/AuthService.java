@@ -1,20 +1,27 @@
 package com.koo.bonscore.biz.auth.service;
 
+import java.util.ArrayList;
 import com.koo.bonscore.biz.auth.controller.RSAController;
-import com.koo.bonscore.biz.auth.dto.LoginCheckDto;
 import com.koo.bonscore.biz.auth.dto.LoginHistoryDto;
 import com.koo.bonscore.biz.auth.dto.UserDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
-import com.koo.bonscore.biz.auth.mapper.AuthMapper;
+import com.koo.bonscore.biz.auth.entity.LoginHistory;
+import com.koo.bonscore.biz.authorization.entity.Role;
+import com.koo.bonscore.biz.authorization.entity.RoleUser;
+import com.koo.bonscore.biz.auth.entity.User;
+import com.koo.bonscore.biz.users.entity.UserDormantInfo;
+import com.koo.bonscore.biz.auth.repository.LoginHistoryRepository;
+import com.koo.bonscore.biz.auth.repository.UserRepository;
+import com.koo.bonscore.biz.authorization.repository.UserRoleRepository;
+import com.koo.bonscore.biz.users.repository.UserDormantRepository;
 import com.koo.bonscore.common.api.mail.service.MailService;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
-import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -24,10 +31,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <pre>
@@ -42,10 +48,14 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class AuthService {
 
-    // 인증 mapper
-    private final AuthMapper authMapper;
+    // JPA Repository
+    private final UserRepository userRepository;
+    private final LoginHistoryRepository loginHistoryRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final UserDormantRepository userDormantRepository;
 
     // 암호화 관련
     private final RSAController rsaController;
@@ -74,47 +84,44 @@ public class AuthService {
 
         // 1. 사용자 정보 및 비밀번호 유효성 검증
         String decryptedPassword = rsaController.decrypt(request.getPassword());
-        LoginCheckDto loginCheckDto = validateCredentials(request, decryptedPassword);
+        User user = validateCredentials(request.getUserId(), decryptedPassword);
+
 
         // 2. 휴면 계정 여부 확인
-        if (isDormantAccount(loginCheckDto)) {
+        if ("Y".equals(user.getAccountLocked())) {
             return createDormantAccountResponse();
         }
 
         // 3. 비정상 로그인 탐지
-        boolean isAbnormal = checkAbnormalLogin(request, clientInfo, loginCheckDto);
+        boolean isAbnormal = checkAbnormalLogin(user, clientInfo);
         if (isAbnormal) {
             // 비정상 로그인 시, 추가 인증 요구 응답 반환
             return createAbnormalLoginResponse(request.getUserId());
         }
 
         // 4. 로그인 성공 처리
-        processLoginSuccess(request, clientInfo);
+        processLoginSuccess(user, clientInfo);
 
         // 5. 토큰 발급 및 최종 응답 생성
-        return createSuccessResponse(request);
+        return createSuccessResponse(user);
     }
 
     /**
      * 1. 사용자 자격 증명을 확인
      */
-    private LoginCheckDto validateCredentials(LoginDto request, String decryptedPassword) {
-        LoginCheckDto loginCheckDto = authMapper.login(request);
+    private User validateCredentials(String userId, String decryptedPassword) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BsCoreException(ErrorCode.INVALID_CREDENTIALS));
 
-        if(loginCheckDto == null)
+        if("Y".equals(user.getWithdrawn())) {
             throw new BsCoreException(ErrorCode.INVALID_CREDENTIALS);
+        }
 
-        if (!passwordEncoder.matches(decryptedPassword, loginCheckDto.getPasswordHash()))
+        if (!passwordEncoder.matches(decryptedPassword, user.getPassword())) {
             throw new BsCoreException(ErrorCode.INVALID_CREDENTIALS);
+        }
 
-        return loginCheckDto;
-    }
-
-    /**
-     * 2. 휴먼계정인지 확인
-     */
-    private boolean isDormantAccount(LoginCheckDto loginCheckDto) {
-        return loginCheckDto.getAccountLocked().equals("Y");
+        return user;
     }
 
     /**
@@ -132,15 +139,15 @@ public class AuthService {
     /**
      * 3. 비정상 로그인 탐지
      */
-    private boolean checkAbnormalLogin(LoginDto loginDto, LoginHistoryDto clientInfo, LoginCheckDto loginCheckDto) {
+    private boolean checkAbnormalLogin(User user, LoginHistoryDto clientInfo) {
         try {
             // 비정상 로그인으로 계정이 잠겨있는지 확인
-            if("Y".equals(loginCheckDto.getRequiresVerificationYn())) {
+            if("Y".equals(user.getRequiresVerificationYn())) {
                 return true;
             }
 
             // Redis에서 최근 접속 국가 정보 조회
-            String redisKey = "last_login_country:" + loginDto.getUserId();
+            String redisKey = "last_login_country:" + user.getUserId();
             String lastCountry = redisTemplate.opsForValue().get(redisKey);
             log.info("redisKey: {}, lastCountry: {}", redisKey, lastCountry);
 
@@ -149,14 +156,19 @@ public class AuthService {
             }
 
             // Redis에 정보가 없거나 국가가 다르면 DB에서 전체 기록 조회
-            List<String> recentCountries = authMapper.findRecentLoginCountries(loginDto.getUserId()); // Mapper에 추가 필요
+            List<String> recentCountries = loginHistoryRepository.findTop10ByUserIdOrderByLoginAtDesc(user.getUserId())
+                    .stream()
+                    .map(LoginHistory::getCountryCode) // 국가 코드만 추출
+                    .distinct()                        // 중복 제거
+                    .toList();                         // 리스트로 변환
+
             log.info("recentCountries: {}", recentCountries);
             log.info("clientInfo.getCountryCode(): {}", clientInfo.getCountryCode());
 
             if (recentCountries.isEmpty() || !recentCountries.contains(clientInfo.getCountryCode())) {
                 // 계정 잠금 처리
-                authMapper.updateRequiresYn(loginDto);
-                log.warn("비정상 로그인 시도 감지: User ID = {}, IP = {}, Country = {}", loginDto.getUserId(), clientInfo.getIpAddress(), clientInfo.getCountryCode());
+                user.lockForVerification();
+                log.warn("비정상 로그인 시도 감지: User ID = {}, IP = {}, Country = {}", user.getUserId(), clientInfo.getIpAddress(), clientInfo.getCountryCode());
 
                 return true;
             }
@@ -183,24 +195,31 @@ public class AuthService {
     /**
      * 4. 로그인 성공처리 수행
      */
-    private void processLoginSuccess(LoginDto request, LoginHistoryDto clientInfo) {
-        authMapper.updateLoginAt(request);
-        loginAttemptService.loginSucceeded(request.getUserId());
-
-        saveLoginHistory(request.getUserId(), clientInfo);
+    private void processLoginSuccess(User user, LoginHistoryDto clientInfo) {
+        user.updateLoginTime();
+        loginAttemptService.loginSucceeded(user.getUserId());
+        saveLoginHistory(user.getUserId(), clientInfo);
     }
 
     /**
      * 4-1. 로그인 로그 저장
      */
-    private void saveLoginHistory(String userId, LoginHistoryDto history) {
+    private void saveLoginHistory(String userId, LoginHistoryDto historyDto) {
         try {
-            // Mapper에 전달할 DTO나 Map 생성
-            authMapper.insertLoginHistory(history); // Mapper에 추가 필요
+            LoginHistory historyEntity = LoginHistory.builder()
+                    .userId(userId)
+                    .ipAddress(historyDto.getIpAddress())
+                    .countryCode(historyDto.getCountryCode())
+                    .loginAt(LocalDateTime.now())
+                    .build();
+
+            loginHistoryRepository.save(historyEntity);
 
             // Redis에 최근 접속 국가 정보 업데이트 (TTL 설정 가능)
             String redisKey = "last_login_country:" + userId;
-            redisTemplate.opsForValue().set(redisKey, history.getCountryCode(), Duration.ofDays(30)); // 예: 30일간 유지
+            if (historyDto.getCountryCode() != null) {
+                redisTemplate.opsForValue().set(redisKey, historyDto.getCountryCode(), Duration.ofDays(30));
+            }
 
         } catch (Exception e) {
             log.error("로그인 기록 저장 중 오류 발생", e);
@@ -210,31 +229,18 @@ public class AuthService {
     /**
      * 6. 최종 성공 응답과 토큰을 생성
      */
-    private LoginResponseDto createSuccessResponse(LoginDto request) {
+    private LoginResponseDto createSuccessResponse(User user) {
 
-        // 사용자 ID로 전체 정보 조회
-        UserDto user = authMapper.findByUserId(request);
-
-        // 추가 정보 필요 여부 확인
+        // Entity -> DTO 변환 및 추가 정보 필요 여부 확인
         boolean additionalInfoRequired = StringUtils.isBlank(user.getBirthDate())
                 || StringUtils.isBlank(user.getGenderCode())
                 || StringUtils.isBlank(user.getPhoneNumber());
 
-        // 복호화 로직은 그대로 유지
-        UserDto decryptedUser = UserDto.builder()
-                .userId(user.getUserId())
-                .userName(encryptionService.decrypt(user.getUserName()))
-                .email(encryptionService.decrypt(user.getEmail()))
-                .phoneNumber(encryptionService.decrypt(user.getPhoneNumber()))
-                .birthDate(encryptionService.decrypt(user.getBirthDate()))
-                .genderCode(user.getGenderCode())
-                .build();
+        // 권한 조회
+        List<String> roles = getRoles(user.getUserId());
 
-        List<String> roles = authMapper.findRoleByUserId(request.getUserId());
-        log.info("사용자 '{}'의 권한 조회 결과: {}", request.getUserId(), roles);
-
-        String accessToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
-        String refreshToken = jwtTokenProvider.createToken(decryptedUser.getUserId(), List.of("ROLE_REFRESH"), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
+        String accessToken = jwtTokenProvider.createToken(user.getUserId(), roles, JwtTokenProvider.ACCESS_TOKEN_VALIDITY);
+        String refreshToken = jwtTokenProvider.createToken(user.getUserId(), List.of("ROLE_REFRESH"), JwtTokenProvider.REFRESH_TOKEN_VALIDITY);
 
         return LoginResponseDto.builder()
                 .success(true)
@@ -246,13 +252,27 @@ public class AuthService {
     }
 
     /**
+     * 사용자 권한 목록 조회
+     * @param userId 사용자 ID
+     * @return 권한 목록 (예: ["USER", "ADMIN"])
+     */
+    @Transactional(readOnly = true)
+    public List<String> getRoles(String userId) {
+        return userRepository.findByUserId(userId)
+                .map(user -> user.getRoles().stream()
+                        .map(Role::getRoleId)
+                        .collect(Collectors.toList()))
+                .orElseGet(ArrayList::new);
+    }
+
+    /**
      * 아이디 중복체크
      *
      * @param request 확인할 사용자 ID가 포함된 회원가입 요청 DTO
      * @return 중복된 아이디가 존재하면 true, 아니면 false
      */
     public boolean isDuplicateId(SignUpDto request) {
-        return authMapper.existsById(request) > 0;
+        return userRepository.existsByUserId(request.getUserId());
     }
 
     /**
@@ -261,8 +281,8 @@ public class AuthService {
      * @return 중복된 이메일이 존재하면 true, 아니면 false
      */
     public boolean isDuplicateEmail(SignUpDto request) {
-        request.setEmailHash(encryptionService.hashWithSalt(request.getEmail()));
-        return authMapper.existsByEmail(request) > 0;
+        String emailHash = encryptionService.hashWithSalt(request.getEmail());
+        return userRepository.existsByEmailHash(emailHash);
     }
 
     /**
@@ -282,7 +302,7 @@ public class AuthService {
         }
 
         // 암호화 대상 : 유저명, 패스워드, 이메일, 전화번호, 생년월일
-        SignUpDto item = SignUpDto.builder()
+        User newUser = User.builder()
                 .userId(request.getUserId())
                 .userName(encryptionService.encrypt(request.getUserName()))
                 .password(passwordEncoder.encode(rsaController.decrypt(request.getPassword())))
@@ -291,7 +311,7 @@ public class AuthService {
                 .phoneNumber(encryptionService.encrypt(request.getPhoneNumber()))
                 .birthDate(encryptionService.encrypt(request.getBirthDate()))
                 .genderCode(request.getGenderCode())
-                .passwordUpdated(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")))
+                .passwordUpdated(LocalDateTime.now())
                 .termsAgree1(request.getTermsAgree1())
                 .termsAgree2(request.getTermsAgree2())
                 .termsAgree3(request.getTermsAgree3())
@@ -300,9 +320,14 @@ public class AuthService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
+        RoleUser roleUser = RoleUser.builder()
+                .userId(newUser.getUserId())
+                .roleId("USER")
+                .build();
+
         // 회원가입 및 권한 저장
-        authMapper.signUpUser(item);
-        authMapper.signUpUserRole(item);
+        userRepository.save(newUser);
+        userRoleRepository.save(roleUser);
     }
 
     /**
@@ -320,18 +345,23 @@ public class AuthService {
         if(StringUtils.isEmpty(request.getEmail()))
             throw new BsCoreException(ErrorCode.EMAIL_REQUIRED);
 
+        // 해싱된 이메일
+        String emailHash = encryptionService.hashWithSalt(request.getEmail());
+
         /* 아이디 찾기 일 때 */
         if("ID".equals(type)) {
 
             // 존재(Existence) 검증
-            UserInfoSearchDto input = UserInfoSearchDto.builder()
-                    .email(encryptionService.hashWithSalt(request.getEmail()))
-                    .build();
+            User user = userRepository.findByEmailHashAndUserName(emailHash, request.getUserName())
+                    .orElse(null);
 
-            // 이메일과 일치하는 정보 조회 후 복호화하여 유저명도 비교
-            String userName = authMapper.findByUserNameAndEmail(input);
-            if(userName == null || !encryptionService.decrypt(userName).equals(request.getUserName()))
-                throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
+            if(user == null) {
+                // 이름까지 조건에 넣어서 못 찾았으면, 이메일로만 찾아서 복호화 후 비교
+                user = userRepository.findByEmailHash(emailHash).orElse(null);
+                if(user == null || !encryptionService.decrypt(user.getUserName()).equals(request.getUserName())) {
+                    throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
+                }
+            }
 
         } // ID
         
@@ -342,34 +372,27 @@ public class AuthService {
             if(StringUtils.isEmpty(request.getNonMaskedId()))
                 throw new BsCoreException(ErrorCode.USERID_REQUIRED);
 
-            UserInfoSearchDto result = authMapper.findUserById(request);
-            if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()) || !encryptionService.decrypt(result.getEmail()).equals(request.getEmail()))
+            User user = userRepository.findByUserId(request.getNonMaskedId()).orElse(null);
+            if(user == null
+                    || !encryptionService.decrypt(user.getUserName()).equals(request.getUserName())
+                    || !encryptionService.decrypt(user.getEmail()).equals(request.getEmail())) {
                 throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
+            }
 
         } // PW
 
-        /* 비정상 접근 계정 풀기 */
-        if("ABNORMAL".equals(type)) {
-            // 존재(Existence) 검증
-            UserInfoSearchDto input = UserInfoSearchDto.builder()
-                    .email(encryptionService.hashWithSalt(request.getEmail()))
-                    .build();
+        /* 비정상 접근 / 휴면 계정 풀기 */
+        if("ABNORMAL".equals(type) || "DORMANT".equals(type)) {
+            User user;
+            if("DORMANT".equals(type)) {
+                user = userRepository.findByEmailHashAndUserName(emailHash, request.getUserName()).orElse(null); // Native Query 사용
+            } else {
+                user = userRepository.findByEmailHash(emailHash).orElse(null);
+            }
 
-            UserInfoSearchDto result = authMapper.findUserByNameMail(input);
-            if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()))
+            if(user == null || !encryptionService.decrypt(user.getUserName()).equals(request.getUserName())) {
                 throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
-        }
-
-        /* 휴먼계정 풀기 */
-        if("DORMANT".equals(type)) {
-            // 존재(Existence) 검증
-            UserInfoSearchDto input = UserInfoSearchDto.builder()
-                    .email(encryptionService.hashWithSalt(request.getEmail()))
-                    .build();
-
-            UserInfoSearchDto result = authMapper.findDormantUserByNameAndEmail(input);
-            if(result == null || !encryptionService.decrypt(result.getUserName()).equals(request.getUserName()))
-                throw new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH);
+            }
         }
 
         // 메일 전송
@@ -393,16 +416,11 @@ public class AuthService {
         String key = VERIFICATION_PREFIX + email;
         String storedCode = redisTemplate.opsForValue().get(key);
         String userId = "";
+        String emailHash = encryptionService.hashWithSalt(email);
 
         if (storedCode != null && storedCode.equals(code)) {
             // 인증 성공 시, 즉시 코드를 삭제하여 재사용을 방지.
             redisTemplate.delete(key);
-
-            // 유저 조회
-            UserInfoSearchDto input = UserInfoSearchDto.builder()
-                    .email(encryptionService.hashWithSalt(email))
-                    .updatedAt(LocalDateTime.now())
-                    .build();
 
             // 타입 체크
             if(StringUtils.isEmpty(type))
@@ -411,20 +429,20 @@ public class AuthService {
             // 아이디찾기, 비밀번호찾기, 비정상 접근
             if (type.matches("FIND_ID|FIND_PW|PW|ABNORMAL")) {
                 // 이메일과 일치하는 정보 조회 후
-                userId = authMapper.findUserIdByMail(input);
-                input.setUserId(userId);
+                User user = userRepository.findByEmailHash(emailHash)
+                        .orElseThrow(() -> new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH));
+                userId = user.getUserId();
             }
 
             // DORMANT - 계정해제인 경우
             if (type.equals("DORMANT")) {
-                // 이메일과 일치하는 정보를 휴먼 계정 테이블에서 조회
-                UserInfoSearchDto result = authMapper.findDormantUserByNameAndEmail(input);
-                userId = result.getUserId();
-                input.setUserId(userId);
+                UserDormantInfo dormantUser = userDormantRepository.findByEmailHash(emailHash)
+                        .orElseThrow(() -> new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH));
+                userId = dormantUser.getUserId();
             }
 
-            // 계정잠김 해제
-            authMapper.updateUnLocked(input);
+            // 계정 잠금 해제 (User Entity 조회 후 상태 변경 -> Dirty Checking)
+            userRepository.findByUserId(userId).ifPresent(User::unlockAccount);
 
             return UserInfoSearchDto.builder()
                     .userId(userId)
@@ -441,10 +459,9 @@ public class AuthService {
      * @return 조회된 사용자 아이디
      */
     public String searchIdByMail(UserInfoSearchDto request) {
-        UserInfoSearchDto input = UserInfoSearchDto.builder()
-                .email(encryptionService.hashWithSalt(request.getEmail()))
-                .build();
-        return authMapper.findUserIdByMail(input);
+        return userRepository.findByEmailHash(encryptionService.hashWithSalt(request.getEmail()))
+                .map(User::getUserId)
+                .orElse(null);
     }
 
     /**
@@ -453,7 +470,13 @@ public class AuthService {
      * @return 질문텍스트
      */
     public String searchPasswordHintById(UserInfoSearchDto request) {
-        return authMapper.findPasswordHintById(request);
+        User user = userRepository.findByUserId(request.getUserId()).orElse(null);
+        String question = "";
+        assert user != null;
+        if (user.getSecurityQuestion() != null) {
+            question = user.getSecurityQuestion().getQuestionText();
+        }
+        return question;
     }
 
     /**
@@ -462,7 +485,8 @@ public class AuthService {
      * @return 정답 결과
      */
     public UserInfoSearchDto searchHintAnswerById(UserInfoSearchDto request) {
-        String passwordHintAnswer = authMapper.findHintAnswerById(request);
+        User user = userRepository.findByUserId(request.getUserId()).orElseThrow(() -> new BsCoreException(ErrorCode.USER_INFO_NOT_MATCH));
+        String passwordHintAnswer = user.getPasswordHintAnswer();
         if(StringUtils.isEmpty(passwordHintAnswer))
             throw new BsCoreException(ErrorCode.INCORRECT_ANSWER);
         if(encryptionService.decrypt(passwordHintAnswer).equals(request.getPasswordHintAnswer()))
@@ -490,29 +514,14 @@ public class AuthService {
             throw new BsCoreException(ErrorCode.TOKEN_INVALID_OR_EXPIRED);
         }
 
-        // 2. 토큰에서 사용자 ID 추출
         String userId = jwtTokenProvider.getUserId(token);
-        UserInfoSearchDto user = UserInfoSearchDto.builder()
-                .nonMaskedId(userId)
-                .build();
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BsCoreException(ErrorCode.INVALID_INPUT));
 
-        // 3. 사용자 유효성 검증
-        UserInfoSearchDto result = authMapper.findUserById(user);
-        if(result == null) {
-            throw new BsCoreException(ErrorCode.INVALID_INPUT);
-        }
+        String encodedPassword = passwordEncoder.encode(rsaController.decrypt(newPassword));
 
-        // 4. 입력값 세팅
-        UserInfoSearchDto updateInput = UserInfoSearchDto.builder()
-                .userId(userId)
-                .password(passwordEncoder.encode(rsaController.decrypt(newPassword)))
-                .passwordUpdated(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")))
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        // 5. 비밀번호 업데이트
-        authMapper.updatePassword(updateInput);
-
+        // JPA Dirty Checking: 객체 상태만 변경하면 트랜잭션 종료 시 update 쿼리 실행됨
+        user.changePassword(encodedPassword);
     }
 
 }

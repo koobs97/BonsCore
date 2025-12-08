@@ -1,6 +1,6 @@
 package com.koo.bonscore.core.config.web;
 
-import com.koo.bonscore.common.paging.interceptor.PageClearInterceptor;
+// import com.koo.bonscore.common.paging.interceptor.PageClearInterceptor;
 import com.koo.bonscore.log.interceptor.UserActivityLogInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,9 @@ import org.springframework.web.servlet.config.annotation.*;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
-    private final PageClearInterceptor pageClearInterceptor;
+    // JPA 전환으로 사용안함 처리
+    /* private final PageClearInterceptor pageClearInterceptor; */
+
     private final UserActivityLogInterceptor userActivityLogInterceptor;
 
     @Value("${file.resource-url-prefix}")
@@ -43,10 +45,11 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 1. PageClearInterceptor: 모든 경로(/**)에 적용
-        registry.addInterceptor(pageClearInterceptor)
+
+        // JPA 전환으로 사용안함 처리
+        /* registry.addInterceptor(pageClearInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns(resourceUrlPrefix + "**");
+                .excludePathPatterns(resourceUrlPrefix + "**"); */
 
         // 2. UserActivityLogInterceptor: '/api/auth/**' 경로에만 적용
         registry.addInterceptor(userActivityLogInterceptor)

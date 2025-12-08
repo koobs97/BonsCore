@@ -1074,7 +1074,7 @@ const formatBirthDate = (value: string) => {
 .privacy-agreement-footer .el-checkbox__label { white-space: normal; line-height: 1.5; color: var(--el-text-color-primary); font-weight: 500; }
 .privacy-policy-message-box-modern { max-width: 830px; width: 90%; border-radius: 8px; padding: 0; }
 .privacy-policy-message-box-modern .el-message-box__header { padding: 18px 24px; border-bottom: 1px solid #ebeef5; }
-.privacy-policy-message-box-modern .el-message-box__title { font-size: 18px; font-weight: 600; color: var(--el-text-color-primary); }
+.privacy-policy-message-box-modern .el-message-box__title { font-size: 18px; font-weight: 600; color: var(--el-text-color-primary); padding: 20px; }
 .privacy-policy-message-box-modern .el-message-box__content { padding: 0; }
 .privacy-policy-message-box-modern .el-message-box__btns { padding: 10px 24px 18px; }
 .privacy-dialog-content { display: flex; flex-direction: column; max-height: 60vh; }

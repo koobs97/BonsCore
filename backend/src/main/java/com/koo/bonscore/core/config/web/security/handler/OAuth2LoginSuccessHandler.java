@@ -1,7 +1,9 @@
 package com.koo.bonscore.core.config.web.security.handler;
 
-import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
-import com.koo.bonscore.biz.auth.mapper.AuthMapper;
+
+import com.koo.bonscore.biz.auth.entity.User;
+import com.koo.bonscore.biz.auth.repository.UserRepository;
+import com.koo.bonscore.biz.auth.service.AuthService;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;
 import jakarta.servlet.ServletException;
@@ -15,7 +17,6 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -39,9 +40,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
-    private final AuthMapper authMapper;
     private final LoginSessionManager loginSessionManager;
+    private final AuthService authService;
 
     /**
      * 프론트엔드의 OAuth2 리디렉션 처리 페이지 URL
@@ -89,7 +91,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         }
 
         // 4. Provider와 ProviderId를 사용해 DB에서 최종 사용자 정보를 조회합니다.
-        SignUpDto user = authMapper.findByProviderAndProviderId(provider, providerId);
+        User user = userRepository.findByOauthProviderAndOauthProviderId(provider, providerId)
+                .orElse(null);
 
         // 5. 사용자 정보가 없는 경우에 대한 예외 처리 (이론상 발생하면 안 됨)
         if (user == null) {
@@ -107,9 +110,9 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         log.info("신규 유저 여부: {}", isNewUser);
 
         // 6. 실제 userId로 권한을 조회합니다.
-        List<String> roles = authMapper.findRoleByUserId(userId);
+        List<String> roles = authService.getRoles(userId);
         if (roles == null || roles.isEmpty()) {
-            roles = List.of("ROLE_USER"); // 기본 권한 부여
+            roles = List.of("ROLE_USER");
         }
 
         // 7. JWT 토큰 생성

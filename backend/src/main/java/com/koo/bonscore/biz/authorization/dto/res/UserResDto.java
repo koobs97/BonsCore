@@ -6,6 +6,8 @@ import com.koo.bonscore.common.masking.jackson.MaskingSerializer;
 import com.koo.bonscore.common.masking.type.MaskingType;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 /**
  * <pre>
  * UserResDto.java
@@ -35,4 +37,5 @@ public class UserResDto {
     private String createdAt;
     private String accountLocked;
     private String withdrawn;
+    private LocalDateTime lastLoginAt;
 }

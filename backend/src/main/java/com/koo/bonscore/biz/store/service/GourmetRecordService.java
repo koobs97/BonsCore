@@ -3,7 +3,9 @@ package com.koo.bonscore.biz.store.service;
 import com.koo.bonscore.biz.store.dto.req.GourmetImageDto;
 import com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest;
 import com.koo.bonscore.biz.store.dto.res.GourmetRecordDto;
-import com.koo.bonscore.biz.store.mapper.GourmetRecordMapper;
+import com.koo.bonscore.biz.store.entity.GourmetImage;
+import com.koo.bonscore.biz.store.entity.GourmetRecord;
+import com.koo.bonscore.biz.store.repository.GourmetRecordRepository;
 import com.koo.bonscore.common.api.google.service.GoogleTranslateService;
 import com.koo.bonscore.common.file.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
@@ -13,13 +15,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
+import java.util.stream.Collectors;
 
 /**
  * <pre>
@@ -35,127 +35,117 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class GourmetRecordService {
 
-    private final GourmetRecordMapper gourmetRecordMapper;
+    private final GourmetRecordRepository gourmetRecordRepository; // Mapper -> Repository
     private final FileStorageService fileStorageService;
     private final GoogleTranslateService googleTranslateService;
 
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]*>");
 
     /**
-     * 저장소 레코드 저장
-     * @param request 작성한 데이터 및 이미지
+     * 저장소 레코드 저장 (JPA 방식)
+     * insert/update/delete를 save() 하나와 Entity 상태 변경으로 처리
      */
     @Transactional
     public void saveGourmetRecord(GourmetRecordCreateRequest request) {
 
-        request.setUpdatedAt(LocalDateTime.now());
-        if (request.getRecordId() == null) {
-            // 새 레코드인 경우
-            request.setRecordId(gourmetRecordMapper.selectRecordId());
-            request.setCreatedAt(LocalDateTime.now());
-        }
-        gourmetRecordMapper.mergeGourmetRecord(request);
-
-
-        // --- 2. 파일 이동 및 DTO 정보 업데이트 ---
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
-            final Long recordId = request.getRecordId();
-
-            // 영구 저장될 하위 경로 (예: gourmet-records/123)
-            String permanentSubPath = "gourmet-records/" + recordId;
-
-            IntStream.range(0, request.getImages().size()).forEach(index -> {
-                GourmetImageDto image = request.getImages().get(index);
-
-                // ★★★ 2-1. 임시 파일을 영구 저장소로 이동
-                // image.getStoredFileName()에는 프론트에서 보낸 임시 파일명(UUID.jpg)이 담겨 있어야 함
-                try {
-                    // isNewImage() 와 같은 플래그가 있다면 신규 파일일때만 이동하도록 분기 처리 가능
-                    // 여기서는 모든 파일이 임시 업로드 되었다고 가정
-                    if (isTempFile(image.getStoredFileName())) { // 임시 파일인지 확인하는 로직 (선택사항)
-                        String permanentFilePath = fileStorageService.moveToPermanentStorage(image.getStoredFileName(), permanentSubPath);
-
-                        // ★★★ 2-2. DTO의 정보를 실제 저장된 경로로 업데이트
-                        image.setStoredFileName(permanentFilePath); // 예: gourmet-records/123/UUID.jpg
-                        image.setImageUrl(fileStorageService.getFileDownloadUri(permanentFilePath));
-                    }
-                } catch (IOException e) {
-                    // 파일 이동 실패 시, 트랜잭션 롤백을 위해 RuntimeException 발생
-                    throw new RuntimeException("파일을 영구 저장소로 이동하는 데 실패했습니다. 파일명: " + image.getStoredFileName(), e);
-                }
-
-                // ★★★ 2-3. 레코드 ID와 순서 설정
-                image.setRecordId(recordId);
-                image.setImageOrder(index);
-            });
+        // 1. Entity 조회 또는 생성
+        GourmetRecord record;
+        if (request.getRecordId() != null) {
+            record = gourmetRecordRepository.findById(request.getRecordId())
+                    .orElseThrow(() -> new IllegalArgumentException("해당 기록을 찾을 수 없습니다."));
+            // Update fields
+            record.update(
+                    request.getName(),
+                    request.getCategory(),
+                    parseDate(request.getVisitDate()),
+                    request.getRating(),
+                    request.getMemo(),
+                    request.getReferenceUrl()
+            );
+        } else {
+            // New Record
+            record = GourmetRecord.builder()
+                    .userId(request.getUserId())
+                    .storeName(request.getName())
+                    .category(request.getCategory())
+                    .visitDate(parseDate(request.getVisitDate()))
+                    .rating(request.getRating())
+                    .memo(request.getMemo())
+                    .referenceUrl(request.getReferenceUrl())
+                    .build();
         }
 
-        // 프론트에서 전달된 이미지 목록에 없는 파일들을 먼저 삭제
-        Map<String, Object> params = new HashMap<>();
-        params.put("recordId", request.getRecordId());
-        params.put("images", request.getImages());
-        gourmetRecordMapper.deleteImagesNotInList(params);
+        // 2. 임시 저장 및 ID 생성을 위해 먼저 save (Parent)
+        // JPA는 영속성 컨텍스트가 관리하므로, ID가 필요하면 먼저 save 호출해도 됨
+        // 만약 이미 ID가 있었다면 이 시점엔 아무 일도 안 일어날 수 있음 (트랜잭션 종료 시 flush)
+        GourmetRecord savedRecord = gourmetRecordRepository.save(record);
 
-        // 업데이트된 이미지 정보로 DB에 merge
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
-            gourmetRecordMapper.mergeGourmetImages(request);
-        }
+        // 3. 이미지 리스트 동기화 (기존 리스트 clear -> 새 리스트 add)
+        // orphanRemoval = true 덕분에 리스트에서 제거된 이미지는 DB에서도 삭제됨
+        updateImages(savedRecord, request.getImages());
     }
 
-    /**
-     * 파일명이 경로 구분자를 포함하지 않으면 임시 파일로 간주하는 간단한 예시 메소드
-     */
-    private boolean isTempFile(String storedFileName) {
-        if (storedFileName == null) return false;
-        // 경로 구분자('/' 또는 '\')가 포함되어 있으면 이미 영구 저장된 파일로 판단
-        return !storedFileName.contains("/") && !storedFileName.contains("\\");
+    private void updateImages(GourmetRecord record, List<GourmetImageDto> imageDtos) {
+        if (imageDtos == null) imageDtos = new ArrayList<>();
+
+        // 영구 저장 경로 설정
+        String permanentSubPath = "gourmet-records/" + record.getRecordId();
+
+        // 기존 이미지 리스트를 비우고 새로 채워넣는 방식 (간편함)
+        // *주의: 실제 프로덕션에서는 기존 이미지를 유지하고 싶은 경우, ID 비교 로직을 추가하여 UPDATE/INSERT를 구분해야 함.
+        // 여기서는 요청받은 리스트가 '최종 상태'라고 가정하고 싹 갈아끼우는 로직으로 작성 (MyBatis의 deleteImagesNotInList와 유사 효과)
+        record.getImages().clear();
+
+        for (int i = 0; i < imageDtos.size(); i++) {
+            GourmetImageDto dto = imageDtos.get(i);
+
+            // 파일 이동 로직
+            String finalStoredName = dto.getStoredFileName();
+            String finalImageUrl = dto.getImageUrl();
+
+            try {
+                if (isTempFile(dto.getStoredFileName())) {
+                    String permanentFilePath = fileStorageService.moveToPermanentStorage(dto.getStoredFileName(), permanentSubPath);
+                    finalStoredName = permanentFilePath;
+                    finalImageUrl = fileStorageService.getFileDownloadUri(permanentFilePath);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("파일 이동 실패", e);
+            }
+
+            // Entity 생성 및 추가
+            GourmetImage imageEntity = GourmetImage.builder()
+                    .originalFileName(dto.getOriginalFileName())
+                    .storedFileName(finalStoredName)
+                    .imageUrl(finalImageUrl)
+                    .fileSize(dto.getFileSize())
+                    .imageOrder(i) // 순서 재설정
+                    .build();
+
+            record.addImage(imageEntity); // 편의 메서드 사용
+        }
     }
 
     /**
      * 조회
-     * @return List<GourmetRecordDto>
      */
     @Transactional(readOnly = true)
     public List<GourmetRecordDto> getGourmetRecords(String userId, String lang) {
+        // 1. Repository 조회 (Fetch Join으로 이미지까지 한번에)
+        List<GourmetRecord> entities = gourmetRecordRepository.findAllByUserIdWithImages(userId);
 
-        List<GourmetRecordDto> records = gourmetRecordMapper.selectGourmetRecordsByUserId(userId);
+        // 2. Entity -> DTO 변환
+        List<GourmetRecordDto> dtos = entities.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
 
-        if (!"ko".equalsIgnoreCase(lang) && records != null && !records.isEmpty()) {
-            // 2-1. 번역할 텍스트들을 하나의 리스트로 모읍니다. (API 호출 1번으로 처리하기 위함)
-            List<String> textsToTranslate = new ArrayList<>();
-            for (GourmetRecordDto record : records) {
-                textsToTranslate.add(cleanAndUnescape(record.getName()));
-                textsToTranslate.add(cleanAndUnescape(record.getCategory()));
-                textsToTranslate.add(StringUtils.hasText(record.getMemo()) ? cleanAndUnescape(record.getMemo()) : "");
-            }
-
-            // 2-2. Google 번역 API를 호출합니다.
-            List<String> translatedTexts = googleTranslateService.translateTexts(textsToTranslate, "ko", lang);
-
-            // 2-3. 번역된 텍스트를 다시 DTO에 매핑합니다.
-            // 번역 결과의 크기가 일치하는지 확인하여 안정성 확보
-            if (translatedTexts.size() == textsToTranslate.size()) {
-                int translatedIndex = 0;
-                for (GourmetRecordDto record : records) {
-                    String translatedName = HtmlUtils.htmlUnescape(translatedTexts.get(translatedIndex++));
-                    String translatedCategory = HtmlUtils.htmlUnescape(translatedTexts.get(translatedIndex++));
-
-                    record.setName(translatedName);
-                    record.setCategory(translatedCategory);
-                    // 원본 메모가 있었을 경우에만 번역된 텍스트로 덮어쓰기
-                    if (StringUtils.hasText(record.getMemo())) {
-                        String translatedMemo = HtmlUtils.htmlUnescape(translatedTexts.get(translatedIndex++));
-                        record.setMemo(translatedMemo);
-                    } else {
-                        translatedIndex++; // 인덱스는 증가시켜 다음 순서를 맞춤
-                    }
-                }
-            }
+        // 3. 번역 로직 (기존 로직 유지)
+        if (!"ko".equalsIgnoreCase(lang) && !dtos.isEmpty()) {
+            translateDtos(dtos, lang);
         }
 
-        // 3. 조회된 데이터의 이미지 URL을 완성된 형태로 가공합니다.
-        assert records != null;
-        records.forEach(record -> {
+        // 4. 이미지 URL 가공 (기존 로직 유지)
+        dtos.forEach(record -> {
             if (record.getImages() != null) {
                 record.getImages().forEach(image -> {
                     String fullUrl = fileStorageService.getFileDownloadUri(image.getStoredFileName());
@@ -164,23 +154,78 @@ public class GourmetRecordService {
             }
         });
 
-        // 4. 가공이 완료된 DTO 목록을 반환합니다.
-        return records;
+        return dtos;
     }
 
-    /**
-     * ★ 3. 제공된 AnalysisService 스타일의 텍스트 정리 헬퍼 메소드
-     * HTML 태그를 제거하고, HTML 엔티티(e.g., &amp;)를 원래 문자로 디코딩합니다.
-     * @param text 정리할 원본 텍스트
-     * @return 정리된 순수 텍스트
-     */
-    private String cleanAndUnescape(String text) {
-        if (!StringUtils.hasText(text)) {
-            return text;
+    // Entity -> DTO 매퍼
+    private GourmetRecordDto convertToDto(GourmetRecord entity) {
+        GourmetRecordDto dto = new GourmetRecordDto();
+        dto.setId(entity.getRecordId());
+        dto.setName(entity.getStoreName());
+        dto.setCategory(entity.getCategory());
+        dto.setVisitDate(entity.getVisitDate());
+        dto.setRating(entity.getRating());
+        dto.setMemo(entity.getMemo());
+        dto.setReferenceUrl(entity.getReferenceUrl());
+
+        if (entity.getImages() != null) {
+            List<GourmetImageDto> imageDtos = entity.getImages().stream().map(img -> {
+                GourmetImageDto imgDto = new GourmetImageDto();
+                imgDto.setImageId(img.getImageId());
+                imgDto.setOriginalFileName(img.getOriginalFileName());
+                imgDto.setStoredFileName(img.getStoredFileName());
+                imgDto.setImageUrl(img.getImageUrl());
+                imgDto.setFileSize(img.getFileSize());
+                imgDto.setImageOrder(img.getImageOrder());
+                return imgDto;
+            }).collect(Collectors.toList());
+            dto.setImages(imageDtos);
         }
-        // 1. 정규표현식을 사용하여 HTML 태그 제거
+        return dto;
+    }
+
+    // 번역 처리 분리
+    private void translateDtos(List<GourmetRecordDto> records, String lang) {
+        List<String> textsToTranslate = new ArrayList<>();
+        for (GourmetRecordDto record : records) {
+            textsToTranslate.add(cleanAndUnescape(record.getName()));
+            textsToTranslate.add(cleanAndUnescape(record.getCategory()));
+            textsToTranslate.add(StringUtils.hasText(record.getMemo()) ? cleanAndUnescape(record.getMemo()) : "");
+        }
+
+        List<String> translatedTexts = googleTranslateService.translateTexts(textsToTranslate, "ko", lang);
+
+        if (translatedTexts.size() == textsToTranslate.size()) {
+            int idx = 0;
+            for (GourmetRecordDto record : records) {
+                record.setName(HtmlUtils.htmlUnescape(translatedTexts.get(idx++)));
+                record.setCategory(HtmlUtils.htmlUnescape(translatedTexts.get(idx++)));
+                if (StringUtils.hasText(record.getMemo())) {
+                    record.setMemo(HtmlUtils.htmlUnescape(translatedTexts.get(idx++)));
+                } else {
+                    idx++;
+                }
+            }
+        }
+    }
+
+    private LocalDate parseDate(String dateStr) {
+        if (!StringUtils.hasText(dateStr)) return null;
+        try {
+            return LocalDate.parse(dateStr); // "yyyy-MM-dd" 형식 가정
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private boolean isTempFile(String storedFileName) {
+        if (storedFileName == null) return false;
+        return !storedFileName.contains("/") && !storedFileName.contains("\\");
+    }
+
+    private String cleanAndUnescape(String text) {
+        if (!StringUtils.hasText(text)) return text;
         String noHtml = HTML_TAG_PATTERN.matcher(text).replaceAll("");
-        // 2. HtmlUtils를 사용하여 HTML 엔티티 디코딩
         return HtmlUtils.htmlUnescape(noHtml);
     }
 }

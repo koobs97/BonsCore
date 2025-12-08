@@ -2,6 +2,8 @@ package com.koo.bonscore.biz.users.dto;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 /**
  * <pre>
  * DormantUserInfoDto.java
@@ -32,4 +34,5 @@ public class DormantUserInfoDto {
     private String termsAgree2;           // 약관 동의 여부2
     private String termsAgree3;           // 약관 동의 여부3
     private String termsAgree4;           // 약관 동의 여부4
+    private LocalDateTime lastLoginAt;
 }

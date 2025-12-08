@@ -22,6 +22,6 @@ public class MenuByRoleDto {
     private String menuName;
     private String menuUrl;
     private String parentMenuId;
-    private String sortOrder;
+    private Integer sortOrder;
     private String isVisible;
 }

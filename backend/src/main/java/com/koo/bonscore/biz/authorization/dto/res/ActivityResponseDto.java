@@ -20,6 +20,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ActivityResponseDto {
-    private List<LogResDto> activityTypeList;
-    private List<LogResDto> activityResultList;
+    private List<String> activityTypeList;
+    private List<String> activityResultList;
 }

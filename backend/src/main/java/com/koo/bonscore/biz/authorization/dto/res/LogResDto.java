@@ -2,6 +2,8 @@ package com.koo.bonscore.biz.authorization.dto.res;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 /**
  * <pre>
  * LogResDto.java
@@ -18,7 +20,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LogResDto {
-    private String logId;
+    private Long logId;
     private String userId;
     private String activityType;
     private String activityResult;
@@ -27,5 +29,5 @@ public class LogResDto {
     private String requestMethod;
     private String errorMessage;
     private String userAgent;
-    private String createdAt;
+    private LocalDateTime createdAt;
 }

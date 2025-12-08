@@ -52,17 +52,6 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     /**
-     * 비밀번호 암호화를 위한 BCryptPasswordEncoder를 Bean으로 등록.
-     * Spring Security에서 권장하는 강력한 해시 알고리즘 중 하나이다.
-     *
-     * @return BCryptPasswordEncoder 인스턴스
-     */
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
      * Spring Security의 핵심 필터 체인을 구성하고 Bean으로 등록
      * HTTP 요청에 대한 보안 처리가 이 필터 체인을 통해 이루어진다.
      *

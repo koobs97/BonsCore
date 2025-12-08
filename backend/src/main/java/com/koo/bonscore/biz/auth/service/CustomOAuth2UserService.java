@@ -2,7 +2,10 @@ package com.koo.bonscore.biz.auth.service;
 
 import com.koo.bonscore.biz.auth.dto.OAuthAttributes;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
-import com.koo.bonscore.biz.auth.mapper.AuthMapper;
+import com.koo.bonscore.biz.authorization.entity.RoleUser;
+import com.koo.bonscore.biz.auth.entity.User;
+import com.koo.bonscore.biz.auth.repository.UserRepository;
+import com.koo.bonscore.biz.authorization.repository.UserRoleRepository;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +19,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +39,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final AuthMapper authMapper;
+    private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
+
     private final EncryptionService encryptionService;
+    private final AuthService authService;
 
     /**
      * OAuth2 공급자(Provider)로부터 사용자 정보를 로드하여 처리하는 메소드
@@ -63,11 +70,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         log.info("oAuthAttributes: {}", oAuthAttributes.getAttributes());
 
         // 4. 데이터베이스에 사용자를 저장하거나 업데이트
-        SignUpDto user = saveOrUpdate(oAuthAttributes);
+        User user = saveOrUpdate(oAuthAttributes);
 
         // 5. 사용자의 권한 정보를 조회
-        List<String> roles = authMapper.findRoleByUserId(user.getUserId());
+        List<String> roles = authService.getRoles(user.getUserId());
         if (roles.isEmpty()) {
+            roles = new ArrayList<>();
             roles.add("ROLE_USER");
         }
 
@@ -84,11 +92,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
      * 동시성 문제를 방지하기 위해 synchronized 처리.
      *
      * @param attributes 소셜 플랫폼별 사용자 정보를 표준화한 DTO
-     * @return 데이터베이스에 저장되거나 업데이트된 사용자 정보를 담은 {@link SignUpDto} 객체
+     * @return 데이터베이스에 저장되거나 업데이트된 사용자 정보를 담은 {@link User} 객체
      */
-    private synchronized SignUpDto saveOrUpdate(OAuthAttributes attributes) {
+    private synchronized User saveOrUpdate(OAuthAttributes attributes) {
         // 1. Provider와 Provider ID로 이미 연동된 사용자인지 확인
-        SignUpDto user = authMapper.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId());
+        User user = userRepository.findByOauthProviderAndOauthProviderId(attributes.getProvider(), attributes.getProviderId())
+                .orElse(null);
         if (user != null) {
             log.info("기존 소셜 연동 계정을 찾았습니다: {}", user.getUserId());
             return user;
@@ -102,14 +111,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // 3. 이메일 해시로 기존 계정이 있는지 확인하여 연동 시도
         String emailHash = encryptionService.hashWithSalt(attributes.getEmail());
-        SignUpDto existingUser = authMapper.findByEmailHash(emailHash);
+        User existingUser = userRepository.findByEmailHash(emailHash).orElse(null);
 
         if (existingUser != null) {
             // 3-1. 이메일이 일치하는 기존 계정이 있으면, 해당 계정에 소셜 정보 업데이트 (계정 연동)
             log.info("이메일이 일치하는 기존 계정({})을 찾아 소셜 계정과 연동합니다.", existingUser.getUserId());
-            existingUser.setOauthProvider(attributes.getProvider());
-            existingUser.setOauthProviderId(attributes.getProviderId());
-            authMapper.updateSocialInfo(existingUser);
+            existingUser.linkSocialAccount(attributes.getProvider(), attributes.getProviderId());
             return existingUser;
         } else {
             // 4. 연동할 기존 계정이 없으면, 신규 소셜 계정으로 회원가입
@@ -124,30 +131,40 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
      * @param attributes 신규 가입에 필요한 사용자 정보를 담은 {@link OAuthAttributes} 객체
      * @return 데이터베이스에 성공적으로 저장된 신규 사용자 정보를 담은 {@link SignUpDto} 객체
      */
-    private SignUpDto createNewSocialUser(OAuthAttributes attributes) {
-        SignUpDto newUser = attributes.toSignUpDto();
+    private User createNewSocialUser(OAuthAttributes attributes) {
+        SignUpDto newUserDto = attributes.toSignUpDto();
 
-        SignUpDto encryptedUser = SignUpDto.builder()
-                .userId(newUser.getUserId())
-                .userName(newUser.getUserName() != null ? encryptionService.encrypt(newUser.getUserName()) : null)
-                .email(newUser.getEmail() != null ? encryptionService.encrypt(newUser.getEmail()) : null)
-                .emailHash(newUser.getEmail() != null ? encryptionService.hashWithSalt(newUser.getEmail()) : null)
-                .phoneNumber(newUser.getPhoneNumber() != null ? encryptionService.encrypt(newUser.getPhoneNumber()) : null)
-                .birthDate(newUser.getBirthDate() != null ? encryptionService.encrypt(newUser.getBirthDate()) : null)
-                .genderCode(newUser.getGenderCode())
-                .password(newUser.getPassword())
-                .oauthProvider(newUser.getOauthProvider())
-                .oauthProviderId(newUser.getOauthProviderId())
-                .termsAgree1(newUser.getTermsAgree1())
-                .termsAgree2(newUser.getTermsAgree2())
-                .termsAgree3(newUser.getTermsAgree3())
-                .termsAgree4(newUser.getTermsAgree4())
-                .createdAt(newUser.getCreatedAt())
-                .updatedAt(newUser.getUpdatedAt())
+        User newUser = User.builder()
+                .userId(newUserDto.getUserId())
+                .userName(newUserDto.getUserName() != null ? encryptionService.encrypt(newUserDto.getUserName()) : null)
+                .email(newUserDto.getEmail() != null ? encryptionService.encrypt(newUserDto.getEmail()) : null)
+                .emailHash(newUserDto.getEmail() != null ? encryptionService.hashWithSalt(newUserDto.getEmail()) : null)
+                .phoneNumber(newUserDto.getPhoneNumber() != null ? encryptionService.encrypt(newUserDto.getPhoneNumber()) : null)
+                .birthDate(newUserDto.getBirthDate() != null ? encryptionService.encrypt(newUserDto.getBirthDate()) : null)
+                .genderCode(newUserDto.getGenderCode())
+                .password(newUserDto.getPassword()) // 보통 소셜 로그인은 난수 비밀번호 사용
+                .oauthProvider(newUserDto.getOauthProvider())
+                .oauthProviderId(newUserDto.getOauthProviderId())
+                .termsAgree1(newUserDto.getTermsAgree1())
+                .termsAgree2(newUserDto.getTermsAgree2())
+                .termsAgree3(newUserDto.getTermsAgree3())
+                .termsAgree4(newUserDto.getTermsAgree4())
+                .accountLocked("N")
+                .withdrawn("N")
+                .requiresVerificationYn("N")
                 .build();
 
-        authMapper.signUpUser(encryptedUser);
-        authMapper.signUpUserRole(encryptedUser);
-        return encryptedUser;
+        // 1. 유저 저장
+        userRepository.save(newUser);
+
+        // 2. 권한 저장
+        RoleUser roleUser = RoleUser.builder()
+                .userId(newUser.getUserId())
+                .roleId("USER")
+                .build();
+
+        userRoleRepository.save(roleUser);
+
+        return newUser;
     }
 }
