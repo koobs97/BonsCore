@@ -68,10 +68,11 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // JWT 인증 필터 추가
                 .addFilterBefore(new RedirectValidationFilter(), JwtAuthenticationFilter.class) // 검증되지 않은 리다이렉트 및 포워드 방어
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()  // 로그인 API는 인증 없이 허용
-                        .requestMatchers("/api/public-key/**").permitAll()
-                        .requestMatchers("/images/**").permitAll() // 이미지 다운 url
+                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()// oauth 인증(social)
+                        .requestMatchers("/api/auth/**").permitAll()                    // 로그인 API는 인증 없이 허용
+                        .requestMatchers("/api/public-key/**").permitAll()              // 공개키 get
+                        .requestMatchers("/images/**").permitAll()                      // 이미지 다운 url
+                        .requestMatchers("/api/common/messages").permitAll()            // 공통 message 등
                         .anyRequest().authenticated()                   // 나머지는 인증 필요
                 )
                 // OAuth2 로그인 설정

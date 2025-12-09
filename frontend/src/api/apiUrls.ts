@@ -1,6 +1,8 @@
 export enum ApiUrls {
 
     GET_PUBLIC_KEY = "/api/public-key",
+    GET_MESSAGES = '/api/common/messages',
+    GET_MESSAGES_MANAGE = '/api/common/messageManage',
 
     // auth
     LOGIN = '/api/auth/login',

@@ -2,15 +2,16 @@
 import { ref, shallowRef, onMounted, defineAsyncComponent, computed, watch } from 'vue';
 import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
-  Setting, User, CollectionTag, Tools, Operation, Link, ArrowDown, CopyDocument, Share, Close, InfoFilled
+  Setting, User, CollectionTag, Tools, Operation, Link, ArrowDown, CopyDocument, Share, Close, InfoFilled, Message
 } from '@element-plus/icons-vue';
 import { ElMessage } from "element-plus";
 import { userStore } from '@/store/userStore';
 import { useRouter } from 'vue-router';
 import { Api } from "@/api/axiosInstance";
 import { ApiUrls } from "@/api/apiUrls";
-import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 import { useI18n } from "vue-i18n";
+import { loadLanguageAsync } from "@/i18n";
+import UserInfoAvatar from "@/components/login/userInfoAvatar.vue";
 
 import TranslateIcon from '@/assets/images/translation_icon.png';
 
@@ -28,39 +29,98 @@ const languagePopoverRef = ref();
 const router = useRouter();
 const userStoreObj = userStore();
 
-// ------------------- 상태(State) 관리 -------------------
+// 상태(State) 관리
 const isLoading = ref(true);
 const isAdmin = ref(false);
 const activeMainTab = ref('user');
 const activeUserMenuUrl = ref('');
 
-// ------------------- 메뉴 데이터 -------------------
-const userMenuItems = shallowRef([]);
-const adminDropdownItems = shallowRef([]);
+// 메뉴 데이터
+const rawMenuList = ref<any[]>([]);
+const userMenuItems = shallowRef<any[]>([]);
+const adminDropdownItems = shallowRef<any[]>([]);
 
-// 아이콘 매핑 (기존과 동일)
+// 아이콘 매핑
 const iconMap = {
   '시간대별 예측': Clock,
   '저장소': ChatDotRound,
   '시스템 관리': Setting,
   '사용자 관리': User,
   '메뉴 관리': CollectionTag,
+  '메시지 관리': Message,
   '활동 로그': Search,
   '데이터 통계': Odometer,
   '기본아이콘': Operation
+} as any;
+
+/**
+ * 메뉴 트리 변환 및 State 업데이트 함수
+ * 언어가 바뀔 때마다 이 함수를 호출하여 번역을 새로 적용.
+ */
+const updateMenuState = () => {
+  if (!rawMenuList.value || rawMenuList.value.length === 0) return;
+
+  const user = userStoreObj.getUserInfo;
+
+  // 1. 전체 메뉴 트리 빌드 (이때 현재 locale에 맞는 t()가 실행됨)
+  const menuTree = buildMenuTree(rawMenuList.value);
+
+  // 2. 루트 메뉴 찾기 (번역된 이름으로 찾거나, 코드로 찾는 것이 더 안전함)
+  // *주의: DB의 메뉴명이 '서비스', '시스템 관리'로 고정되어 있다고 가정 시 번역 키 사용
+  // 만약 DB에 영어 이름이 없다면 t() 키 매핑이 정확해야 합니다.
+  const serviceRoot = menuTree.find((menu: any) =>
+      menu.name === t('main.menus.서비스') || menu.name === '서비스'
+  );
+  const adminRoot = menuTree.find((menu: any) =>
+      menu.name === t('main.menus.시스템 관리') || menu.name === '시스템 관리'
+  );
+
+  // 3. 사용자 메뉴 할당
+  if (serviceRoot && serviceRoot.children) {
+    userMenuItems.value = serviceRoot.children.filter((child: any) => child.isVisible);
+  }
+
+  // 4. 관리자 메뉴 할당
+  if (user.roleId === 'ADMIN') {
+    isAdmin.value = true;
+    if (adminRoot && adminRoot.children) {
+      adminDropdownItems.value = adminRoot.children.filter((child: any) => child.isVisible);
+    }
+  }
 };
 
 /**
  * 언어 변경 핸들러 함수
  * @param newLang 'ko' 또는 'en'
  */
-const onLanguageChange = (newLang: 'ko' | 'en') => {
-  locale.value = newLang; // i18n의 locale 상태를 변경
-  localStorage.setItem('language', newLang); // 사용자의 선택을 브라우저에 저장
+const onLanguageChange = async (newLang: 'ko' | 'en') => {
+  try {
+    isLoading.value = true;
+
+    // 1. DB에서 새 언어 데이터 로드 (Login.vue와 동일한 방식)
+    await loadLanguageAsync(newLang);
+
+    // 2. 로케일 변경 (loadLanguageAsync 내부에서도 하긴 하지만 명시적으로)
+    locale.value = newLang;
+    localStorage.setItem('language', newLang);
+
+    // 3. 메뉴 리스트 다시 그리기 (새로운 언어로 번역 적용)
+    updateMenuState();
+
+  } catch (error) {
+    console.error('언어 변경 실패:', error);
+  } finally {
+    isLoading.value = false;
+    languagePopoverRef.value?.hide();
+  }
 };
 
-// 메뉴 트리 변환 함수 (기존과 동일)
-const buildMenuTree = (flatMenus: any, parentId: any) => {
+/**
+ * 메뉴 트리 변환 함수
+ * @param flatMenus
+ * @param parentId
+ */
+const buildMenuTree = (flatMenus: any, parentId?: any) => {
   const isRootCall = parentId === undefined;
 
   return flatMenus
@@ -88,17 +148,17 @@ const buildMenuTree = (flatMenus: any, parentId: any) => {
       });
 };
 
-// 관리자 컴포넌트 맵 생성 (기존과 동일)
+// 관리자 컴포넌트 맵 생성
 const adminComponentFiles = import.meta.glob('@/views/admin/*.vue') as any;
-const adminComponentMap = Object.keys(adminComponentFiles).reduce((map, path) => {
+const adminComponentMap = Object.keys(adminComponentFiles).reduce((map: any, path: any) => {
   const componentName = path.split('/').pop().replace('.vue', '');
   map[componentName] = defineAsyncComponent(adminComponentFiles[path]) as any;
   return map;
 }, {}) as any;
 
-// 사용자 서비스 컴포넌트 맵 생성 (기존과 동일)
-const userComponentFiles = import.meta.glob('@/views/biz/*.vue');
-const userComponentMap = Object.keys(userComponentFiles).reduce((map, path) => {
+// 사용자 서비스 컴포넌트 맵 생성
+const userComponentFiles = import.meta.glob('@/views/biz/*.vue') as any;
+const userComponentMap = Object.keys(userComponentFiles).reduce((map: any, path: any) => {
   const componentName = path.split('/').pop().replace('.vue', '');
   map[componentName] = defineAsyncComponent(userComponentFiles[path]);
   return map;
@@ -131,31 +191,25 @@ onMounted(async () => {
     const user = userStoreObj.getUserInfo;
     const response = await Api.post(ApiUrls.GET_MENUS, { userId: user.userId });
 
-    // isVisible이 'Y'인 메뉴만 먼저 필터링
-    const visibleMenus = (response.data || []).filter(menu => menu.isVisible === 'Y');
-
     // isVisible이 'N'인 루트 메뉴(컨테이너 역할)들을 찾음
     const allMenus = response.data || [];
     const menuTree = buildMenuTree(allMenus);
 
     // 2. 생성된 트리에서 '서비스'와 '시스템 관리' 루트를 찾습니다.
-    const serviceRoot = menuTree.find(menu => menu.name === t('main.menus.서비스'));
-    const adminRoot = menuTree.find(menu => menu.name === t('main.menus.시스템 관리'));
+    const serviceRoot = menuTree.find((menu: any) => menu.name === t('main.menus.서비스'));
+    const adminRoot = menuTree.find((menu: any) => menu.name === t('main.menus.시스템 관리'));
 
     // 3. 각 루트의 '자식' 메뉴들 중 isVisible이 true인 것만 화면에 표시할 메뉴로 할당합니다.
     if (serviceRoot && serviceRoot.children) {
-      userMenuItems.value = serviceRoot.children.filter(child => child.isVisible);
+      userMenuItems.value = serviceRoot.children.filter((child: any) => child.isVisible);
     }
 
     if (user.roleId === 'ADMIN') {
       isAdmin.value = true;
       if (adminRoot && adminRoot.children) {
-        adminDropdownItems.value = adminRoot.children.filter(child => child.isVisible);
+        adminDropdownItems.value = adminRoot.children.filter((child: any) => child.isVisible);
       }
     }
-
-    console.log(userMenuItems.value.length)
-    console.log(userMenuItems.value[0].url)
 
     // 첫 진입 시 활성화할 탭 설정 (이전 답변의 로직과 거의 동일)
     if (userMenuItems.value.length > 0 && userMenuItems.value[0].url) {
@@ -178,16 +232,22 @@ onMounted(async () => {
   }
 });
 
-// [수정] 사용자 메뉴 선택 시 'user' 탭을 활성화하도록 수정
-const handleUserMenuSelect = (url) => {
+/**
+ * 사용자 메뉴 선택 시 'user' 탭을 활성화
+ * @param url
+ */
+const handleUserMenuSelect = (url: string) => {
   if (url) {
     activeUserMenuUrl.value = url;
     activeMainTab.value = 'user';
   }
 };
 
-// [신규] 관리자 메뉴 선택 핸들러
-const handleAdminMenuSelect = (url) => {
+/**
+ * 관리자 메뉴 선택 핸들러
+ * @param url
+ */
+const handleAdminMenuSelect = (url: string) => {
   if (url) {
     activeMainTab.value = url;
   }
@@ -197,6 +257,7 @@ const isDarkMode = ref(false);
 const toggleTheme = () => {
   isDarkMode.value = !isDarkMode.value;
 };
+
 // isDarkMode의 변경을 감지하여 <html> 클래스와 localStorage를 업데이트
 watch(isDarkMode, (newVal) => {
   if (newVal) {
@@ -207,11 +268,19 @@ watch(isDarkMode, (newVal) => {
     localStorage.setItem('theme', 'light'); // 변경된 테마를 localStorage에 저장
   }
 });
+
+/**
+ * git 링크 이동
+ */
 const goToGitHub = () => {
-  window.open('https://github.com/koobs97/BonsCore/tree/main', '_blank');
+  window.open(githubUrl.value, '_blank');
 }
+
+/**
+ * 노션 링크 이동
+ */
 const goToNotion = () => {
-  window.open('https://bonsang-note.notion.site/cd34738bd0b34dccb15c5b5cb74904d1?source=copy_link', '_blank');
+  window.open(notionUrl.value, '_blank');
 }
 const copyToClipboard1 = async () => {
   try {

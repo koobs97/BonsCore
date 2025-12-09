@@ -93,14 +93,14 @@ defineProps({
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background-color: var(--el-color-warning-light-9);
+  background-color: var(--el-color-danger-light-9);
   animation: icon-pop-in 0.5s ease-out 0.1s backwards;
 }
 
 /* 아이콘 색상 변경 */
 .icon-wrapper .el-icon {
   /* 아이콘 색상을 warning 계열로 변경 */
-  color: var(--el-color-warning);
+  color: var(--el-color-danger);
 }
 
 /* 텍스트 콘텐츠 영역 (기존과 동일) */

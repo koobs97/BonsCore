@@ -13,6 +13,7 @@ import { h, nextTick } from "vue";
 import { Monitor, ZoomIn } from '@element-plus/icons-vue';
 import CustomConfirm from "@/components/MessageBox/CustomConfirm.vue";
 import CustomWarning from "@/components/MessageBox/CustomWarning.vue";
+import CustomError from "@/components/MessageBox/CustomError.vue";
 import DuplicationLoginConfirm from "@/components/MessageBox/DuplicationLoginConfirm.vue";
 import DormantAccountNotice from "@/components/MessageBox/DormantAccountNotice.vue";
 import LogOutConfirm from "@/components/MessageBox/LogOutConfirm.vue";
@@ -221,13 +222,17 @@ export class Dialogs {
         await ElMessageBox({
             customClass: uniqueId,
 
-            message: h(type === 'confirm' ? CustomConfirm : CustomWarning, {
+            message: h(type === 'confirm'
+                ? CustomConfirm
+                : type === 'warning'
+                    ? CustomWarning
+                    : CustomError, {
                 title: title,
                 message: message,
             }),
 
             showConfirmButton: true,
-            showCancelButton: type === 'confirm',
+            showCancelButton: type === 'confirm' || type === 'warning',
             confirmButtonText: confirmButtonText,
             cancelButtonText: cancelButtonText,
 
@@ -355,7 +360,7 @@ export class Dialogs {
                                     ElMessageBox.close();
                                     reject('error');
                                 }
-                            });
+                            } as any);
 
                             if (initialMessage) {
                                 ElMessage.warning(initialMessage);

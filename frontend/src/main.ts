@@ -5,10 +5,7 @@ import router from '../router';
 import * as ElIcons from '@element-plus/icons-vue';
 import { userStore } from '@/store/userStore';
 import { createPinia } from "pinia";
-
-import i18n from './i18n'
-
-import TheFooter from "@/components/layout/TheFooter.vue";
+import i18n, { loadLanguageAsync } from './i18n'
 
 // custom-directives
 import { byteLimit } from '@/directives/byteLimit'
@@ -79,6 +76,20 @@ app
     .use(VCalendar, {})
     .directive('byte-limit', byteLimit)
     .component('AgGridVue', AgGridVue)
-    .mount('#app')
-
 app.use(i18n)
+
+// 앱 마운트 전 초기 언어 데이터 로드
+const initLang = localStorage.getItem('language') || 'ko';
+
+console.log('[Main] 앱 초기화 시작...');
+
+loadLanguageAsync(initLang)
+    .then(() => {
+        console.log('[Main] 언어 로드 완료, 앱 마운트');
+        app.mount('#app');
+    })
+    .catch((err) => {
+        console.error('[Main] 언어 로드 치명적 오류, 일단 마운트합니다.', err);
+        // 에러가 나더라도 빈 껍데기라도 띄우려면 여기서 mount
+        app.mount('#app');
+    });

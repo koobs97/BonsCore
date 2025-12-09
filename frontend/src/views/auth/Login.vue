@@ -27,7 +27,7 @@ import { useI18n } from 'vue-i18n';
 import SunnyIcon from '@/assets/images/Sunny_icon.png';
 import MoonIcon from '@/assets/images/Moon_icon.png';
 import SystemIcon from '@/assets/images/System_icon.png';
-import i18n from "@/i18n";
+import i18n, { loadLanguageAsync } from "@/i18n";
 
 const { t, locale } = useI18n();
 
@@ -358,9 +358,17 @@ const showResolutionInfo = () => {
  * 언어 변경 핸들러 함수
  * @param newLang
  */
-const onLanguageChange = (newLang: 'ko' | 'en') => {
-  locale.value = newLang; // i18n의 locale 상태를 직접 변경
-  localStorage.setItem('language', newLang); // 사용자의 선택을 브라우저에 저장
+const onLanguageChange = async (newLang: 'ko' | 'en') => {
+  try {
+    // DB에서 불러오고 언어 설정까지 수행하는 함수 호출
+    await loadLanguageAsync(newLang);
+
+  } catch (e) {
+    ElMessage.error('언어 데이터를 불러오는데 실패했습니다.');
+  } finally {
+    // 팝오버 닫기 등의 처리
+    popoverRef.value?.hide();
+  }
 };
 </script>
 

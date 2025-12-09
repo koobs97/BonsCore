@@ -38,13 +38,14 @@ const publicPaths = ['/login', '/SignUp', '/FindId', '/FindPassword'];
 const NO_AUTH_URLS = [
     '/api/auth/login',
     '/api/auth/get-public-key', // 공개키 요청
-    '/api/auth/refresh-token'   // 리프레시 토큰 요청 등
+    '/api/auth/refresh-token',  // 리프레시 토큰 요청 등
+    '/api/common/messages'      // 메시지조회
 ];
 // 요청 인터셉터 설정
 axiosInstance.interceptors.request.use(
     (config) => {
         // 현재 요청 URL이 NO_AUTH_URLS 목록에 포함되어 있는지 확인
-        if (config.url && NO_AUTH_URLS.includes(config.url)) {
+        if (config.url && NO_AUTH_URLS.some(url => config.url?.includes(url))) {
             // 목록에 있다면, 토큰을 강제로 제거 (혹시 남아있을 경우를 대비)
             delete config.headers.Authorization;
         } else {
@@ -83,7 +84,7 @@ axiosInstance.interceptors.response.use(
                     '확인',
                     '취소',
                     '463px',
-                    'warning'
+                    'error'
                 );
             }
 
@@ -185,7 +186,7 @@ axiosInstance.interceptors.response.use(
                     '확인',
                     '취소',
                     '493px',
-                    'warning'
+                    'error'
                 );
 
                 return false;
