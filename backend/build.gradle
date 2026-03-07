@@ -48,6 +48,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.26'                      // Lombok Annotation Processor
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor' // @ConfigurationProperties 메타데이터 생성
 
+    // == API Documentation ==
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'        // Swagger UI (OpenAPI 3)
+
     // == Utilities ==
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'     // Java 8 날짜/시간 타입 JSON 직렬화
     implementation 'org.apache.commons:commons-lang3:3.19.0'                    // Apache Commons Lang 3

@@ -5,6 +5,7 @@ import com.koo.bonscore.common.file.service.FileStorageService;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
+@Tag(name = "Files", description = "파일 업로드 API")
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor // 다시 원래대로 복구

@@ -16,6 +16,7 @@ import com.koo.bonscore.common.api.kma.weather.dto.WeatherResponseDto;
 import com.koo.bonscore.common.api.kma.weather.service.WeatherService;
 import com.koo.bonscore.common.api.naver.NaverDataLabService;
 import com.koo.bonscore.common.api.naver.dto.datalab.DataLabResponseDto;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,6 +34,7 @@ import java.util.List;
  * @version : 1.0
  * @since   : 2025-08-20
  */
+@Tag(name = "Analysis", description = "웨이팅 예측 분석 API (날씨, 공휴일, 검색 트렌드, 주변 상권 등)")
 @Slf4j
 @RestController
 @RequestMapping("/api/analysis")

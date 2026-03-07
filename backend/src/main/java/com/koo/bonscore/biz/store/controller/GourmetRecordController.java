@@ -4,6 +4,7 @@ import com.koo.bonscore.biz.store.dto.req.GourmetRecordCreateRequest;
 import com.koo.bonscore.biz.store.dto.res.GourmetRecordDto;
 import com.koo.bonscore.biz.store.service.GourmetRecordService;
 import com.koo.bonscore.common.file.service.FileStorageService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Gourmet Records", description = "맛집 기록 API")
 @Slf4j
 @RestController
 @RequestMapping("/api/gourmet-records")

@@ -3,6 +3,7 @@ package com.koo.bonscore.biz.users.controller;
 import com.koo.bonscore.biz.users.dto.req.DormantUserInfoDto;
 import com.koo.bonscore.biz.users.dto.res.UserInfoDto;
 import com.koo.bonscore.biz.users.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * @version : 1.0
  * @since   : 2025-08-01
  */
+@Tag(name = "Users", description = "사용자 정보 API")
 @RestController
 @RequestMapping("api/users")
 @RequiredArgsConstructor

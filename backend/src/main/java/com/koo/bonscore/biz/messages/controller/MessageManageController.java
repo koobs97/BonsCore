@@ -6,6 +6,7 @@ import com.koo.bonscore.biz.messages.dto.req.MessageSaveRequestDto;
 import com.koo.bonscore.biz.messages.dto.res.MessageManageResponseDto;
 import com.koo.bonscore.biz.messages.service.MessageManageService;
 import com.koo.bonscore.log.annotaion.UserActivityLog;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ import java.util.List;
  * @version : 1.0
  * @since   : 2025-12-11
  */
+@Tag(name = "Messages", description = "다국어 메시지 리소스 관리 API")
 @RestController
 @RequestMapping("api/messages")
 @RequiredArgsConstructor

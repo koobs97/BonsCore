@@ -9,6 +9,7 @@ import com.koo.bonscore.biz.authorization.service.AuthorizationService;
 import com.koo.bonscore.log.annotaion.UserActivityLog;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +28,7 @@ import java.util.List;
  * @version : 1.0
  * @since   : 2025-08-01
  */
+@Tag(name = "Authorization", description = "인가 API (메뉴, 사용자 관리, 로그 조회 등)")
 @RestController
 @RequestMapping("api/authorization")
 @RequiredArgsConstructor

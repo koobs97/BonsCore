@@ -25,6 +25,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -46,6 +47,7 @@ import java.util.List;
  * @version : 1.0
  * @since   : 2025-08-01
  */
+@Tag(name = "Auth", description = "인증 API (로그인, 회원가입, 비밀번호 변경 등)")
 @Slf4j
 @RestController
 @RequestMapping("api/auth")

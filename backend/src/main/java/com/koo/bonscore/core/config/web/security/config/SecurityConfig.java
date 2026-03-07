@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/public-key/**").permitAll()              // 공개키 get
                         .requestMatchers("/images/**").permitAll()                      // 이미지 다운 url
                         .requestMatchers("/api/common/messages").permitAll()            // 공통 message 등
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger UI
                         .anyRequest().authenticated()                   // 나머지는 인증 필요
                 )
                 // OAuth2 로그인 설정
@@ -96,7 +97,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));        // 허용할 프론트엔드 주소
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));    // 허용할 HTTP 메서드
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));    // 허용할 HTTP 메서드
         configuration.setAllowedHeaders(List.of("*"));                                      // 모든 요청 헤더 허용
         configuration.setAllowCredentials(true);                                                // 인증 정보 포함 허용 (JWT 사용 시 필요)
 
