@@ -1,6 +1,6 @@
 package com.koo.bonscore.log.dto;
 
-import com.koo.bonscore.log.entity.UserActivityLog;
+import com.koo.bonscore.core.domain.log.entity.UserActivityLog;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;

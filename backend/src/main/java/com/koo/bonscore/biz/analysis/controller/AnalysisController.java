@@ -46,7 +46,7 @@ public class AnalysisController {
     private final NaverDataLabService naverDataLabService;
     private final GooglePlacesService googlePlacesService;
 
-    @PostMapping("/random-recommendations")
+    @GetMapping("/random-recommendations")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public List<RecommendedStoreDto> getRandomRecommendations(
             @RequestHeader(value = "Accept-Language", required = false, defaultValue = "ko") String lang
@@ -56,42 +56,42 @@ public class AnalysisController {
 
     /**
      * 초기 가게 목록 검색 API
-     * @param request   검색어
-     * @return          초기 가게 검색 목록 (네이버 api 결과 )
+     * @param request   검색 조건 (query, lang 등)
+     * @return          초기 가게 검색 목록 (네이버 api 결과)
      */
-    @PostMapping("/stores")
+    @GetMapping("/stores")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public List<SimpleStoreInfoDto> searchInitialStores(@RequestBody SearchRequestDto request) {
+    public List<SimpleStoreInfoDto> searchInitialStores(@ModelAttribute SearchRequestDto request) {
         return analysisService.searchStoresAndAnalyze(request);
     }
 
     /**
      * 선택된 가게 상세 분석 API
-     * @param request   선택한 가게
+     * @param request   선택한 가게 정보
      * @return          블로그 리뷰 수, 시간/요일 기반 점수 등
      */
-    @PostMapping("/details")
+    @GetMapping("/details")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public StoreAnalysisResultDto getStoreDetailsAndAnalysis(@RequestBody StoreDetailRequestDto request) {
+    public StoreAnalysisResultDto getStoreDetailsAndAnalysis(@ModelAttribute StoreDetailRequestDto request) {
         return analysisService.analyzeStoreDetails(request);
     }
 
     /**
      * 날씨 api
-     * @param request   선택한 가게
-     * @return          오늘 날씨
+     * @param simpleAddress 가게 주소
+     * @return              오늘 날씨
      */
-    @PostMapping("/weather")
+    @GetMapping("/weather")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public WeatherResponseDto getTodayWeather(@RequestBody StoreDetailRequestDto request) {
-        return weatherService.getTodayWeather(request.getSimpleAddress());
+    public WeatherResponseDto getTodayWeather(@RequestParam String simpleAddress) {
+        return weatherService.getTodayWeather(simpleAddress);
     }
 
     /**
      * 오늘 공휴일 여부 확인 API
      * @return 공휴일 정보
      */
-    @PostMapping("/holiday-status")
+    @GetMapping("/holiday-status")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public HolidayResponseDto getTodayHolidayInfo() {
         return holidayService.getTodayHolidayInfo();
@@ -99,34 +99,34 @@ public class AnalysisController {
 
     /**
      * 네이버 데이터랩 검색 트렌드 조회 API
-     * @param request   선택한 가게
-     * @return          4개월간 검색추이
+     * @param query 검색어
+     * @return      4개월간 검색추이
      */
-    @PostMapping("/search-trend")
+    @GetMapping("/search-trend")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public DataLabResponseDto getSearchTrend(@RequestBody SearchRequestDto request) {
-        return naverDataLabService.getSearchTrend(request.getQuery());
+    public DataLabResponseDto getSearchTrend(@RequestParam String query) {
+        return naverDataLabService.getSearchTrend(query);
     }
 
     /**
      * 가게 영업정보
-     * @param request   선택한 가게
+     * @param request   선택한 가게 정보
      * @return          가게 영업 정보 데이터
      */
-    @PostMapping("/openingInfo")
+    @GetMapping("/opening-info")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public StoreHoursResponseDto getStoreOpeningHours(@RequestBody StoreDetailRequestDto request) {
+    public StoreHoursResponseDto getStoreOpeningHours(@ModelAttribute StoreDetailRequestDto request) {
         return googlePlacesService.getStoreOpeningHours(request.getName(), request.getSimpleAddress(), request.getLang());
     }
 
     /**
      * 주변 상권 데이터 분석
-     * @param request   선택한 가게
+     * @param request   선택한 가게 정보
      * @return          주변 상권 데이터
      */
-    @PostMapping("/surroundings")
+    @GetMapping("/surroundings")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public SurroundingDataDto getSurroundingData(@RequestBody StoreDetailRequestDto request) {
+    public SurroundingDataDto getSurroundingData(@ModelAttribute StoreDetailRequestDto request) {
         return analysisService.getSurroundingData(request);
     }
 }

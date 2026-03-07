@@ -34,7 +34,7 @@ export class Common {
     public static async encryptPassword(password: string): Promise<string> {
         try {
             // 서버에서 공개 키 받아오기
-            const { data: publicKey } = await Api.get(ApiUrls.GET_PUBLIC_KEY);
+            const publicKey = await Api.get(ApiUrls.GET_PUBLIC_KEY);
 
             // 공개키가 없거나 비어있으면 에러 처리
             if (!publicKey) {
@@ -59,7 +59,7 @@ export class Common {
      * 로그인 성공 시 유저정보 세팅
      */
     public static async setUser(): Promise<void> {
-        const response = await Api.post(ApiUrls.GET_USER, {}, true);
+        const response = await Api.get(ApiUrls.GET_USER, undefined, true);
         let userInfo = response.data as userState
         userInfo.userNameEn = Common.romanizeName(userInfo.userName, "upper");
         sessionStorage.setItem('userInfo', JSON.stringify(userInfo));

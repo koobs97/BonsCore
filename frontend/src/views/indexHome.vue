@@ -2,7 +2,7 @@
 import { ref, shallowRef, onMounted, defineAsyncComponent, computed, watch } from 'vue';
 import {
   Search, Clock, ChatDotRound, Odometer, Moon, Sunny,
-  Setting, User, CollectionTag, Tools, Operation, Link, ArrowDown, CopyDocument, Share, Close, InfoFilled, Message
+  Setting, User, Menu, Tools, Operation, Link, ArrowDown, CopyDocument, Share, Close, InfoFilled, Message, Lock
 } from '@element-plus/icons-vue';
 import { ElMessage } from "element-plus";
 import { userStore } from '@/store/userStore';
@@ -46,9 +46,10 @@ const iconMap = {
   '저장소': ChatDotRound,
   '시스템 관리': Setting,
   '사용자 관리': User,
-  '메뉴 관리': CollectionTag,
+  '메뉴 관리': Menu,
   '메시지 관리': Message,
   '활동 로그': Search,
+  '권한 관리': Lock,
   '데이터 통계': Odometer,
   '기본아이콘': Operation
 } as any;
@@ -111,7 +112,6 @@ const onLanguageChange = async (newLang: 'ko' | 'en') => {
     console.error('언어 변경 실패:', error);
   } finally {
     isLoading.value = false;
-    languagePopoverRef.value?.hide();
   }
 };
 
@@ -189,7 +189,7 @@ onMounted(async () => {
     }
 
     const user = userStoreObj.getUserInfo;
-    const response = await Api.post(ApiUrls.GET_MENUS, { userId: user.userId });
+    const response = await Api.get(ApiUrls.GET_MENUS);
 
     // isVisible이 'N'인 루트 메뉴(컨테이너 역할)들을 찾음
     const allMenus = response.data || [];

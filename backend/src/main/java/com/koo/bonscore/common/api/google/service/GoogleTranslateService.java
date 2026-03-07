@@ -13,9 +13,16 @@ import java.util.stream.Collectors;
 @Service
 public class GoogleTranslateService {
 
-    // 1. Google 번역 클라이언트 인스턴스를 생성합니다.
-    //    환경 변수가 올바르게 설정되었다면, 라이브러리가 자동으로 인증 정보를 찾아 연결합니다.
-    private final Translate translate = TranslateOptions.getDefaultInstance().getService();
+    private final Translate translate = initTranslate();
+
+    private static Translate initTranslate() {
+        try {
+            return TranslateOptions.getDefaultInstance().getService();
+        } catch (Exception e) {
+            log.warn("Google Translate 초기화 실패 (자격증명 없음) - 번역 기능 비활성화: {}", e.getMessage());
+            return null;
+        }
+    }
 
     /**
      * 여러 개의 텍스트를 한 번에 번역합니다. (이것이 더 효율적입니다)
@@ -25,7 +32,7 @@ public class GoogleTranslateService {
      * @return 번역된 텍스트 목록
      */
     public List<String> translateTexts(List<String> texts, String sourceLang, String targetLang) {
-        if (texts == null || texts.isEmpty()) {
+        if (texts == null || texts.isEmpty() || translate == null) {
             return Collections.emptyList();
         }
 

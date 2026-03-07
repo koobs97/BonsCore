@@ -30,7 +30,7 @@ onMounted(async () => {
     try {
       // 이제 이 API 호출이 성공할 것입니다.
       // ApiUrls.GET_USER가 /api/users/me를 가리키고 있어야 합니다.
-      const user = await Api.post(ApiUrls.GET_USER, {}, true);
+      const user = await Api.get(ApiUrls.GET_USER, undefined, true);
       let userInfo = user.data as userState;
       if(oauthProvider) {
         userInfo.oauthProvider = oauthProvider;

@@ -167,13 +167,9 @@ const verifyAndActivate = async () => {
     // 휴먼계정인 경우 테이블 데이터 원복
     if(verificationType.value === 'DORMANT') {
       ElMessage.info(t('verifyIdentity.messages.verificationSuccessDormant'));
-      await Api.post(ApiUrls.ACTIVATE_DORMANT, { email: email.value }, // body 데이터
+      await Api.patch(ApiUrls.ACTIVATE_DORMANT, { email: email.value },
           true,
-          { // Axios 요청 설정 객체
-            headers: {
-              'Authorization': `Bearer ${result.data.token}`
-            }
-          });
+          { headers: { 'Authorization': `Bearer ${result.data.token}` } });
     }
     else {
       ElMessage.success(t('verifyIdentity.messages.verificationSuccessAbnormal'));

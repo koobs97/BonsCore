@@ -1,6 +1,6 @@
 package com.koo.bonscore.biz.users.schedule;
 
-import com.koo.bonscore.biz.users.dto.DormantUserInfoDto;
+import com.koo.bonscore.biz.users.dto.req.DormantUserInfoDto;
 import com.koo.bonscore.biz.users.service.UserService;
 import com.koo.bonscore.common.api.mail.service.MailService;
 import lombok.RequiredArgsConstructor;

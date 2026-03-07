@@ -181,7 +181,7 @@ const onModalGridReady = (params) => {
 }
 
 const getActivity = async () => {
-  const response = await Api.post(ApiUrls.GET_ACTIVITY, { });
+  const response = await Api.get(ApiUrls.GET_ACTIVITY);
   console.log(response)
 
   activityTypeList.value = response.data.activityTypeList
@@ -224,7 +224,7 @@ const dateShortcuts = [
 // --- 테스트용 목업 데이터 생성 함수 ---
 const generateMockData = async (params) => {
   console.log(params)
-  const response = await Api.post(ApiUrls.GET_LOGS, params);
+  const response = await Api.get(ApiUrls.GET_LOGS, params);
   console.log(response)
   return response.data;
 };

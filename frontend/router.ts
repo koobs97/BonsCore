@@ -47,20 +47,19 @@ routes.push(
         component: AdditionalInfo,
         meta: { requiresAuth: true }
     },
+    {
+        path: '/',
+        component: indexHome,
+        beforeEnter: async (to: any, from: any, next: any) => {
+            const isLoggedIn = userStore().isLoggedIn;
+            if (isLoggedIn) {
+                next();           // 로그인 상태면 계속 진행
+            } else {
+                next('/login');   // 로그인되어 있지 않으면 로그인 페이지로 리다이렉트
+            }
+        },
+    }
 );
-
-routes.push({
-    path: '/',
-    component: indexHome,
-    beforeEnter: async (to: any, from: any, next: any) => {
-        const isLoggedIn = userStore().isLoggedIn;
-        if (isLoggedIn) {
-            next();           // 로그인 상태면 계속 진행
-        } else {
-            next('/login');   // 로그인되어 있지 않으면 로그인 페이지로 리다이렉트
-        }
-    },
-});
 
 const router = createRouter({
     history: createWebHistory(),

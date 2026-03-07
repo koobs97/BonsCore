@@ -42,6 +42,9 @@ public enum ErrorCode {
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "ER_105", "이 리소스에 접근할 수 있는 권한이 없습니다."),
     ACCESS_DENIED_GENERAL(HttpStatus.FORBIDDEN, "ER_114", "접속권한이 없습니다."),
 
+    // 404 Not Found
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "ER_404", "해당 메시지 리소스를 찾을 수 없습니다."),
+
     // 400 Bad Request
     WEAK_PASSWORD(HttpStatus.BAD_REQUEST, "ER_107", "이 비밀번호는 유출된 이력이 있어 사용할 수 없습니다."),
     WEAK_PASSWORD_USE_ANOTHER(HttpStatus.BAD_REQUEST, "ER_110", "이 비밀번호는 유출된 이력이 있어 사용할 수 없습니다. 다른 비밀번호를 사용해주세요."),

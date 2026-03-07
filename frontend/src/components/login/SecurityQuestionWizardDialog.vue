@@ -39,7 +39,7 @@ const dialogWidth = computed(() => {
  * 보안질문 목록 가져오기
  */
 const fetchSecurityQuestions = async () => {
-  const response = await Api.post(ApiUrls.GET_PASSWORD_HINT, {});
+  const response = await Api.get(ApiUrls.GET_PASSWORD_HINT);
   if (response.data && Array.isArray(response.data)) {
     securityQuestions.value = response.data.map((item: any) => {
       return {
@@ -120,7 +120,7 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true;
   const payload = { passwordHint: form.question, passwordHintAnswer: form.answer };
-  await Api.post(ApiUrls.UPDATE_PASSWORD_HINT, payload);
+  await Api.patch(ApiUrls.UPDATE_PASSWORD_HINT, payload);
 
   ElNotification({
     title: t('securityQuestionSetup.messages.notificationTitle'),

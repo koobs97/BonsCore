@@ -31,7 +31,7 @@ export async function loadLanguageAsync(lang: string) {
         console.log(`[i18n] ${lang} 데이터 요청 중...`);
         // 3. DB에서 해당 언어 데이터 조회 (API 호출)
         const response = await Api.get(ApiUrls.GET_MESSAGES, { lang: lang }, true);
-        const messageData = response.data.data;
+        const messageData = response.data;
 
         console.log(`[i18n] 서버 응답 데이터(${lang}):`, messageData);
 

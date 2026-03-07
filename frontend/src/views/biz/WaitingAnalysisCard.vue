@@ -75,7 +75,7 @@ const fetchRecommendedStores = async () => {
   isRecommendationLoading.value = true;
   isRecommendationUnavailable.value = false; // 함수 호출 시 장애 상태 초기화
   try {
-    const response = await Api.post(ApiUrls.RANDOM_RECOMMENDATIONS, {});
+    const response = await Api.get(ApiUrls.RANDOM_RECOMMENDATIONS);
     recommendedStores.value = response.data;
   } catch (error: any) {
     console.error("추천 가게를 불러오는 데 실패했습니다:", error);
@@ -119,9 +119,7 @@ const fetchMyArchiveStores = async () => {
   isArchiveLoading.value = true;
   isArchiveUnavailable.value = false; // 함수 호출 시 장애 상태 초기화
   try {
-    // 사용자 ID를 페이로드에 담아 API를 호출합니다.
-    const payload = { userId: userStoreObj.getUserInfo.userId };
-    const response = await Api.post(ApiUrls.GET_GOURMET_RECORDS, payload);
+    const response = await Api.get(ApiUrls.GET_GOURMET_RECORDS);
 
     // 서버에서 받은 데이터를 사용하기 좋은 형태로 가공합니다.
     const formattedStores = response.data.map((store: any) => {
@@ -162,7 +160,7 @@ watch(locale, async () => {
         query: selectedStore.value.nameKo || selectedStore.value.name,
         lang: locale.value
       };
-      const response = await Api.post(ApiUrls.NAVER_STORE_SEARCH, payload);
+      const response = await Api.get(ApiUrls.NAVER_STORE_SEARCH, payload);
 
       // 4. 응답 받은 목록에서 현재 가게와 ID가 동일한 가게 정보를 찾음
       const updatedStore = response.data.find(store => store.id === selectedStore.value.id);
@@ -223,7 +221,7 @@ const searchStores = async (query?: string) => {
 
   console.log(payload);
 
-  const response = await Api.post(ApiUrls.NAVER_STORE_SEARCH, payload);
+  const response = await Api.get(ApiUrls.NAVER_STORE_SEARCH, payload);
   console.log('가게정보: ', response)
 
   foundStores.value = response.data;
@@ -310,7 +308,7 @@ const countReviews = async () => {
     detailAddress: bestDetailAddress.value,
   }
 
-  const response = await Api.post(ApiUrls.NAVER_BLOG_SEARCH, payload);
+  const response = await Api.get(ApiUrls.NAVER_BLOG_SEARCH, payload);
   console.log("블로그 건수:", response.data);
 
   analysis.reviewCount = response.data.blogReviewCount;
@@ -320,13 +318,8 @@ const countReviews = async () => {
  * 날씨 정보 조회
  */
 const getWeatherInfo = async () => {
-  const payload = {
-    name: bestStoreName.value,
-    simpleAddress: bestSimpleAddress.value,
-    detailAddress: bestDetailAddress.value,
-  }
   try {
-    const result = await Api.post(ApiUrls.WEATHER_SEARCH, payload);
+    const result = await Api.get(ApiUrls.WEATHER_SEARCH, { simpleAddress: bestSimpleAddress.value });
     analysis.weatherInfo = result.data;
     console.log("날씨 정보:", result.data);
   } catch (error) {
@@ -340,7 +333,7 @@ const getWeatherInfo = async () => {
  */
 const getHolidayInfo = async () => {
   try {
-    const response = await Api.post(ApiUrls.HOLIDAY_INFO, {});
+    const response = await Api.get(ApiUrls.HOLIDAY_INFO);
     analysis.holidayInfo = response.data; // API 결과를 analysis 객체에 저장
     console.log("휴일 정보:", response.data);
   } catch (error) {
@@ -365,7 +358,7 @@ const getDataTrend = async () => {
     query: selectedStore.value.nameKo || selectedStore.value.name,
   }
   try {
-    const response = await Api.post(ApiUrls.SEARCH_TREND, payload);
+    const response = await Api.get(ApiUrls.SEARCH_TREND, payload);
     if (response.data && response.data.results && response.data.results.length > 0) {
       analysis.trendInfo = response.data.results[0].data;
       console.log("데이터랩 검색 추이:", analysis.trendInfo);
@@ -387,7 +380,7 @@ const getOpeningInfo = async () => {
     lang: locale.value
   }
   try {
-    const response = await Api.post(ApiUrls.OPENING_INFO, payload);
+    const response = await Api.get(ApiUrls.OPENING_INFO, payload);
     console.log('영업 정보 조회:', response.data)
     analysis.openingInfo = response.data;
   } catch (error) {
@@ -553,7 +546,7 @@ const getSurroundingData = async () => {
     simpleAddress: selectedStore.value.simpleAddress,
   }
   try {
-    const response = await Api.post(ApiUrls.SURROUNDING_INFO, payload);
+    const response = await Api.get(ApiUrls.SURROUNDING_INFO, payload);
     analysis.surroundingInfo = response.data;
     console.log("주변 상권 정보:", response.data);
   } catch (error) {

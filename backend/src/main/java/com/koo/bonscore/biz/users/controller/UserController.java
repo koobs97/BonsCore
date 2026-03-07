@@ -1,6 +1,6 @@
 package com.koo.bonscore.biz.users.controller;
 
-import com.koo.bonscore.biz.users.dto.DormantUserInfoDto;
+import com.koo.bonscore.biz.users.dto.req.DormantUserInfoDto;
 import com.koo.bonscore.biz.users.dto.res.UserInfoDto;
 import com.koo.bonscore.biz.users.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class UserController {
 
     private final UserService userInfo;
 
-    @PostMapping("/me")
+    @GetMapping("/me")
     public UserInfoDto loginSuccess(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             throw new IllegalStateException("인증된 사용자 정보를 찾을 수 없습니다.");
@@ -39,7 +39,7 @@ public class UserController {
      * 본인인증 완료 후 프론트엔드에서 호출
      * @param request 활성화할 사용자 ID를 담은 DTO
      */
-    @PostMapping("/activate-dormant")
+    @PatchMapping("/me/dormant")
     public void activateDormantUser(@RequestBody DormantUserInfoDto request) {
         userInfo.activateDormantUser(request);
     }

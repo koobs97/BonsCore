@@ -1,3 +1,425 @@
+<script setup>
+/**
+ * ========================================
+ * 파일명   : Message.vue
+ * ----------------------------------------
+ * 설명     : 메시지 관리
+ * 작성자   : koobonsang
+ * 버전     : 1.0
+ * 작성일자 : 2025-12-11
+ * ========================================
+ */
+import { ref, reactive, onMounted, computed } from 'vue';
+import { AgGridVue } from 'ag-grid-vue3';
+import { ElMessage } from 'element-plus';
+import { Search, Refresh, Plus, Key } from '@element-plus/icons-vue';
+import { ApiUrls } from "@/api/apiUrls.js";
+import { Api } from "@/api/axiosInstance.js";
+import { Dialogs } from "@/common/dialogs.js";
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
+// --- State Variables ---
+const gridApi = ref(null);
+const searchParams = reactive({ keyword: '' });
+const pivotRowData = ref([]); // 피벗(그룹핑)된 데이터
+const existingPrefixes = ref([]); // 추출된 코드 그룹(Prefix) 목록
+const defaultColDef = { resizable: true, sortable: true, filter: true };
+
+// Dialog State
+const dialogVisible = ref(false);
+const isEditMode = ref(false);
+const formRef = ref(null);
+
+// Form 데이터 구조: code 하나에 ko/en 메시지 포함
+const formData = reactive({
+  code: '',
+  messageKo: '',
+  messageEn: '',
+  idKo: null,
+  idEn: null
+});
+
+// Custom Validator: 중복 체크
+const validateCodeUnique = (rule, value, callback) => {
+  if (!value) {
+    return callback(new Error(t('message.manage.valid.req_code')));
+  }
+
+  // 수정 모드일 때는 중복 체크 건너뜀
+  if (isEditMode.value) {
+    return callback();
+  }
+
+  // pivotRowData에는 현재 화면에 로드된 모든 고유 Code들이 있음
+  // some()을 사용하여 입력된 value와 정확히 일치하는 Code가 있는지 확인
+  const isDuplicate = pivotRowData.value.some(item => item.code === value);
+
+  if (isDuplicate) {
+    // 중복이면 에러 메시지 반환 -> 입력창 아래 빨간색으로 표시됨
+    callback(new Error(t('message.manage.valid.dup_code')));
+  } else {
+    // 통과
+    callback();
+  }
+};
+
+// Validation Rules
+const rules = {
+  code: [
+    // required 체크 + 커스텀 중복 체크 (trigger: blur, change 둘 다 걸어서 실시간 반응)
+    { required: true, validator: validateCodeUnique, trigger: ['blur', 'change'] }
+  ],
+  messageKo: [
+    { required: true, message: () => t('message.manage.valid.req_ko'), trigger: 'blur' }
+  ]
+};
+
+// AG Grid Locale
+const localeText = computed(() => ({
+  // Paging
+  page: t('grid.locale.page'),
+  to: t('grid.locale.to'),
+  of: t('grid.locale.of'),
+  next: t('grid.locale.next'),
+  last: t('grid.locale.last'),
+  first: t('grid.locale.first'),
+  previous: t('grid.locale.previous'),
+  loadingOoo: t('message.manage.alert.loading_data'), // 로딩 텍스트 재사용
+
+  // Empty & Error
+  noRowsToShow: t('grid.locale.noRowsToShow'),
+
+  // Filter
+  filterOoo: t('grid.locale.filterOoo'),
+  applyFilter: t('grid.locale.applyFilter'),
+  resetFilter: t('grid.locale.resetFilter'),
+  clearFilter: t('grid.locale.clearFilter'),
+  equals: t('grid.locale.equals'),
+  notEqual: t('grid.locale.notEqual'),
+  contains: t('grid.locale.contains'),
+  notContains: t('grid.locale.notContains'),
+  startsWith: t('grid.locale.startsWith'),
+  endsWith: t('grid.locale.endsWith'),
+}));
+
+const formatDisplayText = (text) => {
+  if (!text) return '';
+  // 1. <br> 태그를 공백으로 변환
+  // 2. 실제 엔터값(\n)을 공백으로 변환
+  // 3. 연속된 공백을 하나로 합침
+  return text
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/\n/g, ' ')
+      .replace(/\s+/g, ' ');
+};
+
+// --- Column Definitions
+const colDefs = ref([
+  {
+    headerName: t('message.manage.grid.code'),
+    field: 'code',
+    width: 240,
+    pinned: 'left',
+    tooltipField: 'code', // 마우스 올리면 전체 키 보임
+    cellStyle: { display: 'flex', alignItems: 'center' },
+    cellRenderer: (params) => {
+      if (!params.value) return '';
+      const codeStyle = `
+        background-color: var(--el-border-color);
+        border: 1px solid #dcdfe6;
+        color: var(--el-text-color);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: Consolas, Monaco, monospace;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        line-height: normal;
+      `;
+      return `<span style="${codeStyle}">${params.value}</span>`;
+    }
+  },
+  {
+    headerName: t('message.manage.grid.ko'),
+    field: 'messageKo',
+    flex: 1,
+    // 툴팁 활성화: 마우스 오버 시 원본(줄바꿈 포함) 내용 표시
+    tooltipValueGetter: (params) => params.value,
+    // flex 레이아웃으로 뱃지와 텍스트 정렬
+    cellStyle: { display: 'flex', alignItems: 'center', paddingRight: '10px' },
+    cellRenderer: (params) => {
+      if (!params.value) return `<span style="color: #ccc; font-size: 11px;">(${t('message.manage.grid.unregistered')})</span>`;
+
+      // 1. 화면 표시용 텍스트 정제 (HTML 제거, 한 줄 만들기)
+      const displayText = formatDisplayText(params.value);
+
+      const badgeStyle = `
+        color: #67c23a;
+        background: rgba(103, 194, 58, 0.1);
+        border: 1px solid rgba(103, 194, 58, 0.3);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        margin-right: 8px;
+        flex-shrink: 0; /* 뱃지 크기 고정 */
+        line-height: normal;
+      `;
+
+      // 2. 텍스트 스타일: 말줄임표(...) 처리
+      const textStyle = `
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+        color: var(--el-text-color-regular);
+      `;
+
+      return `
+        <span style="${badgeStyle}">KO</span>
+        <span style="${textStyle}">${displayText}</span>
+      `;
+    }
+  },
+  {
+    headerName: t('message.manage.grid.en'),
+    field: 'messageEn',
+    flex: 1,
+    tooltipValueGetter: (params) => params.value, // 원본 내용 툴팁
+    cellStyle: { display: 'flex', alignItems: 'center', paddingRight: '10px' },
+    cellRenderer: (params) => {
+      if (!params.value) return `<span style="color: #ccc; font-size: 11px;">(${t('message.manage.grid.unregistered')})</span>`;
+
+      const displayText = formatDisplayText(params.value);
+
+      const badgeStyle = `
+        color: #409eff;
+        background: rgba(64, 158, 255, 0.1);
+        border: 1px solid rgba(64, 158, 255, 0.3);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        margin-right: 8px;
+        flex-shrink: 0;
+        line-height: normal;
+      `;
+
+      const textStyle = `
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+        color: var(--el-text-color-regular);
+      `;
+
+      return `
+        <span style="${badgeStyle}">EN</span>
+        <span style="${textStyle}">${displayText}</span>
+      `;
+    }
+  },
+  {
+    headerName: t('message.manage.grid.action'),
+    width: 68,
+    pinned: 'right',
+    sortable: false,
+    filter: false,
+    cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    cellRenderer: () => {
+      // 버튼 아이콘만 깔끔하게 표시하거나, 텍스트를 유지하되 스타일 통일
+      return `
+        <div style="display: flex; gap: 8px;">
+            <i class="action-btn edit-btn el-icon-edit" style="color: var(--el-color-primary); cursor: pointer; font-size: 14px;" title="수정">✎</i>
+            <i class="action-btn del-btn el-icon-delete" style="color: var(--el-color-danger); cursor: pointer; font-size: 14px;" title="삭제">✕</i>
+        </div>
+      `;
+    }
+  }
+]);
+
+// --- Methods ---
+const onGridReady = (params) => { gridApi.value = params.api; };
+
+// --- Prefix Extraction ---
+const extractPrefixes = (dataList) => {
+  const prefixSet = new Set();
+  dataList.forEach(item => {
+    // 점(.)이 있는 경우 그룹으로 간주
+    const lastDotIndex = item.code.lastIndexOf('.');
+    if (lastDotIndex > -1) {
+      // "login.title" -> "login." 추출
+      const prefix = item.code.substring(0, lastDotIndex + 1);
+      prefixSet.add(prefix);
+    }
+  });
+  // Autocomplete용 포맷: [{ value: 'login.' }, ...]
+  existingPrefixes.value = Array.from(prefixSet)
+      .sort()
+      .map(p => ({ value: p }));
+};
+
+// Autocomplete Filter Method
+const querySearchGroup = (queryString, cb) => {
+  const results = queryString
+      ? existingPrefixes.value.filter(item => item.value.toLowerCase().includes(queryString.toLowerCase()))
+      : existingPrefixes.value;
+  cb(results);
+};
+
+// 데이터 조회 및 피벗 처리
+const fetchData = async () => {
+  const response = await Api.get(ApiUrls.GET_MESSAGES_MANAGE, {
+    locale: 'ALL',
+    message: searchParams.keyword
+  });
+  const flatList = response.data || [];
+
+  const groupedMap = new Map();
+  flatList.forEach(item => {
+    if (!groupedMap.has(item.code)) {
+      groupedMap.set(item.code, {
+        code: item.code,
+        messageKo: '',
+        messageEn: '',
+        idKo: null,
+        idEn: null,
+        updatedAt: item.updatedAt
+      });
+    }
+    const group = groupedMap.get(item.code);
+    if (item.locale === 'ko') {
+      group.messageKo = item.message;
+      group.idKo = item.id;
+    } else if (item.locale === 'en') {
+      group.messageEn = item.message;
+      group.idEn = item.id;
+    }
+  });
+
+  const finalData = Array.from(groupedMap.values());
+  pivotRowData.value = finalData;
+
+  // [Logic Add] 데이터 로드 후 그룹(Prefix) 추출 갱신
+  extractPrefixes(finalData);
+};
+
+/**
+ * 조회
+ * @returns {Promise<void>}
+ */
+const onSearch = () => fetchData();
+
+/**
+ * 초기화
+ */
+const onReset = () => {
+  searchParams.keyword = '';
+  fetchData();
+};
+
+/**
+ * 다이얼로그
+ * @param row
+ */
+const openDialog = (row) => {
+  if (row) {
+    // 수정 모드: Row 데이터(Pivot)를 폼에 매핑
+    isEditMode.value = true;
+    formData.code = row.code;
+    formData.messageKo = row.messageKo;
+    formData.messageEn = row.messageEn;
+    formData.idKo = row.idKo;
+    formData.idEn = row.idEn;
+  } else {
+    // 등록 모드: 초기화
+    isEditMode.value = false;
+    formData.code = '';
+    formData.messageKo = '';
+    formData.messageEn = '';
+    formData.idKo = null;
+    formData.idEn = null;
+  }
+  dialogVisible.value = true;
+};
+
+/**
+ * 저장 (KO/EN 일괄 처리)
+ * @returns {Promise<void>}
+ */
+const saveData = async () => {
+  if (!formRef.value) return;
+  await formRef.value.validate(async (valid) => {
+    if (valid) {
+      await Dialogs.customConfirm(
+          t('message.manage.alert.save_title'),
+          t('message.manage.alert.save_confirm'),
+          t('message.manage.btn.save'),
+          t('message.manage.btn.cancel'),
+          '485px'
+      );
+
+      const requestList = [
+        {
+          id: formData.idKo, // null이면 신규
+          code: formData.code,
+          locale: 'ko',
+          message: formData.messageKo
+        },
+        {
+          id: formData.idEn, // null이면 신규
+          code: formData.code,
+          locale: 'en',
+          message: formData.messageEn
+        }
+      ];
+
+      await Api.put(ApiUrls.SAVE_MESSAGES, requestList);
+      ElMessage.success(t('message.manage.alert.save_success'));
+      dialogVisible.value = false;
+      await fetchData();
+    }
+  });
+};
+
+/**
+ * 삭제 (Code 기준 일괄 삭제)
+ * @param row
+ * @returns {Promise<void>}
+ */
+const handleDelete = async (row) => {
+
+  await Dialogs.customConfirm(
+      t('message.manage.alert.del_title'),
+      t('message.manage.alert.del_confirm', { code: row.code }),
+      t('message.manage.btn.delete'),
+      t('message.manage.btn.cancel'),
+      '485px',
+      'warning'
+  );
+
+  await Api.delete(`${ApiUrls.DELETE_MESSAGE}/${encodeURIComponent(row.code)}`);
+  ElMessage.success(t('message.manage.alert.del_success'));
+  await fetchData();
+
+};
+
+// --- Grid Cell Click Event ---
+const onCellClicked = (params) => {
+  const target = params.event.target;
+  if (target.closest('.edit-btn')) {
+    openDialog(params.data);
+  } else if (target.closest('.del-btn')) {
+    handleDelete(params.data);
+  }
+};
+
+onMounted(() => {
+  fetchData();
+});
+</script>
 <template>
   <div class="i18n-management-container">
 
@@ -5,7 +427,7 @@
     <div class="top-search-bar">
       <!-- 왼쪽: 타이틀 & 통계 -->
       <div class="section-left">
-        <span class="page-title">다국어 관리</span>
+        <span class="page-title">{{ t('message.manage.title') }}</span>
         <el-tag type="info" size="small" effect="plain" round class="count-tag">
           Total {{ pivotRowData.length }}
         </el-tag>
@@ -15,7 +437,7 @@
       <div class="section-center">
         <el-input
             v-model="searchParams.keyword"
-            placeholder="Code 또는 Message 검색"
+            :placeholder="t('message.manage.placeholder_search')"
             size="small"
             clearable
             @keyup.enter="onSearch"
@@ -30,11 +452,11 @@
       <!-- 오른쪽: 버튼 그룹 -->
       <div class="section-right">
         <el-button-group>
-          <el-button plain size="small" :icon="Search" @click="onSearch">조회</el-button>
-          <el-button size="small" :icon="Refresh" @click="onReset" title="초기화"></el-button>
+          <el-button plain size="small" :icon="Search" @click="onSearch">{{ t('message.manage.btn.search') }}</el-button>
+          <el-button size="small" :icon="Refresh" @click="onReset" :title="t('message.manage.btn.reset')"></el-button>
         </el-button-group>
         <el-divider direction="vertical" style="height: 18px; margin: 0 8px;" />
-        <el-button type="primary" size="small" :icon="Plus" @click="openDialog(null)">등록</el-button>
+        <el-button type="primary" size="small" :icon="Plus" @click="openDialog(null)">{{ t('message.manage.btn.add') }}</el-button>
       </div>
     </div>
 
@@ -49,7 +471,7 @@
           :defaultColDef="defaultColDef"
           :pagination="true"
           :paginationPageSize="15"
-          :paginationPageSizeSelector="[15, 30, 50]"
+          :paginationPageSizeSelector="[30, 50, 100]"
           :localeText="localeText"
           rowSelection="single"
           @grid-ready="onGridReady"
@@ -61,7 +483,7 @@
     <!-- 3. 등록/수정 다이얼로그 (세트 관리) -->
     <el-dialog
         v-model="dialogVisible"
-        :title="isEditMode ? '다국어 세트 수정' : '새 다국어 세트 등록'"
+        :title="isEditMode ? t('message.manage.dialog.title_edit') : t('message.manage.dialog.title_add')"
         width="600px"
         align-center
         destroy-on-close
@@ -90,7 +512,7 @@
               v-else
               v-model="formData.code"
               :fetch-suggestions="querySearchGroup"
-              placeholder="그룹을 선택하거나 직접 입력하세요 (ex: login.newKey)"
+              :placeholder="t('message.manage.dialog.placeholder_code')"
               class="w-full"
               style="width: 100%"
               trigger-on-focus
@@ -100,47 +522,47 @@
             <template #default="{ item }">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-weight: bold; color: var(--el-text-color-primary);">{{ item.value }}</span>
-                <span style="font-size: 10px; color: #999; margin-left: 10px;">기존 그룹</span>
+                <span style="font-size: 10px; color: #999; margin-left: 10px;">{{ t('message.manage.dialog.existing_group') }}</span>
               </div>
             </template>
           </el-autocomplete>
 
           <span v-if="isEditMode" style="font-size: 11px; color: var(--el-color-warning); margin-top: 4px;">
-            * 코드 키는 수정할 수 없습니다.
+            {{ t('message.manage.dialog.warn_code_fixed') }}
           </span>
           <span v-else style="font-size: 11px; color: var(--el-text-color-secondary); margin-top: 4px;">
-            * 기존 그룹(Prefix)을 선택하면 뒤에 이어서 작성할 수 있습니다. (중복 불가)
+            {{ t('message.manage.dialog.info_prefix') }}
           </span>
         </el-form-item>
 
-        <el-divider content-position="left">메시지 입력</el-divider>
+        <el-divider content-position="left">{{ t('message.manage.dialog.msg_input') }}</el-divider>
 
         <!-- Message KO -->
-        <el-form-item label="한국어 (KO)" prop="messageKo">
+        <el-form-item :label="t('message.manage.grid.ko')" prop="messageKo">
           <el-input
               v-model="formData.messageKo"
               type="textarea"
               :rows="3"
-              placeholder="한국어 메시지 입력"
+              :placeholder="t('message.manage.dialog.input_ko')"
           />
         </el-form-item>
 
         <!-- Message EN -->
-        <el-form-item label="English (EN)" prop="messageEn">
+        <el-form-item :label="t('message.manage.grid.en')" prop="messageEn">
           <el-input
               v-model="formData.messageEn"
               type="textarea"
               :rows="3"
-              placeholder="Enter English message"
+              :placeholder="t('message.manage.dialog.input_en')"
           />
         </el-form-item>
       </el-form>
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">취소</el-button>
+          <el-button @click="dialogVisible = false">{{ t('message.manage.btn.cancel') }}</el-button>
           <el-button type="primary" @click="saveData">
-            {{ isEditMode ? '전체 저장' : '일괄 등록' }}
+            {{ isEditMode ? t('message.manage.dialog.save_all') : t('message.manage.dialog.add_batch') }}
           </el-button>
         </span>
       </template>
@@ -148,379 +570,6 @@
 
   </div>
 </template>
-
-<script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { AgGridVue } from 'ag-grid-vue3';
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Refresh, Plus, Key } from '@element-plus/icons-vue';
-import { ApiUrls } from "@/api/apiUrls.js";
-import { Api } from "@/api/axiosInstance.js";
-import {Dialogs} from "@/common/dialogs.js";
-
-// --- State Variables ---
-const gridApi = ref(null);
-const searchParams = reactive({ keyword: '' }); // Locale 제거 (항상 ALL)
-const pivotRowData = ref([]); // 피벗(그룹핑)된 데이터
-const existingPrefixes = ref([]); // 추출된 코드 그룹(Prefix) 목록
-const defaultColDef = { resizable: true, sortable: true, filter: true };
-
-// Dialog State
-const dialogVisible = ref(false);
-const isEditMode = ref(false);
-const formRef = ref(null);
-// Form 데이터 구조 변경: code 하나에 ko/en 메시지 포함
-const formData = reactive({
-  code: '',
-  messageKo: '',
-  messageEn: '',
-  idKo: null,
-  idEn: null
-});
-
-// --- [핵심] Custom Validator: 중복 체크 로직 ---
-const validateCodeUnique = (rule, value, callback) => {
-  if (!value) {
-    return callback(new Error('Code Key를 입력해주세요.'));
-  }
-
-  // 수정 모드일 때는 중복 체크 건너뜀 (어차피 disabled)
-  if (isEditMode.value) {
-    return callback();
-  }
-
-  // pivotRowData에는 현재 화면에 로드된 모든 고유 Code들이 있음
-  // some()을 사용하여 입력된 value와 정확히 일치하는 Code가 있는지 확인
-  const isDuplicate = pivotRowData.value.some(item => item.code === value);
-
-  if (isDuplicate) {
-    // 중복이면 에러 메시지 반환 -> 입력창 아래 빨간색으로 표시됨
-    callback(new Error('이미 존재하는 Code Key입니다. 다른 키를 입력해주세요.'));
-  } else {
-    // 통과
-    callback();
-  }
-};
-
-// Validation Rules
-const rules = {
-  code: [
-    // required 체크 + 커스텀 중복 체크 (trigger: blur, change 둘 다 걸어서 실시간 반응)
-    { required: true, validator: validateCodeUnique, trigger: ['blur', 'change'] }
-  ],
-  messageKo: [
-    { required: true, message: '한국어 메시지를 입력해주세요.', trigger: 'blur' }
-  ]
-};
-
-// AG Grid Locale
-const localeText = reactive({
-  filterOoo: '필터...',
-  applyFilter: '필터 적용',
-  resetFilter: '필터 초기화',
-  pageSizeSelectorLabel: '페이지 크기:',
-  page: '페이지',
-  of: '/',
-  to: '-',
-  rowCount: '개',
-  noRowsToShow: '표시할 데이터가 없습니다',
-});
-
-// --- Column Definitions
-const colDefs = ref([
-  {
-    headerName: 'Code Key',
-    field: 'code',
-    width: 240, // 라벨 형태라 약간 여유 있게
-    pinned: 'left',
-    // 세로 중앙 정렬
-    cellStyle: { display: 'flex', alignItems: 'center' },
-    cellRenderer: (params) => {
-      if (!params.value) return '';
-
-      // Code Key 스타일: 회색 배경 + 진한 글씨 + 모노스페이스 폰트
-      const codeStyle = `
-        background-color: var(--el-border-color);
-        border: 1px solid #dcdfe6;
-        color: var(--el-text-color);
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-family: Consolas, Monaco, monospace;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: -0.3px;
-        display: inline-block;
-        line-height: normal;
-      `;
-      return `<span style="${codeStyle}">${params.value}</span>`;
-    }
-  },
-  {
-    headerName: '한국어 (KO)',
-    field: 'messageKo',
-    flex: 1,
-    // 세로 중앙 정렬을 위해 display: flex 추가
-    cellStyle: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', fontSize: '13px' },
-    cellRenderer: (params) => {
-      if (!params.value) return `<span style="color: #ccc; font-size: 11px;">(미등록)</span>`;
-
-      // KO 라벨 스타일 (초록색 계열)
-      const badgeStyle = `
-        color: #67c23a;
-        background: rgba(103, 194, 58, 0.1);
-        border: 1px solid rgba(103, 194, 58, 0.3);
-        padding: 1px 5px;
-        border-radius: 4px;
-        font-size: 10px;
-        font-weight: 700;
-        margin-right: 6px;
-        display: inline-block;
-        line-height: normal;
-      `;
-      return `<span style="${badgeStyle}">KO</span><span>${params.value}</span>`;
-    }
-  },
-  {
-    headerName: 'English (EN)',
-    field: 'messageEn',
-    flex: 1,
-    cellStyle: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', fontSize: '13px' },
-    cellRenderer: (params) => {
-      if (!params.value) return `<span style="color: #ccc; font-size: 11px;">(Unregistered)</span>`;
-
-      // EN 라벨 스타일 (파란색 계열)
-      const badgeStyle = `
-        color: #409eff;
-        background: rgba(64, 158, 255, 0.1);
-        border: 1px solid rgba(64, 158, 255, 0.3);
-        padding: 1px 5px;
-        border-radius: 4px;
-        font-size: 10px;
-        font-weight: 700;
-        margin-right: 6px;
-        display: inline-block;
-        line-height: normal;
-      `;
-      return `<span style="${badgeStyle}">EN</span><span>${params.value}</span>`;
-    }
-  },
-  {
-    headerName: '관리',
-    width: 68,
-    pinned: 'right',
-    sortable: false,
-    filter: false,
-    cellStyle: { textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    cellRenderer: () => {
-      return `
-        <span class="action-btn edit-btn" style="margin-right: 6px; color: var(--el-color-primary); font-weight:600; font-size: 11px; cursor: pointer;">
-          <i class="el-icon-edit"></i> 수정
-        </span>
-        <span class="action-btn del-btn" style="color: var(--el-color-danger); font-weight:600; font-size: 11px; cursor: pointer;">
-          <i class="el-icon-delete"></i> 삭제
-        </span>
-      `;
-    }
-  }
-]);
-
-// --- Methods ---
-const onGridReady = (params) => { gridApi.value = params.api; };
-
-// --- [Logic Add] Prefix Extraction ---
-const extractPrefixes = (dataList) => {
-  const prefixSet = new Set();
-  dataList.forEach(item => {
-    // 점(.)이 있는 경우 그룹으로 간주
-    const lastDotIndex = item.code.lastIndexOf('.');
-    if (lastDotIndex > -1) {
-      // "login.title" -> "login." 추출
-      const prefix = item.code.substring(0, lastDotIndex + 1);
-      prefixSet.add(prefix);
-    }
-  });
-  // Autocomplete용 포맷: [{ value: 'login.' }, ...]
-  existingPrefixes.value = Array.from(prefixSet)
-      .sort()
-      .map(p => ({ value: p }));
-};
-
-// Autocomplete Filter Method
-const querySearchGroup = (queryString, cb) => {
-  const results = queryString
-      ? existingPrefixes.value.filter(item => item.value.toLowerCase().includes(queryString.toLowerCase()))
-      : existingPrefixes.value;
-  cb(results);
-};
-
-// 데이터 조회 및 피벗 처리
-const fetchData = async () => {
-  const loadingInstance = ElLoading.service({ target: '.grid-container', text: '데이터 로딩 중...' });
-
-  try {
-    const response = await Api.post(ApiUrls.GET_MESSAGES_MANAGE, {
-      locale: 'ALL',
-      message: searchParams.keyword
-    });
-    const flatList = response.data || [];
-
-    const groupedMap = new Map();
-    flatList.forEach(item => {
-      if (!groupedMap.has(item.code)) {
-        groupedMap.set(item.code, {
-          code: item.code,
-          messageKo: '',
-          messageEn: '',
-          idKo: null,
-          idEn: null,
-          updatedAt: item.updatedAt
-        });
-      }
-      const group = groupedMap.get(item.code);
-      if (item.locale === 'ko') {
-        group.messageKo = item.message;
-        group.idKo = item.id;
-      } else if (item.locale === 'en') {
-        group.messageEn = item.message;
-        group.idEn = item.id;
-      }
-    });
-
-    const finalData = Array.from(groupedMap.values());
-    pivotRowData.value = finalData;
-
-    // [Logic Add] 데이터 로드 후 그룹(Prefix) 추출 갱신
-    extractPrefixes(finalData);
-
-  } catch (e) {
-    console.error(e);
-    ElMessage.error('데이터 조회 중 오류가 발생했습니다.');
-  } finally {
-    loadingInstance.close();
-  }
-};
-
-const onSearch = () => fetchData();
-
-const onReset = () => {
-  searchParams.keyword = '';
-  fetchData();
-};
-
-// --- Dialog Logic (수정됨: 세트 처리) ---
-const openDialog = (row) => {
-  if (row) {
-    // 수정 모드: Row 데이터(Pivot)를 폼에 매핑
-    isEditMode.value = true;
-    formData.code = row.code;
-    formData.messageKo = row.messageKo;
-    formData.messageEn = row.messageEn;
-    formData.idKo = row.idKo;
-    formData.idEn = row.idEn;
-  } else {
-    // 등록 모드: 초기화
-    isEditMode.value = false;
-    formData.code = '';
-    formData.messageKo = '';
-    formData.messageEn = '';
-    formData.idKo = null;
-    formData.idEn = null;
-  }
-  dialogVisible.value = true;
-};
-
-// 저장 (KO/EN 일괄 처리)
-const saveData = async () => {
-  if (!formRef.value) return;
-  await formRef.value.validate(async (valid) => {
-    if (valid) {
-      const loading = ElLoading.service({ text: '저장 중...' });
-      try {
-        // [백엔드 연동 포인트]
-        // 실제로는 List<MessageRequestDto> 형태로 한번에 보내거나,
-        // 아래처럼 순차 호출을 해야 합니다.
-
-        // 1. KO 저장
-        const reqKo = {
-          id: formData.idKo, // null이면 Insert
-          code: formData.code,
-          locale: 'ko',
-          message: formData.messageKo
-        };
-        // await Api.post(ApiUrls.SAVE_MESSAGE, reqKo); // 실제 호출
-
-        // 2. EN 저장
-        const reqEn = {
-          id: formData.idEn,
-          code: formData.code,
-          locale: 'en',
-          message: formData.messageEn
-        };
-        // await Api.post(ApiUrls.SAVE_MESSAGE, reqEn); // 실제 호출
-
-        // Mock Simulation
-        console.log('KO Save:', reqKo);
-        console.log('EN Save:', reqEn);
-        await new Promise(r => setTimeout(r, 500));
-
-        ElMessage.success('성공적으로 저장되었습니다.');
-        dialogVisible.value = false;
-        fetchData(); // 그리드 갱신
-
-      } catch (e) {
-        console.error(e);
-        ElMessage.error('저장에 실패했습니다.');
-      } finally {
-        loading.close();
-      }
-    }
-  });
-};
-
-// 삭제 (Code 기준 일괄 삭제)
-const handleDelete = async (row) => {
-
-  await Dialogs.customConfirm(
-      '삭제 확인',
-      `코드 [${row.code}]의 한글/영어 리소스를 모두 삭제하시겠습니까?`,
-      '삭제',
-      '취소',
-      '485px',
-      'warning'
-  );
-
-  // ElMessageBox.confirm(
-  //     `코드 [${row.code}]의 한글/영어 리소스를 모두 삭제하시겠습니까?`,
-  //     '삭제 확인',
-  //     { confirmButtonText: '삭제', cancelButtonText: '취소', type: 'warning' }
-  // ).then(async () => {
-  //   try {
-  //     // [백엔드 연동 포인트] Code로 삭제하는 API 호출
-  //     // await Api.post(ApiUrls.DELETE_MESSAGE_BY_CODE, { code: row.code });
-  //
-  //     console.log('Delete Code:', row.code); // Mock
-  //     ElMessage.success('삭제되었습니다.');
-  //     fetchData();
-  //   } catch (e) {
-  //     ElMessage.error('삭제 실패');
-  //   }
-  // });
-};
-
-// --- Grid Cell Click Event ---
-const onCellClicked = (params) => {
-  const target = params.event.target;
-  if (target.closest('.edit-btn')) {
-    openDialog(params.data);
-  } else if (target.closest('.del-btn')) {
-    handleDelete(params.data);
-  }
-};
-
-onMounted(() => {
-  fetchData();
-});
-</script>
 
 <style>
 @import "ag-grid-community/styles/ag-grid.css";

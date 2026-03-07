@@ -8,9 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,21 +16,21 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/store")
+@RequestMapping("/api/gourmet-records")
 @RequiredArgsConstructor
 public class GourmetRecordController {
 
     private final GourmetRecordService gourmetRecordService;
     private final FileStorageService fileStorageService;
 
-    @PostMapping("/write")
+    @PostMapping
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<Void> createGourmetRecord(@RequestBody GourmetRecordCreateRequest request) {
         gourmetRecordService.saveGourmetRecord(request);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/read")
+    @GetMapping
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<List<GourmetRecordDto>> getGourmetRecords(
             @RequestHeader(value = "Accept-Language", defaultValue = "ko") String lang,
@@ -42,7 +40,7 @@ public class GourmetRecordController {
         return ResponseEntity.ok(records);
     }
 
-    @PostMapping("/delete")
+    @DeleteMapping("/temp-files")
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public void deleteOldTempFiles(@AuthenticationPrincipal UserDetails userDetail) {
         String userId = userDetail.getUsername();

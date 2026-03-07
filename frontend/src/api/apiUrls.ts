@@ -2,37 +2,41 @@ export enum ApiUrls {
 
     GET_PUBLIC_KEY = "/api/public-key",
     GET_MESSAGES = '/api/common/messages',
-    GET_MESSAGES_MANAGE = '/api/common/messageManage',
 
     // auth
     LOGIN = '/api/auth/login',
     LOGOUT = '/api/auth/logout',
-    CHECK_ID = '/api/auth/isDuplicateId',
-    CHECK_EMAIL = '/api/auth/isDuplicateEmail',
+    CHECK_ID = '/api/auth/check/id',
+    CHECK_EMAIL = '/api/auth/check/email',
     CHECK_PWNED_PASSWORD = '/api/auth/check-pwned-password',
     SIGN_UP = '/api/auth/signup',
-    SEND_MAIL = '/api/auth/sendmail',
-    CHECK_CODE = '/api/auth/verify-email',
+    SEND_MAIL = '/api/auth/email/verification',
+    CHECK_CODE = '/api/auth/email/verification/confirm',
     COPY_ID = '/api/auth/copy-id',
-    GET_USER_PASSWORD_HINT = '/api/auth/search-hint',
-    VALIDATE_PASSWORD_HINT = '/api/auth/validate-answer',
-    UPDATE_PASSWORD = '/api/auth/update-password',
+    GET_USER_PASSWORD_HINT = '/api/auth/hint',
+    VALIDATE_PASSWORD_HINT = '/api/auth/hint/validate',
+    UPDATE_PASSWORD = '/api/auth/password',
 
     // users
     GET_USER = '/api/users/me',
-    ACTIVATE_DORMANT = '/api/users/activate-dormant',
+    ACTIVATE_DORMANT = '/api/users/me/dormant',
 
     // authorization
-    GET_MENUS = '/api/authorization/getMenus',
-    GET_USER_INFOS = '/api/authorization/getUserInfos',
-    GET_ACTIVITY = '/api/authorization/geActivityCds',
-    GET_LOGS = '/api/authorization/getLogs',
-    UPDATE_USER_INFO = '/api/authorization/updateUserInfo',
-    VALIDATE_PASSWORD = '/api/authorization/validatePassword',
-    UPDATE_PASSWORD_AF_LOGIN = '/api/authorization/updatePassword',
-    GET_PASSWORD_HINT = '/api/authorization/getSecurityQuestion',
-    UPDATE_PASSWORD_HINT = '/api/authorization/updateHintWithAns',
-    WITHDRAWN = '/api/authorization/updateWithdrawn',
+    GET_MENUS = '/api/authorization/menus',
+    GET_USER_INFOS = '/api/authorization/users',
+    GET_ACTIVITY = '/api/authorization/logs/activity-codes',
+    GET_LOGS = '/api/authorization/logs',
+    UPDATE_USER_INFO = '/api/authorization/users',
+    VALIDATE_PASSWORD = '/api/authorization/users/password/validate',
+    UPDATE_PASSWORD_AF_LOGIN = '/api/authorization/users/password',
+    GET_PASSWORD_HINT = '/api/authorization/security-questions',
+    UPDATE_PASSWORD_HINT = '/api/authorization/users/hint',
+    WITHDRAWN = '/api/authorization/users/me',
+
+    // messages
+    GET_MESSAGES_MANAGE = '/api/messages',
+    SAVE_MESSAGES = '/api/messages',
+    DELETE_MESSAGE = '/api/messages',
 
     // analysis
     RANDOM_RECOMMENDATIONS = '/api/analysis/random-recommendations',
@@ -41,13 +45,13 @@ export enum ApiUrls {
     WEATHER_SEARCH = '/api/analysis/weather',
     HOLIDAY_INFO = '/api/analysis/holiday-status',
     SEARCH_TREND = '/api/analysis/search-trend',
-    OPENING_INFO = '/api/analysis/openingInfo',
+    OPENING_INFO = '/api/analysis/opening-info',
     SURROUNDING_INFO = '/api/analysis/surroundings',
 
-    // store
-    CREATE_GOURMET_RECORD = '/api/store/write',
-    GET_GOURMET_RECORDS = '/api/store/read',
-    CLEAR_TEMP_FILE = '/api/store/delete',
+    // gourmet-records
+    CREATE_GOURMET_RECORD = '/api/gourmet-records',
+    GET_GOURMET_RECORDS = '/api/gourmet-records',
+    CLEAR_TEMP_FILE = '/api/gourmet-records/temp-files',
 
     // files
     FILE_UPLOAD = '/api/files/upload',

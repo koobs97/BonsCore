@@ -135,7 +135,7 @@ const resetPassword = async () => {
     );
 
     const encryptedPassword = await Common.encryptPassword(formData.newPassword);
-    await Api.post(ApiUrls.UPDATE_PASSWORD, { token: token.value, password: encryptedPassword, userId: formData.userId });
+    await Api.patch(ApiUrls.UPDATE_PASSWORD, { token: token.value, password: encryptedPassword, userId: formData.userId });
 
     const loading = ElLoading.service({ lock: true, text: 'Loading' });
     setTimeout(() => {

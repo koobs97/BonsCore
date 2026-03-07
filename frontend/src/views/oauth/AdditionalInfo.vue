@@ -89,7 +89,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           userId: userInfo.value.userId,
           ...editForm
         };
-        await Api.post(ApiUrls.UPDATE_USER_INFO, payload, true); // 로딩 옵션 추가
+        await Api.patch(ApiUrls.UPDATE_USER_INFO, payload, true); // 로딩 옵션 추가
         const updatedUserInfo = { ...userInfo.value, ...payload };
         store.setUserInfo(updatedUserInfo);
         ElMessage.success('환영합니다! 회원가입이 성공적으로 완료되었습니다.');

@@ -117,7 +117,7 @@ const fetchUserSecurityQuestion = async () => {
   showNoQuestionAlert.value = false;
   try {
     // [API 호출] 사용자의 ID를 기반으로 설정된 보안 질문을 가져옵니다.
-    const response = await Api.post(ApiUrls.GET_USER_PASSWORD_HINT, { userId: formData.userId });
+    const response = await Api.get(ApiUrls.GET_USER_PASSWORD_HINT, { userId: formData.userId });
 
     // 보안 질문이 있는 경우와 없는 경우 분리
     if (response) {
@@ -285,7 +285,7 @@ const resetPassword = async () => {
     const encryptedPassword = await Common.encryptPassword(formData.newPassword);
 
     // 비밀번호 변경 로직
-    await Api.post(ApiUrls.UPDATE_PASSWORD, { token: token.value, password: encryptedPassword, userId: formData.userId });
+    await Api.patch(ApiUrls.UPDATE_PASSWORD, { token: token.value, password: encryptedPassword, userId: formData.userId });
 
     const loading = ElLoading.service({
       lock: true,

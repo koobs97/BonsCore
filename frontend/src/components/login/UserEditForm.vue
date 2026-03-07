@@ -103,7 +103,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         editForm.userEmailCheckStatus = 'success';
       }
       else {
-        const response2 = await Api.post(ApiUrls.CHECK_EMAIL, { email: editForm.email });
+        const response2 = await Api.get(ApiUrls.CHECK_EMAIL, { email: editForm.email });
         if (response2.data) {
           ElMessage({ message: t('userEditForm.messages.emailUnavailable'), grouping: true, type: 'error' })
           editForm.userEmailCheckStatus = 'error';
@@ -135,7 +135,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
             genderCode : editForm.genderCode,
           };
 
-          await Api.post(ApiUrls.UPDATE_USER_INFO, payload);
+          await Api.patch(ApiUrls.UPDATE_USER_INFO, payload);
 
           ElMessage.success(t('userEditForm.messages.updateSuccess'));
           await Common.setUser();
@@ -196,7 +196,7 @@ const handleFieldValidation = async (fieldName: any) => {
     const param = {
       email: editForm.email
     }
-    const response = await Api.post(ApiUrls.CHECK_EMAIL, param);
+    const response = await Api.get(ApiUrls.CHECK_EMAIL, param);
     if (response.data) {
       ElMessage({ message: t('userEditForm.messages.emailUnavailable'), grouping: true, type: 'error' });
       editForm.userEmailCheckStatus = 'error';

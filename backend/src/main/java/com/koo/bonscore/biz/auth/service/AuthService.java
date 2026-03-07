@@ -2,21 +2,20 @@ package com.koo.bonscore.biz.auth.service;
 
 import java.util.ArrayList;
 import com.koo.bonscore.biz.auth.controller.RSAController;
-import com.koo.bonscore.biz.auth.dto.LoginHistoryDto;
-import com.koo.bonscore.biz.auth.dto.UserDto;
+import com.koo.bonscore.biz.auth.dto.req.ClientInfoDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
 import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
-import com.koo.bonscore.biz.auth.entity.LoginHistory;
-import com.koo.bonscore.biz.authorization.entity.Role;
-import com.koo.bonscore.biz.authorization.entity.RoleUser;
-import com.koo.bonscore.biz.auth.entity.User;
-import com.koo.bonscore.biz.users.entity.UserDormantInfo;
-import com.koo.bonscore.biz.auth.repository.LoginHistoryRepository;
-import com.koo.bonscore.biz.auth.repository.UserRepository;
-import com.koo.bonscore.biz.authorization.repository.UserRoleRepository;
-import com.koo.bonscore.biz.users.repository.UserDormantRepository;
+import com.koo.bonscore.core.domain.log.entity.LoginHistory;
+import com.koo.bonscore.core.domain.authorization.entity.Role;
+import com.koo.bonscore.core.domain.authorization.entity.RoleUser;
+import com.koo.bonscore.core.domain.user.entity.User;
+import com.koo.bonscore.core.domain.user.entity.UserDormantInfo;
+import com.koo.bonscore.core.domain.log.repository.LoginHistoryRepository;
+import com.koo.bonscore.core.domain.user.repository.UserRepository;
+import com.koo.bonscore.core.domain.authorization.repository.UserRoleRepository;
+import com.koo.bonscore.core.domain.user.repository.UserDormantRepository;
 import com.koo.bonscore.common.api.mail.service.MailService;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
@@ -80,7 +79,7 @@ public class AuthService {
      * @throws Exception 로그인 과정에서 발생하는 모든 예외
      */
     @Transactional
-    public LoginResponseDto login(LoginDto request, LoginHistoryDto clientInfo) throws Exception {
+    public LoginResponseDto login(LoginDto request, ClientInfoDto clientInfo) throws Exception {
 
         // 1. 사용자 정보 및 비밀번호 유효성 검증
         String decryptedPassword = rsaController.decrypt(request.getPassword());
@@ -139,7 +138,7 @@ public class AuthService {
     /**
      * 3. 비정상 로그인 탐지
      */
-    private boolean checkAbnormalLogin(User user, LoginHistoryDto clientInfo) {
+    private boolean checkAbnormalLogin(User user, ClientInfoDto clientInfo) {
         try {
             // 비정상 로그인으로 계정이 잠겨있는지 확인
             if("Y".equals(user.getRequiresVerificationYn())) {
@@ -195,7 +194,7 @@ public class AuthService {
     /**
      * 4. 로그인 성공처리 수행
      */
-    private void processLoginSuccess(User user, LoginHistoryDto clientInfo) {
+    private void processLoginSuccess(User user, ClientInfoDto clientInfo) {
         user.updateLoginTime();
         loginAttemptService.loginSucceeded(user.getUserId());
         saveLoginHistory(user.getUserId(), clientInfo);
@@ -204,7 +203,7 @@ public class AuthService {
     /**
      * 4-1. 로그인 로그 저장
      */
-    private void saveLoginHistory(String userId, LoginHistoryDto historyDto) {
+    private void saveLoginHistory(String userId, ClientInfoDto historyDto) {
         try {
             LoginHistory historyEntity = LoginHistory.builder()
                     .userId(userId)

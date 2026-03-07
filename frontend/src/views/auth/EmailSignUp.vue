@@ -306,7 +306,7 @@ const handleFieldValidation = (fieldName: any) => {
       const param = {
         email: state.data.email
       }
-      const response = await Api.post(ApiUrls.CHECK_EMAIL, param);
+      const response = await Api.get(ApiUrls.CHECK_EMAIL, param);
       if (response.data) {
         ElMessage({ message: t('emailSignup.messages.emailInUse'), grouping: true, type: 'error' });
         state.userEmailCheckStatus = 'error';
@@ -464,7 +464,7 @@ const showEtcPopup = () => {
 const onClickCheckId = () => {
   formRef.value.validateField('userId', async (isValid: boolean) => {
     if (isValid) {
-      const response = await Api.post(ApiUrls.CHECK_ID, { userId : state.data.userId }, true);
+      const response = await Api.get(ApiUrls.CHECK_ID, { userId: state.data.userId }, true);
       if (response.data) {
         ElMessage({ message: t('emailSignup.messages.idInUse'), grouping: true, type: 'error' })
         state.userIdCheckStatus = 'error';
@@ -537,7 +537,7 @@ const onClickSignUp = async () => {
     console.log('submit!');
 
     // 아이디 유효성 재검사
-    const response = await Api.post(ApiUrls.CHECK_ID, { userId : state.data.userId }, true);
+    const response = await Api.get(ApiUrls.CHECK_ID, { userId: state.data.userId }, true);
     if (response.data) {
       ElMessage({ message: t('emailSignup.messages.idInUse'), grouping: true, type: 'error' })
       state.userIdCheckStatus = 'error';
@@ -547,7 +547,7 @@ const onClickSignUp = async () => {
       state.userIdCheckStatus = 'success';
     }
 
-    const response2 = await Api.post(ApiUrls.CHECK_EMAIL, { email: state.data.email });
+    const response2 = await Api.get(ApiUrls.CHECK_EMAIL, { email: state.data.email });
     if (response2.data) {
       ElMessage({ message: t('emailSignup.messages.emailInUse'), grouping: true, type: 'error' })
       state.userEmailCheckStatus = 'error';

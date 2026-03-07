@@ -211,7 +211,7 @@ const onClickWithdraw = async () => {
       background: 'rgba(0, 0, 0, 0.7)',
     });
 
-    await Api.post(ApiUrls.WITHDRAWN, {}, true);
+    await Api.delete(ApiUrls.WITHDRAWN, undefined, true);
 
     setTimeout(() => {
       userStore().delUserInfo();

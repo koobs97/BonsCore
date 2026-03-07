@@ -225,7 +225,7 @@ const onClickLogin = async (isForced: boolean) => {
       }
 
       // 사용자가 등록했던 임시파일 초기화
-      await Api.post(ApiUrls.CLEAR_TEMP_FILE, {});
+      await Api.delete(ApiUrls.CLEAR_TEMP_FILE);
 
       // 구글 로그인 후 추가정보 입력이 필요한지 확인
       const additionalInfoRequired = res.data.additionalInfoRequired;

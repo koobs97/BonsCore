@@ -1,6 +1,7 @@
 package com.koo.bonscore.biz.auth.controller;
 
-import com.koo.bonscore.biz.auth.dto.LoginHistoryDto;
+import com.koo.bonscore.biz.auth.dto.res.LoginHistoryDto;
+import com.koo.bonscore.biz.auth.dto.req.ClientInfoDto;
 import com.koo.bonscore.biz.auth.dto.req.LoginDto;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
 import com.koo.bonscore.biz.auth.dto.req.UserInfoSearchDto;
@@ -114,7 +115,7 @@ public class AuthController {
         try {
 
             // 클라이언트 정보 추출
-            LoginHistoryDto clientInfo = getClientInfo(request, httpRequest);
+            ClientInfoDto clientInfo = getClientInfo(request, httpRequest);
 
             // 실제 로그인 처리
             LoginResponseDto responseDto = authService.login(request, clientInfo);
@@ -201,7 +202,7 @@ public class AuthController {
      * @param httpRequest HttpServletRequest
      * @return 로그인 로그 기록 dto
      */
-    private LoginHistoryDto getClientInfo(LoginDto request, HttpServletRequest httpRequest) {
+    private ClientInfoDto getClientInfo(LoginDto request, HttpServletRequest httpRequest) {
 
         String ip = WebUtils.getClientIP(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
@@ -232,7 +233,7 @@ public class AuthController {
             }
         }
 
-        return new LoginHistoryDto(request.getUserId(), ip, userAgent, country, city);
+        return new ClientInfoDto(request.getUserId(), ip, userAgent, country, city);
     }
 
     /**
@@ -355,13 +356,13 @@ public class AuthController {
     /**
      * 아이디 중복 체크
      *
-     * @param request 확인할 사용자 ID가 포함된 회원가입 요청 DTO
+     * @param userId 확인할 사용자 ID
      * @return 중복된 아이디가 존재하면 true, 아니면 false
      */
-    @PreventDoubleClick
-    @PostMapping("/isDuplicateId")
-    public boolean isDuplicateId(@RequestBody SignUpDto request, HttpServletRequest httpRequest) {
+    @GetMapping("/check/id")
+    public boolean isDuplicateId(@RequestParam String userId, HttpServletRequest httpRequest) {
         try {
+            SignUpDto request = SignUpDto.builder().userId(userId).build();
             return authService.isDuplicateId(request);
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
@@ -373,13 +374,13 @@ public class AuthController {
     /**
      * 이메일 중복체크(이메일 입력 blur 이벤트 시 호출)
      *
-     * @param request 확인할 이메일이 포함된 회원가입 요청 DTO
+     * @param email 확인할 이메일
      * @return 중복된 이메일이 존재하면 true, 아니면 false
      */
-    @PreventDoubleClick
-    @PostMapping("/isDuplicateEmail")
-    public boolean isDuplicateEmail(@RequestBody SignUpDto request, HttpServletRequest httpRequest) {
+    @GetMapping("/check/email")
+    public boolean isDuplicateEmail(@RequestParam String email, HttpServletRequest httpRequest) {
         try {
+            SignUpDto request = SignUpDto.builder().email(email).build();
             return authService.isDuplicateEmail(request);
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
@@ -431,7 +432,7 @@ public class AuthController {
      */
     @UserActivityLog(activityType = "SEND_MAIL", userIdField = "#request.email")
     @PreventDoubleClick
-    @PostMapping("/sendmail")
+    @PostMapping("/email/verification")
     public void sendMail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
         try {
             authService.searchIdBySendMail(request);
@@ -450,7 +451,7 @@ public class AuthController {
      */
     @UserActivityLog(activityType = "CHECK_CODE", userIdField = "#request.email")
     @PreventDoubleClick
-    @PostMapping("/verify-email")
+    @PostMapping("/email/verification/confirm")
     public UserInfoSearchDto verifyEmail(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
         try {
             return authService.verifyCode(request.getEmail(), request.getCode(), request.getType());
@@ -484,13 +485,14 @@ public class AuthController {
     /**
      * 사용자 아이디로 보안질문 조회
      *
-     * @param request 사용자 ID
+     * @param userId 사용자 ID
      * @return 보안질문
      */
-    @UserActivityLog(activityType = "GET_HINT", userIdField = "#request.userId")
-    @PostMapping("/search-hint")
-    public String searchPasswordHintById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
+    @UserActivityLog(activityType = "GET_HINT", userIdField = "#userId")
+    @GetMapping("/hint")
+    public String searchPasswordHintById(@RequestParam String userId, HttpServletRequest httpRequest) {
         try {
+            UserInfoSearchDto request = UserInfoSearchDto.builder().userId(userId).build();
             return authService.searchPasswordHintById(request);
         } catch (Exception e) {
             httpRequest.setAttribute("activityResult", "FAILURE");
@@ -506,7 +508,7 @@ public class AuthController {
      * @return 유저 ID
      */
     @UserActivityLog(activityType = "VALIDATE_ANSWER", userIdField = "#request.userId")
-    @PostMapping("/validate-answer")
+    @PostMapping("/hint/validate")
     public UserInfoSearchDto searchHintAnswerById(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) {
         try {
             return authService.searchHintAnswerById(request);
@@ -524,7 +526,7 @@ public class AuthController {
      * @throws Exception 토큰 검증 실패 또는 비밀번호 업데이트 실패 시
      */
     @UserActivityLog(activityType = "UPDATE_PWD", userIdField = "#request.userId")
-    @PostMapping("/update-password")
+    @PatchMapping("/password")
     public void updatePassowrd(@RequestBody UserInfoSearchDto request, HttpServletRequest httpRequest) throws Exception {
         try {
             authService.resetPasswordWithToken(request.getToken(), request.getPassword());

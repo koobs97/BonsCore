@@ -327,28 +327,118 @@ export class Api {
      * @param params
      * @param loadingOption
      */
-    public static get = async (url: ApiUrls, params?: Object, loadingOption?: Boolean): Promise<any> => {
+    public static get = async (url: ApiUrls | string, params?: Object, loadingOption?: Boolean): Promise<any> => {
+        let loading: any;
         if (loadingOption) {
-            const loading = ElLoading.service({
+            loading = ElLoading.service({
                 lock: true,
                 text: 'Loading',
                 background: 'rgba(0, 0, 0, 0.7)',
             });
+        }
+        try {
+            const retData = await axiosInstance.get(url as string, { params });
+            if (loadingOption) loading.close();
+            return retData.data;
+        } catch (error: any) {
+            if (loadingOption) loading.close();
+            return Promise.reject(error);
+        }
+    };
 
-            try {
-                const retData = await axiosInstance.get(url, { params }); // params를 URL의 query로 변환
-                loading.close();
-                return retData;
-            } catch (error) {
-                loading.close();
-                return Promise.reject(error);
+    /**
+     * axios PATCH 메소드 정의
+     * @param url
+     * @param params
+     * @param loadingOption
+     */
+    public static patch = async (url: ApiUrls | string, params: Object, loadingOption?: Boolean, options: PostOptions = {}): Promise<any> => {
+        let loading: any;
+        if (loadingOption) {
+            loading = ElLoading.service({
+                lock: true,
+                text: 'Loading',
+                background: 'rgba(0, 0, 0, 0.7)',
+            });
+        }
+        try {
+            const retData = await axiosInstance.patch(url as string, params, { headers: options.headers });
+            if (loadingOption) loading.close();
+            return retData.data;
+        } catch (error: any) {
+            if (loadingOption) loading.close();
+            if (error.response && error.response.status !== 401 && error.response.status !== 403) {
+                const backendMessage = error.response.data?.message || error.response.data?.header?.message;
+                if (backendMessage) {
+                    const { ElMessage: ElMsg } = await import('element-plus');
+                    ElMsg({ message: backendMessage, grouping: true, type: 'error' });
+                }
             }
-        } else {
-            try {
-                return await axios.get(url, { params });
-            } catch (error) {
-                return Promise.reject(error);
+            throw error;
+        }
+    };
+
+    /**
+     * axios PUT 메소드 정의
+     * @param url
+     * @param params
+     * @param loadingOption
+     */
+    public static put = async (url: ApiUrls | string, params: Object, loadingOption?: Boolean): Promise<any> => {
+        let loading: any;
+        if (loadingOption) {
+            loading = ElLoading.service({
+                lock: true,
+                text: 'Loading',
+                background: 'rgba(0, 0, 0, 0.7)',
+            });
+        }
+        try {
+            const retData = await axiosInstance.put(url as string, params);
+            if (loadingOption) loading.close();
+            return retData.data;
+        } catch (error: any) {
+            if (loadingOption) loading.close();
+            if (error.response && error.response.status !== 401 && error.response.status !== 403) {
+                const backendMessage = error.response.data?.message || error.response.data?.header?.message;
+                if (backendMessage) {
+                    const { ElMessage: ElMsg } = await import('element-plus');
+                    ElMsg({ message: backendMessage, grouping: true, type: 'error' });
+                }
             }
+            throw error;
+        }
+    };
+
+    /**
+     * axios DELETE 메소드 정의
+     * @param url
+     * @param params
+     * @param loadingOption
+     */
+    public static delete = async (url: ApiUrls | string, params?: Object, loadingOption?: Boolean): Promise<any> => {
+        let loading: any;
+        if (loadingOption) {
+            loading = ElLoading.service({
+                lock: true,
+                text: 'Loading',
+                background: 'rgba(0, 0, 0, 0.7)',
+            });
+        }
+        try {
+            const retData = await axiosInstance.delete(url as string, { data: params });
+            if (loadingOption) loading.close();
+            return retData.data;
+        } catch (error: any) {
+            if (loadingOption) loading.close();
+            if (error.response && error.response.status !== 401 && error.response.status !== 403) {
+                const backendMessage = error.response.data?.message || error.response.data?.header?.message;
+                if (backendMessage) {
+                    const { ElMessage: ElMsg } = await import('element-plus');
+                    ElMsg({ message: backendMessage, grouping: true, type: 'error' });
+                }
+            }
+            throw error;
         }
     };
 

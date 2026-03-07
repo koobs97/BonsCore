@@ -47,13 +47,7 @@ const formatDateToMonthDay = (date: any): string => {
 const fetchStores = async () => {
   isLoading.value = true;
   try {
-    const payload = {};
-    const config = {
-      headers: {
-        'Accept-Language': locale.value
-      }
-    };
-    const response = await Api.post(ApiUrls.GET_GOURMET_RECORDS, payload, true, config);
+    const response = await Api.get(ApiUrls.GET_GOURMET_RECORDS, undefined, true);
 
     // 서버에서 받은 데이터를 클라이언트에서 사용하기 좋은 형태로 가공합니다.
     const formattedStores = response.data.map((store: any) => {

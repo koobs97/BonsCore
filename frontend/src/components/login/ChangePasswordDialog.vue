@@ -118,7 +118,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         );
 
         // 실제 비밀번호 변경 API 호출
-        await Api.post(ApiUrls.UPDATE_PASSWORD_AF_LOGIN, {
+        await Api.patch(ApiUrls.UPDATE_PASSWORD_AF_LOGIN, {
           userId: props.userInfo.userId,
           password: await Common.encryptPassword(passwordForm.currentPassword),
         });
