@@ -1,0 +1,41 @@
+# ──────────────────────────────────────────────────────────────────
+# 개발 환경 전용 docker-compose
+# Oracle XE + Redis만 컨테이너로 실행
+# Spring Boot는 IntelliJ에서 직접 실행 (profile: dev-docker)
+#
+# 실행 명령: docker-compose -f docker-compose.dev.yml up -d
+# ──────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Oracle XE 21c ────────────────────────────────────────────────
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    ports:
+      - "1522:1521"           # 로컬 Oracle(1521)과 충돌 방지
+    environment:
+      ORACLE_PASSWORD: Oracle123!    # SYS/SYSTEM 패스워드
+      APP_USER: BONSDEV              # 앱 전용 사용자 자동 생성
+      APP_USER_PASSWORD: bonsdev1234
+    volumes:
+      - oracle-dev-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM DUAL;' | sqlplus -s BONSDEV/bonsdev1234@//localhost:1521/XEPDB1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ── Redis ────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    restart: unless-stopped
+
+volumes:
+  oracle-dev-data:
+  redis-dev-data:

@@ -24,9 +24,10 @@ public class BonsCoreApplication {
 
     public static void main(String[] args) {
 
-        // .env 적용
+        // .env 적용 (파일이 없으면 무시 - Docker 환경에서는 env_file로 주입)
         Dotenv dotenv = Dotenv.configure()
                 .directory("./backend")
+                .ignoreIfMissing()
                 .systemProperties()
                 .load();
 

@@ -6,9 +6,9 @@ cors:
 
 spring:
   datasource:
-    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-    url: jdbc:log4jdbc:oracle:thin:@127.0.0.1:1521:orcl
-    username: KOOBS97
+    driver-class-name: ${DATASOURCE_DRIVER_CLASS_NAME}
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
     password: ${DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: 10
@@ -17,6 +17,24 @@ spring:
       minimum-idle: 10
       idle-timeout: 600000
       max-lifetime: 1800000
+
+  # Flyway 설정 추가 (중요!)
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true  # 기존 DB가 있을 경우 대비
+
+  jpa:
+    hibernate:
+      # Flyway를 사용하므로 none 또는 validate 권장 (Daiky 개발시는 update도 가능)
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        dialect.oracle.version: 21
+    database-platform: org.hibernate.dialect.OracleDialect
+
   data:
     redis:
       port: 6379
@@ -25,6 +43,10 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 100MB
+
+oauth2:
+  redirect:
+    url: http://localhost:3000/oauth/redirect
 
 file:
   # 실제 파일이 저장될 로컬 컴퓨터의 경로
