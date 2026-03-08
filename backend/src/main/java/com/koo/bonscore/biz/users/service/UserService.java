@@ -1,10 +1,10 @@
 package com.koo.bonscore.biz.users.service;
 
-import com.koo.bonscore.core.domain.user.entity.User;
+import com.koo.bonscore.biz.users.entity.User;
 import com.koo.bonscore.biz.auth.service.AuthService;
-import com.koo.bonscore.core.domain.user.entity.UserDormantInfo;
-import com.koo.bonscore.core.domain.user.repository.UserRepository;
-import com.koo.bonscore.core.domain.user.repository.UserDormantRepository;
+import com.koo.bonscore.biz.users.entity.UserDormantInfo;
+import com.koo.bonscore.biz.users.repository.UserRepository;
+import com.koo.bonscore.biz.users.repository.UserDormantRepository;
 import com.koo.bonscore.biz.users.dto.req.DormantUserInfoDto;
 import com.koo.bonscore.biz.users.dto.res.UserInfoDto;
 import com.koo.bonscore.core.config.enc.EncryptionService;

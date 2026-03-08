@@ -1,7 +1,7 @@
 package com.koo.bonscore.common.message.service;
 
-import com.koo.bonscore.core.domain.message.entity.MessageResource;
-import com.koo.bonscore.core.domain.message.repository.MessageResourceRepository;
+import com.koo.bonscore.biz.messages.entity.MessageResource;
+import com.koo.bonscore.biz.messages.repository.MessageResourceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;

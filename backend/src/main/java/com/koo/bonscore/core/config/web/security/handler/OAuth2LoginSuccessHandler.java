@@ -1,8 +1,8 @@
 package com.koo.bonscore.core.config.web.security.handler;
 
 
-import com.koo.bonscore.core.domain.user.entity.User;
-import com.koo.bonscore.core.domain.user.repository.UserRepository;
+import com.koo.bonscore.biz.users.entity.User;
+import com.koo.bonscore.biz.users.repository.UserRepository;
 import com.koo.bonscore.biz.auth.service.AuthService;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;

@@ -1,7 +1,7 @@
 package com.koo.bonscore.core.aop;
 
 import com.koo.bonscore.common.util.web.WebUtils;
-import com.koo.bonscore.core.annotaion.PreventDoubleClick;
+import com.koo.bonscore.core.annotation.PreventDoubleClick;
 import com.koo.bonscore.core.exception.custom.BsCoreException;
 import com.koo.bonscore.core.exception.enumType.ErrorCode;
 import com.koo.bonscore.core.exception.enumType.HttpStatusCode;
@@ -36,7 +36,7 @@ public class PreventDoubleClickAspect {
 
     private final ConcurrentHashMap<String, Long> processingRequests = new ConcurrentHashMap<>();
 
-    @Around("@annotation(com.koo.bonscore.core.annotaion.PreventDoubleClick)")
+    @Around("@annotation(com.koo.bonscore.core.annotation.PreventDoubleClick)")
     public Object preventDoubleClick(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();

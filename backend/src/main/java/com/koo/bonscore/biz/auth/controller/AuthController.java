@@ -9,7 +9,7 @@ import com.koo.bonscore.biz.auth.dto.res.LoginResponseDto;
 import com.koo.bonscore.biz.auth.dto.res.RefreshTokenDto;
 import com.koo.bonscore.biz.auth.service.*;
 import com.koo.bonscore.common.util.web.WebUtils;
-import com.koo.bonscore.core.annotaion.PreventDoubleClick;
+import com.koo.bonscore.core.annotation.PreventDoubleClick;
 import com.koo.bonscore.core.config.api.ApiResponse;
 import com.koo.bonscore.core.config.web.security.config.JwtTokenProvider;
 import com.koo.bonscore.core.config.web.security.config.LoginSessionManager;

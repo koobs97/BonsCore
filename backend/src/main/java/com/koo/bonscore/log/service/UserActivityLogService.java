@@ -1,8 +1,8 @@
 package com.koo.bonscore.log.service;
 
-import com.koo.bonscore.core.domain.log.repository.UserActivityLogRepository;
+import com.koo.bonscore.log.repository.UserActivityLogRepository;
 import com.koo.bonscore.log.dto.UserActivityLogDto;
-import com.koo.bonscore.core.domain.log.entity.UserActivityLog;
+import com.koo.bonscore.log.entity.UserActivityLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

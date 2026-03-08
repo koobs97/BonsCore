@@ -2,10 +2,10 @@ package com.koo.bonscore.biz.auth.service;
 
 import com.koo.bonscore.biz.auth.dto.res.OAuthAttributes;
 import com.koo.bonscore.biz.auth.dto.req.SignUpDto;
-import com.koo.bonscore.core.domain.authorization.entity.RoleUser;
-import com.koo.bonscore.core.domain.user.entity.User;
-import com.koo.bonscore.core.domain.user.repository.UserRepository;
-import com.koo.bonscore.core.domain.authorization.repository.UserRoleRepository;
+import com.koo.bonscore.biz.authorization.entity.RoleUser;
+import com.koo.bonscore.biz.users.entity.User;
+import com.koo.bonscore.biz.users.repository.UserRepository;
+import com.koo.bonscore.biz.authorization.repository.UserRoleRepository;
 import com.koo.bonscore.core.config.enc.EncryptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

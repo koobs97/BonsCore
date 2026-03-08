@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class CommandExecutionAspect {
 
-    @Pointcut("@annotation(com.koo.bonscore.core.annotaion.PreventCommandInjection)")
+    @Pointcut("@annotation(com.koo.bonscore.core.annotation.PreventCommandInjection)")
     public void commandValidationRequired() {}
 
     @Before("commandValidationRequired()")
